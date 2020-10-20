@@ -1,0 +1,7 @@
+
+SciExpeM/__pycache__/
+.idea
+__pycache__/
+experimentmanager/__pycache__/
+experimentmanager/migrations
+frontend/__pycache__/

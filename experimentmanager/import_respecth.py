@@ -9,8 +9,6 @@ from django.db import transaction
 
 # BEFORE RUNNING THIS SCRIPT, IT IS NECESSARY TO ADD THE ROOT PROJECT FOLDER TO THE PYTHONPATH
 
-print(sys.path)
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SciExpeM.settings")
 django.setup()
 

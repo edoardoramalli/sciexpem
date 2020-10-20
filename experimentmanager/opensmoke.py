@@ -2,6 +2,9 @@ import os, logging, re
 import glob
 from . import models
 from pathlib import Path
+import pandas as pd
+from pint import UnitRegistry
+from io import StringIO
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -10,6 +13,40 @@ __location__ = os.path.realpath(
 class OpenSmokeParser:
     def __init__(self):
         pass
+
+    @staticmethod
+    def parse_header_output(header, SI):
+        unit_name = header[header.find("[") + 1: header.find("]")] if header.find("[") else None
+        label = header[: header.find("[")] if header.find("[") else None
+
+        return label, getattr(SI, unit_name)
+
+    @staticmethod
+    def parse_output(path):
+        column_label = []
+        column_unit = {}
+
+        SI = UnitRegistry()
+        SI.load_definitions('units.def')
+
+        with open(path, "r") as file:
+            header = re.sub('&+', '&', file.readline().replace(" ", "&"))[:-2]
+            header_split = [x[:x.rfind("(")] for x in header.strip().split("&")]
+            for header in header_split:
+                label, unit = OpenSmokeParser.parse_header_output(header, SI)
+                column_label.append(label)
+                column_unit[label] = unit
+
+            string_file = '&'.join(column_label) + "\n"
+
+            for line in file:
+                row = re.sub('&+', '&', line.replace(" ", "&"))[:-2]
+                string_file += row + "\n"
+
+        data = pd.read_csv(StringIO(string_file), sep="&")
+        df = pd.DataFrame(data, columns=column_label)
+
+        return df, column_unit
 
     @staticmethod
     def parse_file(input_file):

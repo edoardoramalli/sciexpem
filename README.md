@@ -31,6 +31,8 @@ Only the postgresq engine is supported
 
 Run
 
+`python manage.py makemigrations experimentmanager`
+
 `python manage.py makemigrations`
 
 `python manage.py migrate`
@@ -41,7 +43,7 @@ You can download experiments in the ReSpecTh format from http://respecth.hu/. To
 
 run the script 
 
-`python import_respecth.py <experiment-root>`
+`PYTHONPATH=/root/project/ python import_respecth.py --path <experiment-root>`
 
 and then run the automatic fixes which are provided as a Django management command
 

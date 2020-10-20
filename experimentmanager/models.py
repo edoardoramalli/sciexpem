@@ -79,18 +79,17 @@ class EType(Enum):
 
 class FilePaper(models.Model):
     title = models.CharField(max_length=500)
-    reference_doi = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    reference_doi = models.CharField(max_length=100, unique=True, blank=True, null=True)  # DOI paper
 
     def get_absolute_url(self):
             return reverse('filepaper', kwargs={'pk': self.pk})
 
 
-
 class Experiment(models.Model):
     reactor = models.CharField(max_length=100)
     experiment_type = models.CharField(max_length=100)
-    fileDOI = models.CharField(max_length=100, unique=True)
-    temp = models.BooleanField()
+    fileDOI = models.CharField(max_length=100, unique=True)  # DOI experiment
+    temp = models.BooleanField()  # For tmp experiment
     file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
 
@@ -136,7 +135,7 @@ class Experiment(models.Model):
             return None
 
 
-class CommonProperty(models.Model):
+class CommonProperty(models.Model):  # Sono
     name = models.CharField(max_length=100)
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
@@ -148,7 +147,7 @@ class CommonProperty(models.Model):
         return "%s %s %s" % (self.name, self.value, self.units)
 
 
-class InitialSpecie(models.Model):
+class InitialSpecie(models.Model):  # Le cose che bruci, i componenti iniziali
     name = models.CharField(max_length=20)
     units = models.CharField(max_length=50)
     amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
@@ -176,18 +175,17 @@ class DataColumn(models.Model):
         return "%s %s %s" % (self.name, self.species, self.units)
 
 
-
 class ChemModel(models.Model):
-    name = models.CharField(max_length=50)
-    version = models.CharField(max_length=200)
-    path = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    version = models.CharField(max_length=200, null=True, blank=True)
+    path = models.CharField(max_length=1000)
 
 
 class Execution(models.Model):
     chemModel = models.ForeignKey(ChemModel, on_delete=models.CASCADE, related_name="executions")
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="executions")
-    execution_start = models.DateTimeField()
-    execution_end = models.DateTimeField()
+    execution_start = models.DateTimeField(null=True, blank=True)
+    execution_end = models.DateTimeField(null=True, blank=True)
 
 
 # todo: subclass as datacolumn
