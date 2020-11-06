@@ -87,7 +87,8 @@ DATABASES = {
         'NAME': 'SciExpeM',
         'ENGINE': 'django.db.backends.postgresql',
         'USER': 'postgres',
-        'PASSWORD': 'edo',
+        # 'PASSWORD': 'edo',
+        'PASSWORD': 'open@smoke',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
