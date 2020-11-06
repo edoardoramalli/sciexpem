@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 from enum import Enum
-
+from django.utils import timezone
 
 MAX_DIGITS = 42
 DECIMAL_PLACES = 10
@@ -39,7 +39,8 @@ class EType(Enum):
             mandatory_common = ['residence time', 'pressure']
             mandatory_columns = ['temperature', 'composition']
             forbidden_columns = ['dT']
-            o1 = EType._check_existence(common_properties_names, data_columns_names, mandatory_common, mandatory_columns)
+            o1 = EType._check_existence(common_properties_names, data_columns_names, mandatory_common,
+                                        mandatory_columns)
             o2 = EType._check_not_existence(common_properties_names, data_columns_names, [], forbidden_columns)
             if o1 and o2:
                 return EType.flow_isothermal_parT
@@ -77,23 +78,45 @@ class EType(Enum):
         return None
 
 
+def generic_save(*args, **kwargs):
+    if 'username' in kwargs and 'object' in kwargs:
+        username = kwargs.pop('username')
+        obj = kwargs.pop('object')
+        super(obj.__class__, obj).save(*args, **kwargs)
+        log = LoggerModel(model_name=obj.__class__.__name__,
+                          pk_model=obj.pk,
+                          username=username,
+                          action="save",
+                          date=timezone.now())
+        log.save()
+    else:
+        raise ValueError("Username field not specified!")
+
+
 class FilePaper(models.Model):
     title = models.CharField(max_length=500)
     reference_doi = models.CharField(max_length=100, unique=True, blank=True, null=True)  # DOI paper
 
     def get_absolute_url(self):
-            return reverse('filepaper', kwargs={'pk': self.pk})
+        return reverse('filepaper', kwargs={'pk': self.pk})
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
 
 class Experiment(models.Model):
     reactor = models.CharField(max_length=100)
     experiment_type = models.CharField(max_length=100)
     fileDOI = models.CharField(max_length=100, unique=True)  # DOI experiment
-    temp = models.BooleanField()  # For tmp experiment
     file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
     xml_file = models.TextField(blank=True, null=True)
+    os_input_file = models.TextField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
     def get_params_experiment(self):
         common_properties = self.common_properties
@@ -107,7 +130,6 @@ class Experiment(models.Model):
         temperature_column = data_columns.filter(name="temperature").first()
         phi_column = data_columns.filter(name="phi").first()
 
-
         if pressure_common:
             params["P"] = pressure_common.value
 
@@ -115,7 +137,6 @@ class Experiment(models.Model):
             params["T"] = temperature_common.value
         elif temperature_column:
             params["T"] = min(temperature_column.data)
-
 
         if phi_common:
             params["phi"] = phi_common.value
@@ -129,7 +150,7 @@ class Experiment(models.Model):
 
     @property
     def run_type_str(self):
-        e_type =  self.run_type()
+        e_type = self.run_type()
         if e_type is not None:
             return e_type.value
         else:
@@ -142,10 +163,14 @@ class CommonProperty(models.Model):  # Sono
     value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
     sourcetype = models.CharField(max_length=50, null=True, blank=True)
 
-    experiment = models.ForeignKey(Experiment,  on_delete=models.CASCADE, related_name="common_properties")
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="common_properties")
 
     def __str__(self):
         return "%s %s %s" % (self.name, self.value, self.units)
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
 
 class InitialSpecie(models.Model):  # Le cose che bruci, i componenti iniziali
@@ -158,6 +183,10 @@ class InitialSpecie(models.Model):  # Le cose che bruci, i componenti iniziali
 
     def __str__(self):
         return "%s %s %s" % (self.name, self.amount, self.units)
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
 
 class DataColumn(models.Model):
@@ -175,12 +204,20 @@ class DataColumn(models.Model):
     def __str__(self):
         return "%s %s %s" % (self.name, self.species, self.units)
 
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
+
 
 class ChemModel(models.Model):
     name = models.CharField(max_length=100)
     version = models.CharField(max_length=200, null=True, blank=True)
     xml_file_kinetics = models.TextField()
     xml_file_reaction_names = models.TextField()
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
 
 class Execution(models.Model):
@@ -189,8 +226,11 @@ class Execution(models.Model):
     execution_start = models.DateTimeField(null=True, blank=True)
     execution_end = models.DateTimeField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
-# todo: subclass as datacolumn
+
 class ExecutionColumn(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     label = models.CharField(max_length=100)
@@ -198,26 +238,30 @@ class ExecutionColumn(models.Model):
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
     data = ArrayField(models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES))
     execution = models.ForeignKey(Execution, on_delete=models.CASCADE, related_name="execution_columns")
+    file_type = models.CharField(max_length=100)
 
     def range(self):
         return self.data[0], self.data[-1]
 
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
+
 
 class CurveMatchingResult(models.Model):
-    execution = models.OneToOneField(Execution, on_delete=models.CASCADE, related_name="curve_matching_result")
-    index = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES, null=True, blank=True)
-    error = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES, null=True, blank=True)
+    execution_column = models.OneToOneField(ExecutionColumn, on_delete=models.CASCADE,
+                                            related_name="curve_matching_result")
+    index = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
+    error = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
 
 
-class OpenSmokeInput(models.Model):
-    experiment = models.OneToOneField(Experiment, on_delete=models.CASCADE, related_name="open_smoke_input")
-    file = models.TextField()
-
-
-class IOReSpecThOS(models.Model):
-    experiment_type = models.CharField(max_length=100)
-    reactor = models.CharField(max_length=100)
-    data_group_fields = ArrayField(models.CharField(max_length=100))
-    additional_info = models.CharField(max_length=100, null=True, blank=True)
-    output_file = models.CharField(max_length=100)
-    output_fields = ArrayField(models.CharField(max_length=100))
+class LoggerModel(models.Model):
+    model_name = models.CharField(max_length=100)
+    pk_model = models.IntegerField()
+    username = models.CharField(max_length=100)
+    action = models.CharField(max_length=50)
+    date = models.DateTimeField()

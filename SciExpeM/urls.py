@@ -1,7 +1,7 @@
 """SciExpeM URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/2.1/topics/http/urls/
+    https://docs.djangoproject.com/en/3.0/topics/http/urls/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -15,10 +15,25 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.authtoken.views import obtain_auth_token
+from django.views.decorators.cache import never_cache
+from django.shortcuts import render
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+@never_cache
+def index(request):
+    return render(request, 'FrontEnd/index.html')
 
 
 urlpatterns = [
+    path('', index),
     path('admin/', admin.site.urls),
-    path('experimentmanager/', include('experimentmanager.urls')),
-    path('', include('frontend.urls')),
+    path('frontend/', include('FrontEnd.urls')),
+    path('ExperimentManager/', include('ExperimentManager.urls')),
+    path('CurveMatching/', include('CurveMatching.urls')),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]
