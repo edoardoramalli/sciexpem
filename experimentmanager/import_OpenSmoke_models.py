@@ -24,14 +24,30 @@ def import_models(files, path):
             with transaction.atomic():
 
                 name = f
-                model_path = os.path.join(path, name)
+                model_path = os.path.join(path, name, "kinetics")
+
+                kinetics_file = os.path.join(model_path, "kinetics.xml")
+                reaction_names_file = os.path.join(model_path, "reaction_names.xml")
+
+                if not os.path.isfile(kinetics_file):
+                    print("Folder", model_path, "does not contains kinetics.xml")
+                    continue
+
+                if not os.path.isfile(reaction_names_file):
+                    print("Folder", model_path, "does not contains reaction_names.xml")
+                    continue
+
+                xml_file_kinetics = open(kinetics_file).read()
+                xml_file_reaction_names = open(reaction_names_file).read()
 
                 # Check duplicates
                 if models.ChemModel.objects.filter(name=name).exists():
                     print("DUPLICATE MODEL: ", name)
                     continue
 
-                chemModel = models.ChemModel(name=name, path=model_path)
+                chemModel = models.ChemModel(name=name,
+                                             xml_file_kinetics=xml_file_kinetics,
+                                             xml_file_reaction_names=xml_file_reaction_names)
                 chemModel.save()
 
             counter += 1

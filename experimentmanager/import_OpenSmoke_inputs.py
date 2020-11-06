@@ -1,6 +1,6 @@
 import sys, os, django, argparse
 from django.conf import settings
-
+from opensmoke import OpenSmokeParser
 import traceback
 import glob
 
@@ -37,7 +37,9 @@ def import_input(files):
                     print("Duplicate OpenSmoke Input: ", experiment_name)
                     continue
 
-                OpenSmokeInput = models.OpenSmokeInput(experiment=related_experiment, path=file)
+                file_string = OpenSmokeParser.parse_input(file)
+
+                OpenSmokeInput = models.OpenSmokeInput(experiment=related_experiment, file=file_string)
                 OpenSmokeInput.save()
 
             counter += 1
