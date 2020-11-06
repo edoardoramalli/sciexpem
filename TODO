@@ -1,0 +1,10 @@
+1) Creare import automatico modelli --> OK
+2) Creare import automatico risultati esecuzione --> OK
+3) Creare import automatico input OpenSmoke: path o stringa  --> OK
+3) OpenSmoke esecuzione in locale
+    3.1)
+4) Curve Matching
+    4.0) Capire cosa devo valutare --> Mapping file esterno (Alberto) --> OK
+    4.1) Popolare curve matching table automaticamente (Se ho output OpenSmoke)
+5) Analisi dei dati ...
+    5.) ...

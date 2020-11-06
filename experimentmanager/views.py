@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from . import models, serializers, utils
 from django.db.models import Avg
+from django.db import transaction
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -23,6 +24,9 @@ import numpy as np
 from collections import defaultdict
 from pathlib import Path
 import os
+from . import curve_matching
+
+import logging
 
 
 dict_excel_names = {"IDT": "ignition delay", "T": "temperature"}
@@ -176,8 +180,13 @@ def get_curves(exp_id, chem_models):
         e_curve = {"x": temp, "y": idt, "name": "Ignition Delay Time", "mode": 'markers', "type": 'scatter'}
         model_curves = []
         for t in target_executions:
-            temp_column = t.execution_columns.get(name="temperature")
-            idt_column = t.execution_columns.get(name="ignition delay")
+            temp_query = models.ExecutionColumn.objects.filter(label="T0", execution=t)[0]
+            idt_query = models.ExecutionColumn.objects.filter(label="tau_T(slope)", execution=t)[0]
+            # temp_column = models.execution_columns.get(name="temperature")
+            # idt_column = models.execution_columns.get(name="ignition delay")
+
+            temp_column = temp_query
+            idt_column = idt_query
 
             temp = [1000 / float(t) for t in temp_column.data]
             idt = [(float(t) * ureg.parse_expression(idt_column.units)).to(target_units).magnitude for t in idt_column.data]
@@ -392,22 +401,66 @@ def curve_matching_global_results_API(request):
     chem_models_ids = request.query_params.getlist('chemModels[]', None)
     details = request.query_params.get('details', "1")
 
-    cmr = models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__in=chem_models_ids, execution_column__execution__experiment__in=exp_ids)
+    cmr = []
+    mancanti = []
+
+    for exp, model in zip(exp_ids, chem_models_ids):
+        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model,
+                                                            execution__experiment__pk=exp)
+
+        cmr += current
+
+        if not current.exists():
+            mancanti.append((exp, model))
+
+    # cmr = models.CurveMatchingResult.objects.filter(execution__chemModel__in=chem_models_ids,
+    #                                                 execution__experiment__in=exp_ids)
+    # Se non ci sono i risultati calcolali
+
+    for item in mancanti:
+        exp_id, model_id = item
+        exp = models.Experiment.objects.filter(pk=exp_id)[0]
+        chemModel = models.ChemModel.objects.filter(pk=model_id)[0]
+        try:
+            with transaction.atomic():
+                execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
+                if execution.exists():
+                    execution = execution[0]
+                else:
+                    opensmoke.OpenSmokeExecutor.execute(experiment=exp, chemModel=chemModel)
+        except Exception as err:
+            pass
+
+        # t0 = models.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
+        # slope = models.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
+        #
+        # curve_matching_executor = curve_matching.CurveMatchingExecutor("path")
+        # curve_matching_executor.execute_CM(execution_column_x=t0, execution_column_y=slope)
+
+        curve_matching.execute_curve_matching_django(execution)
+
+        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model_id,
+                                                            execution__experiment__pk=exp_id)
+
+        cmr += current
+
+
+
 
     result = []
     for i in cmr:
         if i.index is None or i.error is None:
             continue
-        modelName = i.execution_column.execution.chemModel.name
-        experimentDOI = i.execution_column.execution.experiment.fileDOI
+        modelName = i.execution.chemModel.name
+        experimentDOI = i.execution.experiment.fileDOI
 
-        execution_column = i.execution_column
-        name = execution_column.name if not execution_column.species else execution_column.species[0]
+        # execution_column = i.execution_column
+        # name = execution_column.name if not execution_column.species else execution_column.species[0]
 
         r = dict()
         r['model'] = modelName
         r['experiment'] = experimentDOI
-        r['name'] = name
+        r['name'] = experimentDOI
         r['ind'] = float(i.index)
         r['err'] = float(i.error)
         result.append(r)
@@ -440,26 +493,67 @@ def curve_matching_global_results_dict_API(request):
     exp_ids = request.query_params.getlist('experiments[]', None)
     chem_models_ids = request.query_params.getlist('chemModels[]', None)
 
-    cmr = models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__in=chem_models_ids, execution_column__execution__experiment__in=exp_ids)
+    cmr = []
+    mancanti = []
+
+    for exp, model in zip(exp_ids, chem_models_ids):
+        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model,
+                                                            execution__experiment__pk=exp)
+
+        cmr += current
+
+        if not current.exists():
+            mancanti.append((exp, model))
+
+    # cmr = models.CurveMatchingResult.objects.filter(execution__chemModel__in=chem_models_ids,
+    #                                                 execution__experiment__in=exp_ids)
+    # Se non ci sono i risultati calcolali
+
+    for item in mancanti:
+        exp_id, model_id = item
+        exp = models.Experiment.objects.filter(pk=exp_id)[0]
+        chemModel = models.ChemModel.objects.filter(pk=model_id)[0]
+        try:
+            with transaction.atomic():
+                execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
+                if execution.exists():
+                    execution = execution[0]
+                else:
+                    opensmoke.OpenSmokeExecutor.execute(experiment=exp, chemModel=chemModel)
+        except Exception as err:
+            pass
+
+        # t0 = models.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
+        # slope = models.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
+        #
+        # curve_matching_executor = curve_matching.CurveMatchingExecutor("path")
+        # curve_matching_executor.execute_CM(execution_column_x=t0, execution_column_y=slope)
+
+        curve_matching.execute_curve_matching_django(execution)
+
+        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model_id,
+                                                            execution__experiment__pk=exp_id)
+
+        cmr += current
 
     result = []
     for i in cmr:
         if i.index is None or i.error is None:
             continue
-        modelName = i.execution_column.execution.chemModel.name
-        experimentDOI = i.execution_column.execution.experiment.fileDOI
+        modelName = i.execution.chemModel.name
+        experimentDOI = i.execution.experiment.fileDOI
 
-        execution_column = i.execution_column
-        name = execution_column.name if not execution_column.species else execution_column.species[0]
+        # execution_column = i.execution_column
+        # name = execution_column.name if not execution_column.species else execution_column.species[0]
 
         r = dict()
         r['model'] = modelName
         r['experiment'] = experimentDOI
-        r['name'] = name
+        # r['name'] = name
+        r['name'] = experimentDOI
         r['ind'] = float(i.index)
         r['err'] = float(i.error)
         result.append(r)
-
 
     df = pd.DataFrame.from_dict(result)[['model', 'experiment', 'name', 'ind', 'err']]
     df = df.groupby(["model", "name"]).mean()
@@ -475,7 +569,8 @@ def curve_matching_global_results_dict_API(request):
 @api_view(['GET' ])
 def download_input_file(request, pk):
     experiment = get_object_or_404(models.Experiment, pk=pk)
-    input_file = opensmoke.experimentToInputFile(experiment)
+    input_opensmoke = models.OpenSmokeInput.objects.filter(experiment=experiment)[0].file
+    input_file = opensmoke.OpenSmokeParser.create_output(input_opensmoke, "$KINETICS$", "$OUTPUT")
     if not input_file:
         content = 'Unable to create this input file'
         return Response(content, status=status.HTTP_501_NOT_IMPLEMENTED)

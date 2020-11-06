@@ -53,7 +53,7 @@ def parse_OpenSmoke_output(files, model_name, path):
 
                     list_header = list(dataframe)
                     for header in list_header:
-                        data = models.ExecutionColumn(name=header,
+                        data = models.ExecutionColumn(label=header,
                                                       units=units[header],
                                                       data=list(dataframe[header]),
                                                       execution=execution)

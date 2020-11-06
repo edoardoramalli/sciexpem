@@ -6,5 +6,9 @@ django.setup()
 
 from experimentmanager import models
 
+models.Experiment.objects.all().delete()
+models.OpenSmokeInput.objects.all().delete()
 models.Execution.objects.all().delete()
 models.ExecutionColumn.objects.all().delete()
+models.CurveMatchingResult.objects.all().delete()
+models.DataColumn.objects.all().delete()

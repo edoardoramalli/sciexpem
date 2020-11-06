@@ -9,15 +9,18 @@ from django.db import transaction
 
 # BEFORE RUNNING THIS SCRIPT, IT IS NECESSARY TO ADD THE ROOT PROJECT FOLDER TO THE PYTHONPATH
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SciExpeM.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "/Users/edoardo/PycharmProjects/SciExpeM.settings")
 django.setup()
 
 from experimentmanager import models
 
+
 def import_jsons(files):
     counter = 0
 
-    for f in files:
+    print("Imported ReSpecTh Files: {}/{}".format(counter, len(respecth_files)), end="")
+    for index, f in enumerate(files):
+        print("\rImported ReSpecTh Files: {}/{}".format(index, len(respecth_files)), end="")
         try:
             with transaction.atomic():
                 r = ReSpecTh.from_file(f)
@@ -40,8 +43,10 @@ def import_jsons(files):
                 paper = models.FilePaper(title=r.getBiblio())
                 paper.save()
 
+                xml_file = open(f).read()
+
                 e = models.Experiment(reactor=reactor, experiment_type=experiment_type, fileDOI=fileDOI, ignition_type=o,
-                                      file_paper=paper, temp=False)
+                                      file_paper=paper, temp=False, xml_file=xml_file)
                 e.save()
 
                 columns_groups = r.extract_columns_multi_dg()
@@ -83,6 +88,6 @@ path = args.path
 
 respecth_files = glob.glob(path + '/**/*.xml', recursive=True)
 
-c = import_jsons(respecth_files)
+counter = import_jsons(respecth_files)
 
-print("Imported: {}/{}".format(c, len(respecth_files)))
+print("\rImported ReSpecTh Files: {}/{}".format(counter, len(respecth_files)))

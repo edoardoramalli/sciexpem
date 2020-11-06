@@ -92,6 +92,7 @@ class Experiment(models.Model):
     temp = models.BooleanField()  # For tmp experiment
     file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
+    xml_file = models.TextField(blank=True, null=True)
 
 
     def get_params_experiment(self):
@@ -178,7 +179,8 @@ class DataColumn(models.Model):
 class ChemModel(models.Model):
     name = models.CharField(max_length=100)
     version = models.CharField(max_length=200, null=True, blank=True)
-    path = models.CharField(max_length=1000)
+    xml_file_kinetics = models.TextField()
+    xml_file_reaction_names = models.TextField()
 
 
 class Execution(models.Model):
@@ -190,8 +192,8 @@ class Execution(models.Model):
 
 # todo: subclass as datacolumn
 class ExecutionColumn(models.Model):
-    name = models.CharField(max_length=100)
-    label = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    label = models.CharField(max_length=100)
     units = models.CharField(max_length=50)
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
     data = ArrayField(models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES))
@@ -202,6 +204,20 @@ class ExecutionColumn(models.Model):
 
 
 class CurveMatchingResult(models.Model):
-    execution_column = models.OneToOneField(ExecutionColumn, on_delete=models.CASCADE, related_name="curve_matching_result")
+    execution = models.OneToOneField(Execution, on_delete=models.CASCADE, related_name="curve_matching_result")
     index = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES, null=True, blank=True)
     error = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES, null=True, blank=True)
+
+
+class OpenSmokeInput(models.Model):
+    experiment = models.OneToOneField(Experiment, on_delete=models.CASCADE, related_name="open_smoke_input")
+    file = models.TextField()
+
+
+class IOReSpecThOS(models.Model):
+    experiment_type = models.CharField(max_length=100)
+    reactor = models.CharField(max_length=100)
+    data_group_fields = ArrayField(models.CharField(max_length=100))
+    additional_info = models.CharField(max_length=100, null=True, blank=True)
+    output_file = models.CharField(max_length=100)
+    output_fields = ArrayField(models.CharField(max_length=100))

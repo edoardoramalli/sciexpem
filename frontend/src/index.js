@@ -67,7 +67,7 @@ class App extends React.Component {
                         <Menu.Item key="main"><b>SciExpeM-SMOKE</b></Menu.Item>
         <Menu.SubMenu title={<span className="submenu-title-wrapper"><Icon type="upload" />Insert experiments</span>}>
 
-            <Menu.Item key="input" disabled>Insert using input file</Menu.Item>
+            <Menu.Item key="input" >Insert using input file</Menu.Item>
 
             <Menu.Item key="input-form">Insert using form</Menu.Item>
 

@@ -5,3 +5,9 @@ __pycache__/
 experimentmanager/__pycache__/
 experimentmanager/migrations
 frontend/__pycache__/
+
+.DS_Store
+
+BzzFile.txt
+
+node_modules/

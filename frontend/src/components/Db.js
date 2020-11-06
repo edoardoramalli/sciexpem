@@ -118,6 +118,31 @@ class ActionCell extends React.Component {
                 })
         }
 
+        else if (e.key == "xml"){
+            const request_url = 'experimentmanager/api/experiment/download/input_file/' + exp_id.toString();
+            axios.get(request_url, {
+                responseType: 'blob',
+                timeout: 30000
+            })
+                .then(res => {
+                    const url = window.URL.createObjectURL(new Blob([res.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+
+                    const file_name = file_doi + ".dic"
+                    link.setAttribute('download', file_name);
+
+                    document.body.appendChild(link);
+                    link.click();
+                    message.success('Opensmoke input file downloaded')
+                })
+                .catch(function (error) {
+                    // handle error
+                    console.log(error);
+                    message.error('Error')
+                })
+        }
+
 
     };
 
@@ -185,7 +210,6 @@ class ExperimentDraw extends React.Component {
     }
 
 }
-
 
 
 class ExperimentTableV2 extends React.Component {
