@@ -111,6 +111,7 @@ class Experiment(models.Model):
     fileDOI = models.CharField(max_length=100, unique=True)  # DOI experiment
     file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
+
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 

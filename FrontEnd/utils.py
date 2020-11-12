@@ -11,7 +11,7 @@ import re
 #         curves.append({"name": y_names[index], "data": curve})
 #     return {"curves": curves, "x_axis": x_axis, "y_axis": y_axis, "log": log}
 
-excel_colunn_pattern = re.compile("(?P<name>[A-Za-z0-9_/]*)[ \t]+\[(?P<units>[(A-Za-z0-9_/)]*)\]")
+excel_column_pattern = re.compile("(?P<name>[A-Za-z 0-9_/]*)[ \t]+\[(?P<units>[(A-Za-z 0-9_/)]*)\]")
 
 
 def curve_io_formatter(curves, x_axis, y_axis, logY=False):
@@ -27,12 +27,12 @@ def extract_experiment_table(exp_id, units_row=False, units_brackets=True, reord
     column_names = list(column_names_units_data.keys())
 
     # we can freely reorder names
-    if reorder:
-        e = models.Experiment.objects.get(pk=exp_id)
-        if (
-                e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement") or e.reactor == "stirred reactor":
-            column_names.remove("temperature")
-            column_names.insert(0, "temperature")
+    # if reorder:
+    #     e = models.Experiment.objects.get(pk=exp_id)
+    #     # if (
+    #     #         e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement") or e.reactor == "stirred reactor":
+    #     #     column_names.remove("temperature")
+    #     #     column_names.insert(0, "temperature")
 
     # units and data are taken as a consequence of the reordered names
     column_units = [column_names_units_data[cn][0] for cn in column_names]
@@ -68,9 +68,8 @@ def check_data_excel(df):
 
     columns = df.columns
 
-    columns_extracted = []
     for column in columns:
-        p = excel_colunn_pattern.match(column)
+        p = excel_column_pattern.match(column)
         if not p:
             return False
 

@@ -20,12 +20,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'x(5v@5v(gk%%#%xed5qz@!r@6tq3a0#-)iy#-4@p+9di!22o2t'
+SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]']
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'SciExpeM',
     'ExperimentManager.apps.ExperimentManagerConfig',
     'FrontEnd.apps.FrontendConfig',
@@ -50,14 +51,18 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'compression_middleware.middleware.CompressionMiddleware',
 ]
 
 ROOT_URLCONF = 'SciExpeM.urls'
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 TEMPLATES = [
     {
@@ -87,8 +92,8 @@ DATABASES = {
         'NAME': 'SciExpeM',
         'ENGINE': 'django.db.backends.postgresql',
         'USER': 'postgres',
-        # 'PASSWORD': 'edo',
-        'PASSWORD': 'open@smoke',
+        'PASSWORD': 'edo',
+        # 'PASSWORD': 'open@smoke',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
@@ -133,6 +138,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+# STATIC_ROOT = '/static/'
 
 REST_FRAMEWORK = {
 
@@ -142,8 +148,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-                'rest_framework.permissions.IsAuthenticated',
-                # 'rest_framework.permissions.AllowAny',
+                # 'rest_framework.permissions.IsAuthenticated',
+                'rest_framework.permissions.AllowAny',
     ),
 
 }

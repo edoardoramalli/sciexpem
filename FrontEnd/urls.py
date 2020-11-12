@@ -17,12 +17,15 @@ urlpatterns = [
     path('api/curve_matching_global_results', views.curve_matching_global_results_API, name='curve-matching-results-api'),
     path('api/curve_matching_global_results_dict', views.curve_matching_global_results_dict_API, name='curve-matching-results-dict-api'),
     path('api/experiment/download/input_file/<int:pk>', views.download_input_file, name="download-input-file"),
+    path('api/experiment/download/respecth_file/<int:pk>', views.download_respecth_file, name="download-respecth-file"),
     path('api/experiment/download/excel/<int:pk>', views.download_experiment_excel, name="download-experiment-excel"),
     path('api/curve_matching_global_results/download', views.download_cm_global, name="download-cm-global"),
     path('api/opensmoke/download/output', views.download_output_zip, name="download-output-zip"),
     path('input/data_excel', views.DataExcelUploadView.as_view(), name="data-excel-upload"),
     path('input/input_file', views.InputUploadView.as_view(), name="input-dic-upload"),
+    path('input/os_input_file', views.OSInputUploadView.as_view(), name="os-input-dic-upload"),
     path('input/submit', views.DetailFormView.as_view(), name="detail-submit"),
     path('input/submit_file', views.InputFileFormView.as_view(), name="input-file-submit"),
-    path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names")
+    path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"),
+    path('api/get_username', views.get_username, name="get_username")
 ]

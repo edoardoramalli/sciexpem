@@ -32,6 +32,9 @@ from CurveMatching import CurveMatching
 
 from django.contrib.auth.decorators import login_required
 
+from OpenSmoke.OpenSmoke import OpenSmokeParser
+import re
+
 
 @login_required
 @never_cache
@@ -39,20 +42,18 @@ def index(request):
     return render(request, 'FrontEnd/index.html')
 
 
-
-
-
 dict_excel_names = {"IDT": "ignition delay", "T": "temperature"}
 
 from pint import UnitRegistry
+
 ureg = UnitRegistry()
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
 # def index(request):
 #     return render(request, '../frontend/index.html')
-
 
 
 class FilePaperCreate(CreateView):
@@ -96,7 +97,7 @@ def experiment_search_fields(request):
             reactors_to_types[e.reactor].append(e.experiment_type)
 
     species = [i for i in models.InitialSpecie.objects.values_list("name", flat=True).distinct()]
-    response = {"reactors": list(reactors_to_types.keys()), "reactors_to_types" : reactors_to_types, "species" : species}
+    response = {"reactors": list(reactors_to_types.keys()), "reactors_to_types": reactors_to_types, "species": species}
     return JsonResponse(response)
 
 
@@ -109,7 +110,6 @@ class SearchExperiments(generics.ListAPIView):
         reactor = self.request.query_params.get('reactor', None)
         experiment_type = self.request.query_params.get('experiment_type', None)
         species = self.request.query_params.getlist('species[]', None)
-
 
         if reactor is not None:
             queryset = queryset.filter(reactor=reactor)
@@ -167,16 +167,14 @@ def get_curves(exp_id, chem_models):
         if len(chem_models) <= 4:
             model_to_dash = dict(zip([float(j) for j in chem_models], ['solid', 'dash', 'dot', 'dashdot']))
         else:
-            model_to_dash = dict(zip([float(j) for j in chem_models], len(chem_models)*['solid']))
-
+            model_to_dash = dict(zip([float(j) for j in chem_models], len(chem_models) * ['solid']))
 
     if experiment.run_type() == models.EType.batch_idt:
         temp_column = experiment.data_columns.get(name="temperature")
         idt_column = experiment.data_columns.get(name="ignition delay")
 
-        temp = [1000/float(t) for t in temp_column.data]
+        temp = [1000 / float(t) for t in temp_column.data]
         idt = [float(t) for t in idt_column.data]
-
 
         ### RE-SORTING
         t_dict = dict(zip(temp, idt))
@@ -202,13 +200,15 @@ def get_curves(exp_id, chem_models):
             idt_column = idt_query
 
             temp = [1000 / float(t) for t in temp_column.data]
-            idt = [(float(t) * ureg.parse_expression(idt_column.units)).to(target_units).magnitude for t in idt_column.data]
+            idt = [(float(t) * ureg.parse_expression(idt_column.units)).to(target_units).magnitude for t in
+                   idt_column.data]
 
-            model_curves.append({"x": temp, "y": idt, "name": t.chemModel.name, "mode": 'lines', "type": 'scatter',  'line': {
-                         'dash': model_to_dash[t.chemModel.id]
-                     }})
+            model_curves.append(
+                {"x": temp, "y": idt, "name": t.chemModel.name, "mode": 'lines', "type": 'scatter', 'line': {
+                    'dash': model_to_dash[t.chemModel.id]
+                }})
 
-        response = utils.curve_io_formatter([[e_curve]+model_curves], x_axis=x_axis, y_axis=y_axis, logY=True)
+        response = utils.curve_io_formatter([[e_curve] + model_curves], x_axis=x_axis, y_axis=y_axis, logY=True)
         return JsonResponse(response)
 
     elif experiment.run_type() == models.EType.flame_parPhi:
@@ -260,7 +260,7 @@ def get_curves(exp_id, chem_models):
         temp = [float(t) for t in temp_column.data]
 
         colors = sns.color_palette("hls", len(comp_column))
-        colors = ["rgb({},{},{})".format(int(i[0]*255), int(i[1]*255), int(i[2]*255)) for i in colors]
+        colors = ["rgb({},{},{})".format(int(i[0] * 255), int(i[1] * 255), int(i[2] * 255)) for i in colors]
 
         components = [cc.species[0] for cc in comp_column]
         colors_dict = dict(zip(components, colors))
@@ -268,7 +268,8 @@ def get_curves(exp_id, chem_models):
         e_curves = []
         for index, cc in enumerate(comp_column):
             e_curves.append(
-                {"x": temp, "y": [float(c) for c in cc.data], "name": cc.species[0], "mode": 'markers', "type": 'scatter', 'legendgroup': cc.species[0],
+                {"x": temp, "y": [float(c) for c in cc.data], "name": cc.species[0], "mode": 'markers',
+                 "type": 'scatter', 'legendgroup': cc.species[0],
                  'marker': {
                      'symbol': index,
                      'color': colors_dict[cc.species[0]]}
@@ -280,7 +281,6 @@ def get_curves(exp_id, chem_models):
             comp_column = t.execution_columns.filter(name="composition")
 
             temp = [float(t) for t in temp_column.data]
-
 
             for index, cc in enumerate(comp_column):
                 model_curves.append(
@@ -297,11 +297,10 @@ def get_curves(exp_id, chem_models):
         response_curves = []
         for e_curve in e_curves:
             related_model_curves = [mc for mc in model_curves if mc['legendgroup'] == e_curve['legendgroup']]
-            response_curves.append([e_curve]+related_model_curves)
+            response_curves.append([e_curve] + related_model_curves)
 
         response = utils.curve_io_formatter(response_curves, x_axis=x_axis, y_axis=y_axis, logY=False)
         return JsonResponse(response, safe=False)
-
 
 
 @api_view(['GET'])
@@ -310,6 +309,7 @@ def experiment_models_curve_API(request):
     chem_models = request.query_params.getlist('chemModels[]', None)
     return get_curves(exp_id, chem_models)
 
+
 @api_view(['GET'])
 def experiment_curve_API(request, pk):
     response = get_curves(pk, None)
@@ -317,6 +317,7 @@ def experiment_curve_API(request, pk):
         content = 'This experiment is currently not supported'
         return Response(content, status=status.HTTP_501_NOT_IMPLEMENTED)
     return response
+
 
 @api_view(['GET'])
 def curve_matching_results_API(request):
@@ -338,7 +339,6 @@ def curve_matching_results_API(request):
             averages = target_CM_results.aggregate(Avg('index'), Avg('error'))
             average_index, average_error = averages['index__avg'], averages['error__avg']
 
-
         exe_data['average_index'] = round(average_index, 7)
         exe_data['average_error'] = round(average_error, 7)
 
@@ -354,7 +354,7 @@ def curve_matching_results_API(request):
     return JsonResponse({'data': data, 'names': list(set(names))})
 
 
-#deprecated
+# deprecated
 @api_view(['GET'])
 def curve_matching_global_results_API_OLD(request):
     exp_ids = request.query_params.getlist('experiments[]', None)
@@ -401,8 +401,6 @@ def curve_matching_global_results_API_OLD(request):
             result['average_error'] = round(average_error, 7)
 
         data.append(result)
-
-
 
     return JsonResponse({'data': data, 'names': list(set(names))})
 
@@ -456,9 +454,6 @@ def curve_matching_global_results_API(request):
 
         cmr += current
 
-
-
-
     result = []
     for i in cmr:
         if i.index is None or i.error is None:
@@ -477,14 +472,13 @@ def curve_matching_global_results_API(request):
         r['err'] = float(i.error)
         result.append(r)
 
-
     df = pd.DataFrame.from_dict(result)[['model', 'experiment', 'name', 'ind', 'err']]
     df = df.groupby(["model", "name"]).mean()
 
     data = []
     names = set()
     for model, new_df in df.groupby(level=0):
-        d = {'model' : model}
+        d = {'model': model}
         overall = new_df.groupby(['model']).mean()
         d['average_index'] = round(new_df['ind'].mean(), 7)
         d['average_error'] = round(new_df['err'].mean(), 7)
@@ -496,7 +490,7 @@ def curve_matching_global_results_API(request):
                 names.add(i[1])
         data.append(d)
 
-    result = {"data" : data, "names" : list(names)}
+    result = {"data": data, "names": list(names)}
     return JsonResponse(result, safe=False)
 
 
@@ -578,21 +572,36 @@ def curve_matching_global_results_dict_API(request):
     return JsonResponse(result, safe=False)
 
 
-@api_view(['GET' ])
+@api_view(['GET'])
 def download_input_file(request, pk):
     experiment = get_object_or_404(models.Experiment, pk=pk)
-    input_opensmoke = models.OpenSmokeInput.objects.filter(experiment=experiment)[0].file
-    input_file = OpenSmoke.OpenSmokeParser.create_output(input_opensmoke, "$KINETICS$", "$OUTPUT")
-    if not input_file:
+    input_opensmoke = experiment.os_input_file
+    if not input_opensmoke:
         content = 'Unable to create this input file'
-        return Response(content, status=status.HTTP_501_NOT_IMPLEMENTED)
+        return Response(content, status=status.HTTP_404_NOT_FOUND)
+    input_file = OpenSmoke.OpenSmokeParser.create_output(input_opensmoke, "$KINETICS$", "$OUTPUT")
+
     response = HttpResponse(str(input_file))
-    #response['content_type'] = 'application/pdf'
+    # response['content_type'] = 'application/pdf'
     response['Content-Disposition'] = 'attachment; filename= {}.dic'.format(pk)
     return response
 
 
-@api_view(['GET' ])
+@api_view(['GET'])
+def download_respecth_file(request, pk):
+    experiment = get_object_or_404(models.Experiment, pk=pk)
+    respecth_file = experiment.xml_file
+    if not respecth_file:
+        content = 'Unable to create this input file'
+        return Response(content, status=status.HTTP_404_NOT_FOUND)
+    input_file = respecth_file
+
+    response = HttpResponse(str(input_file))
+    response['Content-Disposition'] = 'attachment; filename= {}.xml'.format(pk)
+    return response
+
+
+@api_view(['GET'])
 def download_experiment_excel(request, pk):
     df = utils.extract_experiment_table(pk, units_brackets=True, reorder=True)
 
@@ -610,9 +619,8 @@ def download_experiment_excel(request, pk):
     return response
 
 
-@api_view(['GET' ])
+@api_view(['GET'])
 def download_output_zip(request):
-
     output_root = Path(__location__) / 'output_experiments'
     exp_id = request.query_params.get('experiment', None)
     chem_models = request.query_params.getlist('chemModels[]', None)
@@ -629,13 +637,13 @@ def download_output_zip(request):
 
 
 # TODO: rivedere, groupby df
-@api_view(['GET' ])
+@api_view(['GET'])
 def download_cm_global(request):
-
     exp_ids = request.query_params.getlist('experiments[]', None)
     chem_models_ids = request.query_params.getlist('chemModels[]', None)
 
-    cmr = models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__in=chem_models_ids, execution_column__execution__experiment__in=exp_ids)
+    cmr = models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__in=chem_models_ids,
+                                                    execution_column__execution__experiment__in=exp_ids)
 
     result = []
     for i in cmr:
@@ -671,10 +679,18 @@ def download_cm_global(request):
 
     return response
 
+
+@api_view(['GET'])
+def get_username(request):
+    username = request.user.username
+    return JsonResponse({"username": username})
+
+
 @api_view(['GET'])
 def opensmoke_names(request):
-    data_folder = Path(__location__) / 'data'
-    names = list(pd.read_csv(data_folder / "Nomenclatura_originale_POLIMI.txt", delim_whitespace=True)['NAME'])
+    data_folder = Path(__location__).parents[0] / "Files"
+    names = list(
+        pd.read_csv(os.path.join(data_folder, "Nomenclatura_originale_POLIMI.txt"), delim_whitespace=True)['NAME'])
     return JsonResponse({"names": names})
 
 
@@ -687,18 +703,28 @@ class DataExcelUploadView(APIView):
 
         try:
             e = pd.read_excel(f)
+            import sys
+            print(e, file=sys.stderr)
         except:
-            return Response("Error parsing the file", status.HTTP_400_BAD_REQUEST)
+            return Response("Error parsing file", status.HTTP_400_BAD_REQUEST)
 
         check = utils.check_data_excel(e)
 
         if not check:
-            return Response("Errors in the excel", status.HTTP_400_BAD_REQUEST)
+            return Response("Errors checking the file", status.HTTP_400_BAD_REQUEST)
 
         columns = list(e.columns)
         content = e.to_dict(orient="records")
 
         return JsonResponse({"names": columns, "data": content})
+
+
+class OSInputUploadView(APIView):
+
+    def post(self, request):
+        data = request.data['input_dic'].read().decode("utf8")
+        result = OpenSmokeParser.parse_input_string(data)
+        return JsonResponse({"data": result})
 
 
 class InputUploadView(APIView):
@@ -707,60 +733,125 @@ class InputUploadView(APIView):
     def post(self, request):
         data = request.data['input_dic'].read().decode("utf8")
 
-        return JsonResponse({"data":  data})
+        return JsonResponse({"data": data})
 
 
 class DetailFormView(APIView):
 
     def post(self, request):
         # TODO: accesso migliore?
+        import sys
 
+        username = request.user.username
+        # username = "root"
+
+        # Mandatory Fields
         data_file_string = request.data['params']['values']['file_upload'][0]['response']['data']
+        experiment_type = request.data['params']['values']['experiment_type']
         reactor = request.data['params']['values']['reactor']
         paperDOI = request.data['params']['values']['fileDOI']
         expReference = request.data['params']['values']['exp_reference']
-        properties = request.data['params']['values']['property']
-        species = request.data['params']['values']['species']
+        paperReference = request.data['params']['values']['paper_reference']
+
+        # Optional Fields
+        if 'file_upload_volume_time' in request.data['params']['values']:
+            file_upload_volume_time = request.data['params']['values']['file_upload_volume_time'][0]['response']['data']
+        else:
+            file_upload_volume_time = []
+
+        if 'file_upload_os' in request.data['params']['values']:
+            file_upload_os = request.data['params']['values']['file_upload_os'][0]['response']['data']
+        else:
+            file_upload_os = None
+
+        if 'property' in request.data['params']['values']:
+            properties = request.data['params']['values']['property']
+        else:
+            properties = []
+
+        if 'species' in request.data['params']['values']:
+            species = request.data['params']['values']['species']
+        else:
+            species = []
 
         fileDOI = paperDOI + "-" + str(hash(expReference))
 
         if models.Experiment.objects.filter(fileDOI=fileDOI).exists():
             return Response("This experiment already exists", status.HTTP_400_BAD_REQUEST)
 
+        try:
+            data_columns = []
+            first_row_keys = data_file_string[0].keys()
+            df_values = pd.DataFrame.from_records(data_file_string, columns=first_row_keys)
+            print("QUIwwwww", df_values, file=sys.stderr)
+            for column in df_values:
+                variable, units = column.rsplit(' ', 1)
+                units = units[1:-1]
+                # TODO ci sta mettere un controllo che i nomi delle colonne siano standard una sorta di dizionario
+                # name = dict_excel_names.get(variable)
+                # if not name:
+                #     continue
+                # dc = models.DataColumn(name=name, units=units, data=list(df_values[column]), dg_id="dg1")
+                dc = models.DataColumn(name=variable, units=units, data=list(df_values[column]), dg_id="dg1")
+                data_columns.append(dc)
 
 
-        data_columns = []
-        df = pd.DataFrame.from_records(data_file_string)
-        for column in df:
-            variable, units = column.split()
-            units = units[1:-1]
-            name = dict_excel_names.get(variable)
-            if not name:
-                continue
-            dc = models.DataColumn(name=name, units=units, data=list(df[column]), dg_id=1)
-            data_columns.append(dc)
+            data_columns_volume_time = []
+            first_row_keys_volume = data_file_string[0].keys()
+            if file_upload_volume_time:
+                df_volume_time = pd.DataFrame.from_records(file_upload_volume_time, columns=first_row_keys_volume)
+                for column in df_values:
+                    variable, units = column.rsplit(' ', 1)
+                    units = units[1:-1]
+                    # name = dict_excel_names.get(variable)
+                    # if not name:
+                    #     continue
+                    # dc = models.DataColumn(name=name, units=units, data=list(df_volume_time[column]),
+                    #                        dg_id="dg2")
+                    dc = models.DataColumn(name=variable, units=units, data=list(df_volume_time[column]),
+                                           dg_id="dg2")
+                    data_columns_volume_time.append(dc)
 
+            if not models.FilePaper.objects.filter(reference_doi=paperDOI).exists():
 
-        experiment = models.Experiment(reactor=reactor, experiment_type="temp", temp=True, fileDOI=fileDOI)
-        experiment.save()
+                paper = models.FilePaper(title=paperReference,
+                                         reference_doi=paperDOI)
+                paper.save(username=username)
+            else:
+                paper = models.FilePaper.objects.get(reference_doi=paperDOI)
 
-        for dc in data_columns:
-            dc.experiment = experiment
-            dc.save()
+            experiment = models.Experiment(reactor=reactor,
+                                           experiment_type=experiment_type,
+                                           fileDOI=fileDOI,
+                                           file_paper=paper,
+                                           os_input_file=file_upload_os)
+            experiment.save(username=username)
 
-        for p in properties:
-            if p is not None:
-                cp = models.CommonProperty(**p)
-                cp.experiment = experiment
-                cp.save()
+            for dc in data_columns:
+                dc.experiment = experiment
+                dc.save(username=username)
 
-        for s in species:
-            if s is not None:
-                sp = models.InitialSpecie(**s)
-                sp.experiment = experiment
-                sp.save()
+            for dc in data_columns_volume_time:
+                dc.experiment = experiment
+                dc.save(username=username)
 
-        return JsonResponse({"experiment":  experiment.id})
+            for p in properties:
+                if p is not None:
+                    cp = models.CommonProperty(**p)
+                    cp.experiment = experiment
+                    cp.save(username=username)
+
+            for s in species:
+                if s is not None:
+                    sp = models.InitialSpecie(**s)
+                    sp.experiment = experiment
+                    sp.save(username=username)
+
+        except Exception as e:
+            print(e, file=sys.stderr)
+            return Response("Generic Error" + str(e), status.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse({"experiment": experiment.id})
 
 
 class InputFileFormView(APIView):
@@ -779,9 +870,6 @@ class InputFileFormView(APIView):
 
         fileDOI = paperDOI + "-" + str(hash(expReference))
 
-
-
-
         data_columns = []
         df = pd.DataFrame.from_records(data_file_string)
         for column in df:
@@ -792,8 +880,6 @@ class InputFileFormView(APIView):
                 continue
             dc = models.DataColumn(name=name, units=units, data=list(df[column]), dg_id=1)
             data_columns.append(dc)
-
-
 
         experiment = models.Experiment(reactor=reactor, experiment_type="temp", temp=True, fileDOI=fileDOI)
         experiment.save()
@@ -807,11 +893,7 @@ class InputFileFormView(APIView):
             i.experiment = experiment
             i.save()
 
-        return JsonResponse({"experiment":  experiment.id})
-
-
-
-
+        return JsonResponse({"experiment": experiment.id})
 
 # def experiment_curve_API(request, pk):
 #     experiment = get_object_or_404(models.Experiment, pk=pk)
@@ -838,5 +920,3 @@ class InputFileFormView(APIView):
 #         y_names = [cc.label for cc in comp_column]
 #         response = utils.curve_io_formatter(x_column=temp_column.data, y_columns=[cc.data for cc in comp_column], y_names=y_names, x_axis=x_axis, y_axis=y_axis, log=False)
 #         return JsonResponse(response)
-
-

@@ -11,3 +11,5 @@ frontend/__pycache__/
 BzzFile.txt
 
 node_modules/
+
+*.log

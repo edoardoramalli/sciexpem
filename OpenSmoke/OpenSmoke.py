@@ -55,7 +55,7 @@ class OpenSmokeParser:
         return df, column_unit
 
     @staticmethod
-    def parse_input(path):
+    def parse_input_path(path):
         output_string = ""
         with open(path, 'r') as file:
             for line in file:
@@ -65,6 +65,18 @@ class OpenSmokeParser:
                     output_string += "@OutputFolder $PATHOUTPUTFOLDER$;" + "\n"
                 else:
                     output_string += line
+        return output_string
+
+    @staticmethod
+    def parse_input_string(string):
+        output_string = ""
+        for line in string.split("\n"):
+            if "@KineticsFolder" in line:
+                output_string += "@KineticsFolder $PATHKINETICFOLDER$;" + "\n"
+            elif "@OutputFolder" in line:
+                output_string += "@OutputFolder $PATHOUTPUTFOLDER$;" + "\n"
+            else:
+                output_string += line + "\n"
         return output_string
 
 

@@ -34,6 +34,7 @@ urlpatterns = [
     path('frontend/', include('FrontEnd.urls')),
     path('ExperimentManager/', include('ExperimentManager.urls')),
     path('CurveMatching/', include('CurveMatching.urls')),
+    path('ReSpecTh/', include('ReSpecTh.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]
