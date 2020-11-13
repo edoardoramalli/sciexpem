@@ -1,5 +1,7 @@
 #FORMULA          DESCRIPTION                                                NAME 
 
+KR1                kripton                                                     KR
+NE1                neon                                                        NE
 HE1                helium                                                      HE                
 AR1                argon                                                       AR                
 N2                 nitrogen                                                    N2                

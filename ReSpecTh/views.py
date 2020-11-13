@@ -22,7 +22,7 @@ logger.addHandler(ReSpecTh.apps.logger_handler)
 logger.setLevel(logging.INFO)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_required('ReSpecTh.execute_optimapp', raise_exception=True)
 def executeOptimaPP(request):
     user = request.user.username
@@ -30,8 +30,8 @@ def executeOptimaPP(request):
     logger.info(f'{user} - Receive Execution OptimaPP Request')
 
     response = {'result': None, 'error': ''}
-    parameters = request.query_params
-    query_execution = json.loads(parameters['query'])
+
+    query_execution = json.loads(request.data['query'])
 
     file = query_execution['file']
 
@@ -44,7 +44,7 @@ def executeOptimaPP(request):
     return reply
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_required(('ExperimentManager.add_experiment',
                       'ExperimentManager.add_commonproperty',
                       'ExperimentManager.add_datacolumn',
@@ -56,8 +56,8 @@ def loadXMLExperiment(request):
     logger.info(f'{username} - Insert Experiment from XML file')
 
     response = {'result': None, 'error': ''}
-    parameters = request.query_params
-    query_execution = json.loads(parameters['query'])
+
+    query_execution = json.loads(request.data['query'])
 
     file = query_execution['file']
 
@@ -65,7 +65,6 @@ def loadXMLExperiment(request):
         with transaction.atomic():
             respecth_obj = ReSpecThParser.from_string(file)
 
-            initial_composition = respecth_obj.initial_composition()
             reactor = respecth_obj.apparatus
             experiment_type = respecth_obj.experiment_type
             fileDOI = respecth_obj.fileDOI

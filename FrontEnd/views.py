@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from ExperimentManager import models
 from FrontEnd import serializers
-from . import utils
+from FrontEnd import utils
 from django.db.models import Avg
 from django.db import transaction
 from rest_framework import generics, status
@@ -21,7 +21,6 @@ from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser
 import seaborn as sns
 import io
 import pandas as pd
-import pandas as pd
 from django.http import FileResponse
 from rest_framework.views import APIView
 import numpy as np
@@ -33,7 +32,14 @@ from CurveMatching import CurveMatching
 from django.contrib.auth.decorators import login_required
 
 from OpenSmoke.OpenSmoke import OpenSmokeParser
-import re
+from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
+
+import sys
+
+from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
+
+validatorProperty = ReSpecThValidProperty()
+validatorSpecie = ReSpecThValidSpecie()
 
 
 @login_required
@@ -703,9 +709,7 @@ class DataExcelUploadView(APIView):
 
         try:
             e = pd.read_excel(f)
-            import sys
-            print(e, file=sys.stderr)
-        except:
+        except Exception:
             return Response("Error parsing file", status.HTTP_400_BAD_REQUEST)
 
         check = utils.check_data_excel(e)
@@ -740,7 +744,8 @@ class DetailFormView(APIView):
 
     def post(self, request):
         # TODO: accesso migliore?
-        import sys
+
+
 
         username = request.user.username
         # username = "root"
@@ -757,7 +762,7 @@ class DetailFormView(APIView):
         if 'file_upload_volume_time' in request.data['params']['values']:
             file_upload_volume_time = request.data['params']['values']['file_upload_volume_time'][0]['response']['data']
         else:
-            file_upload_volume_time = []
+            file_upload_volume_time = None
 
         if 'file_upload_os' in request.data['params']['values']:
             file_upload_os = request.data['params']['values']['file_upload_os'][0]['response']['data']
@@ -780,76 +785,104 @@ class DetailFormView(APIView):
             return Response("This experiment already exists", status.HTTP_400_BAD_REQUEST)
 
         try:
-            data_columns = []
-            first_row_keys = data_file_string[0].keys()
-            df_values = pd.DataFrame.from_records(data_file_string, columns=first_row_keys)
-            print("QUIwwwww", df_values, file=sys.stderr)
-            for column in df_values:
-                variable, units = column.rsplit(' ', 1)
-                units = units[1:-1]
-                # TODO ci sta mettere un controllo che i nomi delle colonne siano standard una sorta di dizionario
-                # name = dict_excel_names.get(variable)
-                # if not name:
-                #     continue
-                # dc = models.DataColumn(name=name, units=units, data=list(df_values[column]), dg_id="dg1")
-                dc = models.DataColumn(name=variable, units=units, data=list(df_values[column]), dg_id="dg1")
-                data_columns.append(dc)
 
+            with transaction.atomic():
 
-            data_columns_volume_time = []
-            first_row_keys_volume = data_file_string[0].keys()
-            if file_upload_volume_time:
-                df_volume_time = pd.DataFrame.from_records(file_upload_volume_time, columns=first_row_keys_volume)
+                if not models.FilePaper.objects.filter(reference_doi=paperDOI).exists():
+
+                    paper = models.FilePaper(title=paperReference,
+                                             reference_doi=paperDOI)
+                    paper.save(username=username)
+                else:
+                    paper = models.FilePaper.objects.get(reference_doi=paperDOI)
+
+                experiment = models.Experiment(reactor=reactor,
+                                               experiment_type=experiment_type,
+                                               fileDOI=fileDOI,
+                                               file_paper=paper,
+                                               os_input_file=file_upload_os)
+                experiment.save(username=username)
+
+                first_row_keys = data_file_string[0].keys()
+                df_values = pd.DataFrame.from_records(data_file_string, columns=first_row_keys)
                 for column in df_values:
-                    variable, units = column.rsplit(' ', 1)
-                    units = units[1:-1]
-                    # name = dict_excel_names.get(variable)
-                    # if not name:
-                    #     continue
-                    # dc = models.DataColumn(name=name, units=units, data=list(df_volume_time[column]),
-                    #                        dg_id="dg2")
-                    dc = models.DataColumn(name=variable, units=units, data=list(df_volume_time[column]),
-                                           dg_id="dg2")
-                    data_columns_volume_time.append(dc)
+                    variable, units = utils.split_header(column)
+                    name = None
+                    sp = None
+                    label = None
+                    if validatorSpecie.isValid(variable):
+                        name = "composition"
+                        sp = [variable]
+                        label = "[" + variable + "]"
+                    elif validatorProperty.isValidName(variable):
+                        name = variable
+                        sp = None
+                        label = validatorProperty.getSymbol(variable)
 
-            if not models.FilePaper.objects.filter(reference_doi=paperDOI).exists():
+                    dc = models.DataColumn(name=name,
+                                           label=label,
+                                           species=sp,
+                                           units=units,
+                                           data=list(df_values[column]),
+                                           dg_id="dg1",
+                                           experiment=experiment)
+                    dc.save(username=username)
 
-                paper = models.FilePaper(title=paperReference,
-                                         reference_doi=paperDOI)
-                paper.save(username=username)
-            else:
-                paper = models.FilePaper.objects.get(reference_doi=paperDOI)
+                if file_upload_volume_time:
+                    first_row_keys_volume = file_upload_volume_time[0].keys()
+                    df_volume_time = pd.DataFrame.from_records(file_upload_volume_time, columns=first_row_keys_volume)
+                    for column in df_values:
+                        variable, units = utils.split_header(column)
+                        name = None
+                        sp = None
+                        label = None
+                        if validatorSpecie.isValid(variable):
+                            name = "composition"
+                            sp = [variable]
+                            label = "[" + variable + "]"
+                        elif validatorProperty.isValidName(variable):
+                            name = variable
+                            sp = None
+                            label = validatorProperty.getSymbol(variable)
 
-            experiment = models.Experiment(reactor=reactor,
-                                           experiment_type=experiment_type,
-                                           fileDOI=fileDOI,
-                                           file_paper=paper,
-                                           os_input_file=file_upload_os)
-            experiment.save(username=username)
+                        dc = models.DataColumn(name=name,
+                                               label=label,
+                                               species=sp,
+                                               units=units,
+                                               data=list(df_volume_time[column]),
+                                               dg_id="dg2",
+                                               experiment=experiment)
+                        dc.save(username=username)
 
-            for dc in data_columns:
-                dc.experiment = experiment
-                dc.save(username=username)
+                for p in properties:
+                    if p is not None:
+                        cp = models.CommonProperty(**p)
+                        cp.experiment = experiment
+                        cp.save(username=username)
 
-            for dc in data_columns_volume_time:
-                dc.experiment = experiment
-                dc.save(username=username)
+                for s in species:
+                    if s is not None:
+                        sp = models.InitialSpecie(**s)
+                        sp.experiment = experiment
+                        sp.save(username=username)
 
-            for p in properties:
-                if p is not None:
-                    cp = models.CommonProperty(**p)
-                    cp.experiment = experiment
-                    cp.save(username=username)
+                txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment,
+                                                             experiment.data_columns.all(),
+                                                             experiment.initial_species.all(),
+                                                             experiment.common_properties.all(),
+                                                             experiment.file_paper)
 
-            for s in species:
-                if s is not None:
-                    sp = models.InitialSpecie(**s)
-                    sp.experiment = experiment
-                    sp.save(username=username)
+                xml, error = OptimaPP.txt_to_xml(txt)
 
-        except Exception as e:
-            print(e, file=sys.stderr)
-            return Response("Generic Error" + str(e), status.HTTP_400_BAD_REQUEST)
+                if error:
+                    raise Response("Generic Error" + str(error), status.HTTP_400_BAD_REQUEST)
+
+                experiment.xml_file = xml
+                experiment.save(username=username)
+
+        except Exception as err:
+            err_type, value, traceback = sys.exc_info()
+            return Response("Generic Error" + str(value), status.HTTP_400_BAD_REQUEST)
 
         return JsonResponse({"experiment": experiment.id})
 

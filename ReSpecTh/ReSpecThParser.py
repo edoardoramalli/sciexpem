@@ -1,6 +1,9 @@
 import xml.etree.ElementTree as ET
 import pandas as pd
 import xmltodict
+from django.conf import settings
+import os
+from functools import reduce
 
 
 class ReSpecThParser:
@@ -72,12 +75,12 @@ class ReSpecThParser:
 
         return pd.DataFrame.from_records(columns_data, columns=columns)
 
-    # DEPRECATED
-    def extract_initial_composition(self):
-        initial_composition = dict()
-        for component in self.get_common_property("initial composition"):
-            initial_composition[component.find('speciesLink').attrib['preferredKey']] = component.find('amount').text
-        return initial_composition
+    # # DEPRECATED
+    # def extract_initial_composition(self):
+    #     initial_composition = dict()
+    #     for component in self.get_common_property("initial composition"):
+    #         initial_composition[component.find('speciesLink').attrib['preferredKey']] = component.find('amount').text
+    #     return initial_composition
 
     def initial_composition(self):
         initial_composition = self.get_common_property("initial composition")
@@ -116,24 +119,24 @@ class ReSpecThParser:
             props.append({"name": name, "units": units, "value": value, "sourcetype": sourcetype})
         return props
 
-    # deprecated
-    def extract_columns(self):
-        columns = []
-        dataGroup = self.root.find("dataGroup")
-        for prop in dataGroup.findall("property"):
-            name = prop.attrib.get('name')
-            units = prop.attrib.get('units')
-            label = prop.attrib.get('label')
-
-            species = None
-            xml_species = prop.findall('speciesLink')
-            if xml_species:
-                species = [specie.attrib['preferredKey'] for specie in xml_species]
-
-            data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
-            columns.append({'name': name, "units": units, "label": label, "species": species, "data": data})
-
-        return columns
+    # # deprecated
+    # def extract_columns(self):
+    #     columns = []
+    #     dataGroup = self.root.find("dataGroup")
+    #     for prop in dataGroup.findall("property"):
+    #         name = prop.attrib.get('name')
+    #         units = prop.attrib.get('units')
+    #         label = prop.attrib.get('label')
+    #
+    #         species = None
+    #         xml_species = prop.findall('speciesLink')
+    #         if xml_species:
+    #             species = [specie.attrib['preferredKey'] for specie in xml_species]
+    #
+    #         data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
+    #         columns.append({'name': name, "units": units, "label": label, "species": species, "data": data})
+    #
+    #     return columns
 
     def extract_columns_multi_dg(self):
         dataGroups = self.root.findall("dataGroup")
@@ -184,9 +187,9 @@ class ReSpecThParser:
 
         return columns
 
-    # DEPRECATED
-    def extract_data_groups(self):
-        return [xmltodict.parse(ET.tostring(dg), attr_prefix="") for dg in self.root.findall("./dataGroup")]
+    # # DEPRECATED
+    # def extract_data_groups(self):
+    #     return [xmltodict.parse(ET.tostring(dg), attr_prefix="") for dg in self.root.findall("./dataGroup")]
 
     @classmethod
     def from_file(cls, path):
@@ -197,3 +200,116 @@ class ReSpecThParser:
     def from_string(cls, string):
         tree = ET.ElementTree(ET.fromstring(string))
         return cls(tree)
+
+
+class Property:
+    def __init__(self, names, symbols, units):
+        self.names = names
+        self.symbols = symbols
+        self.units = units
+
+    def __repr__(self):
+        return str(self.names) + " = " + str(self.symbols) + " = " + str(self.units)
+
+
+class ReSpecThValidProperty:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/prop")):
+        self.props = []
+        with open(file, 'r') as file:
+            for line in file:
+                if line.startswith("#"):
+                    continue
+                line_split = line.strip().split("=")
+                names_list = [name.strip().lower() for name in line_split[0].split(",")]
+                symbols_list = [symbol.strip() for symbol in line_split[1].split(",") if symbol.strip()]
+                units_list = [unit.strip() for unit in line_split[2].split(",")]
+
+                self.insertUnique(Property(names_list, symbols_list, units_list))
+
+    def insertUnique(self, prop):
+        candidate_names = set(prop.names)
+        candidate_symbols = set(prop.symbols)
+
+        for prop_inserted in self.props:
+            c_prop_names = set(prop_inserted.names)
+            c_prop_symbols = set(prop_inserted.symbols)
+            if candidate_names.intersection(c_prop_names) or candidate_symbols.intersection(c_prop_symbols):
+                raise ValueError("Name or Symbol not unique! " + str(candidate_names) + " = " + str(candidate_symbols))
+
+        self.props.append(prop)
+
+    def getSymbol(self, name):
+        name = name.lower()
+        for prop in self.props:
+            if name in prop.names:
+                return prop.symbols[0]
+
+    def isValidName(self, name):
+        name = name.lower()
+        for prop in self.props:
+            if name in prop.names:
+                return True
+        return False
+
+    def isValidSymbol(self, symbol):
+        for prop in self.props:
+            if symbol in prop.symbols:
+                return True
+        return False
+
+    def isValidSymbolName(self, symbol, name):
+        name = name.lower()
+        for prop in self.props:
+            if symbol in prop.symbols and name in prop.names:
+                return True
+        return False
+
+    def isValid(self, unit, symbol=None, name=None):
+        if symbol is None and name is None:
+            return False
+        elif symbol is not None and name is not None:
+            for prop in self.props:
+                if symbol in prop.symbols and name in prop.names and unit in prop.units:
+                    return True
+            return False
+        elif symbol is not None and name is None:
+            for prop in self.props:
+                if symbol in prop.symbols and unit in prop.units:
+                    return True
+            return False
+        elif symbol is None and name is not None:
+            for prop in self.props:
+                if name in prop.names and unit in prop.units:
+                    return True
+            return False
+
+
+class ReSpecThValidSpecie:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/Nomenclatura_originale_POLIMI.txt")):
+        self.species = []  # Species name list in UPPERCASE only
+        with open(file, "r") as file:
+            file.readline()
+            file.readline()
+            for line in file:
+                line_split = line.strip().split()
+                self.species.append(line_split[2])
+
+    def isValid(self, name):
+        if type(name) is list:
+            return reduce(lambda x, y: x and (y.upper() in self.species), name, True)
+        else:
+            return name.upper() in self.species
+
+
+class ReSpecThValidExperimentType:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/experiment_type")):
+        self.experiment_type = []  # Species name list in LOWERCASE only
+        with open(file, "r") as file:
+            for line in file:
+                self.experiment_type.append(line.strip())
+
+    def isValid(self, name):
+        return name.lower() in self.experiment_type

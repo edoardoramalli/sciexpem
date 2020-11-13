@@ -20,10 +20,12 @@ from django.views.decorators.cache import never_cache
 from django.shortcuts import render
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 @login_required
-@never_cache
+# @never_cache
 def index(request):
     return render(request, 'FrontEnd/index.html')
 
@@ -38,3 +40,4 @@ urlpatterns = [
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]
+              # + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

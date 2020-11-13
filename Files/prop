@@ -1,0 +1,19 @@
+temperature            = T, T5             = K
+pressure               = P, p, P5          = Pa, kPa, MPa, Torr, torr, bar, mbar, atm
+volume                 = V                 = m3, dm3, cm3, mm3, L
+time, residence time   = t                 = s, ms, us, ns, min
+# residence time = t = s, ms, us, ns, min
+distance               = x                 = m, dm, cm, mm
+ignition delay         = tau               = s, ms, us, ns, min
+length                 =                   = m, dm, cm, mm
+density                = rho               = g m-3, g dm-3, g cm-3, g mm-3, kg m-3, kg dm-3, kg cm-3, kg mm-3
+flow rate              =                   = g m-2 s-1, g dm-2 s-1, g cm-2 s-1, g mm-2 s-1, kg m-2 s-1, kg dm-2 s-1, kg cm-2 s-1, kg mm-2 s-1
+flame speed, laminar burning velocity = Sl, S = m/s, dm/s, cm/s, mm/s, m s-1, dm s-1, cm s-1, mm s-1
+composition            =                   = mole fraction, percent, ppm, ppb, mol/cm3
+concentration          =                   = mol/m3, mol/dm3, mol/cm3, mol m-3, mol dm-3, mol cm-3, molecule/m3, molecule/dm3, molecule/cm3, molecule m-3, molecule dm-3, molecule cm-3
+rate coefficient       =                   = s-1,m3 mol-1 s-1, dm3 mol-1 s-1, cm3 mol-1 s-1, m3 molecule-1 s-1, dm3 molecule-1 s-1, cm3 molecule-1 s-1, m6 mol-3 s-1, dm6 mol-2 s-1, cm6 mol-2 s-1, m6 molecule-2 s-1, dm6 molecule-2 s-1, cm6 molecule-2 s-1
+equivalence ratio      =                   = unitless
+uncertainty            = d_Sl, d_T         = cm/s, K
+# Nei data point si trova 'phi' 'd_phi' come proprietà del tag <datapoint>
+phi, d_phi             = phi, d_phi        = unitless
+pressure rise          = dp/dt             = ms-1

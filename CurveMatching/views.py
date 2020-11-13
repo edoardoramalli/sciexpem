@@ -19,7 +19,7 @@ logger.addHandler(CurveMatching.apps.logger_handler)
 logger.setLevel(logging.INFO)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_required('CurveMatching.execute_curve_matching', raise_exception=True)
 def executeCurveMatchingBase(request):
     user = request.user.username
@@ -27,8 +27,8 @@ def executeCurveMatchingBase(request):
     logger.info(f'{user} - Receive Execution Curve Matching Request')
 
     response = {'result': None, 'error': None}
-    parameters = request.query_params
-    query_execution = json.loads(parameters['query'])
+
+    query_execution = json.loads(request.data['query'])
 
     try:
         path_executable_cm = os.path.join(settings.BASE_DIR, CurveMatching.__name__, "CurveMatchingPython.o")
@@ -47,17 +47,17 @@ def executeCurveMatchingBase(request):
     return reply
 
 
-@api_view(['GET'])
-@permission_required('CurveMatching.execute_curve_matching', raise_exception=True)
-def prova(request):
-    response = {'result': None, 'error': None}
-    parameters = request.query_params
-    query_execution = json.loads(parameters['query'])
-
-    import time
-    time.sleep(20)
-
-    response['result'] = "EDO"
-
-    reply = JsonResponse(response)
-    return reply
+# @api_view(['GET'])
+# @permission_required('CurveMatching.execute_curve_matching', raise_exception=True)
+# def prova(request):
+#     response = {'result': None, 'error': None}
+#     parameters = request.query_params
+#     query_execution = json.loads(parameters['query'])
+#
+#     import time
+#     time.sleep(20)
+#
+#     response['result'] = "EDO"
+#
+#     reply = JsonResponse(response)
+#     return reply

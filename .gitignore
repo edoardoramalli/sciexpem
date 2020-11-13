@@ -12,4 +12,10 @@ BzzFile.txt
 
 node_modules/
 
+staticfiles
+
 *.log
+
+OpenSmoke/migrations/
+
+ReSpecTh/migrations/

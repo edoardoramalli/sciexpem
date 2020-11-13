@@ -76,3 +76,11 @@ def check_data_excel(df):
     return True
 
 
+def split_header(line):
+    line = line.strip()
+    index_start = line.find("[")
+    index_end = line.rfind("]")
+    name = line[: index_start].strip()
+    unit = line[index_start + 1 : index_end].strip()
+    return name, unit
+

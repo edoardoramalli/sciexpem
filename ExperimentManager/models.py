@@ -5,6 +5,15 @@ from django.urls import reverse
 from enum import Enum
 from django.utils import timezone
 
+import sys
+
+from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
+
+validatorProperty = ReSpecThValidProperty()
+validatorSpecie = ReSpecThValidSpecie()
+validatorExperiment = ReSpecThValidExperimentType()
+
+
 MAX_DIGITS = 42
 DECIMAL_PLACES = 10
 
@@ -93,6 +102,21 @@ def generic_save(*args, **kwargs):
         raise ValueError("Username field not specified!")
 
 
+def generic_delete(*args, **kwargs):
+    if 'username' in kwargs and 'object' in kwargs:
+        username = kwargs.pop('username')
+        obj = kwargs.pop('object')
+        super(obj.__class__, obj).delete(*args, **kwargs)
+        log = LoggerModel(model_name=obj.__class__.__name__,
+                          pk_model=obj.pk,
+                          username=username,
+                          action="delete",
+                          date=timezone.now())
+        log.save()
+    else:
+        raise ValueError("Username field not specified!")
+
+
 class FilePaper(models.Model):
     title = models.CharField(max_length=500)
     reference_doi = models.CharField(max_length=100, unique=True, blank=True, null=True)  # DOI paper
@@ -107,7 +131,7 @@ class FilePaper(models.Model):
 
 class Experiment(models.Model):
     reactor = models.CharField(max_length=100)
-    experiment_type = models.CharField(max_length=100)
+    experiment_type = models.CharField(max_length=100)  # is checked
     fileDOI = models.CharField(max_length=100, unique=True)  # DOI experiment
     file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
@@ -115,8 +139,18 @@ class Experiment(models.Model):
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 
+    def check_fields(self):
+        experiment_type = self.experiment_type
+
+        if experiment_type is None:
+            raise ValueError("Experiment type field is not specified!")
+
+        if not validatorExperiment.isValid(experiment_type):
+            raise ValueError("Experiment type '%s' is not valid!" % str(experiment_type))
+
     def save(self, *args, **kwargs):
         kwargs['object'] = self
+        self.check_fields()
         generic_save(*args, **kwargs)
 
     def get_params_experiment(self):
@@ -158,10 +192,12 @@ class Experiment(models.Model):
             return None
 
 
-class CommonProperty(models.Model):  # Sono
-    name = models.CharField(max_length=100)
-    units = models.CharField(max_length=50)
-    value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
+# Initial condition of the experiment
+class CommonProperty(models.Model):
+    name = models.CharField(max_length=100)  # is checked
+    units = models.CharField(max_length=50)  # is checked
+    value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)  # is checked
+
     sourcetype = models.CharField(max_length=50, null=True, blank=True)
 
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="common_properties")
@@ -169,45 +205,102 @@ class CommonProperty(models.Model):  # Sono
     def __str__(self):
         return "%s %s %s" % (self.name, self.value, self.units)
 
+    def check_fields(self):
+        name = self.name
+        unit = self.units
+        value = self.value
+
+        if float(value) < 0:
+            raise ValueError("Value common property '%s' must be positive!" % value)
+        if not validatorProperty.isValidName(name):
+            raise ValueError("Name common property '%s' is not valid!" % name)
+        if not validatorProperty.isValid(unit=unit, name=name):
+            raise ValueError("Unit common property '%s' is not valid for '%s' element!" % (unit, name))
+
     def save(self, *args, **kwargs):
         kwargs['object'] = self
+        self.check_fields()
         generic_save(*args, **kwargs)
 
 
-class InitialSpecie(models.Model):  # Le cose che bruci, i componenti iniziali
-    name = models.CharField(max_length=20)
-    units = models.CharField(max_length=50)
-    amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
-    cas = models.CharField(max_length=20, null=True, blank=True)
+# Initial species of the fuel
+class InitialSpecie(models.Model):
+    name = models.CharField(max_length=20)  # is checked
+    units = models.CharField(max_length=50)  # is checked
+    amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)  # is checked
+
+    cas = models.CharField(max_length=20, null=True, blank=True)  # TODO SERVE?
+    role = models.CharField(max_length=20, null=True, blank=True)  # "fuel' and 'oxidizer' # TODO SERVE?
+
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="initial_species")
-    role = models.CharField(max_length=20, null=True, blank=True)  # "fuel' and 'oxidizer'
 
     def __str__(self):
         return "%s %s %s" % (self.name, self.amount, self.units)
 
+    def check_fields(self):
+        name = self.name
+        unit = self.units
+        amount = self.amount
+
+        if float(amount) < 0:
+            raise ValueError("Amount initial specie '%s' must be positive!" % amount)
+        if not validatorSpecie.isValid(name):
+            raise ValueError("Name initial specie '%s' is not valid!" % name)
+        if not validatorProperty.isValid(unit=unit, name="composition"):
+            raise ValueError("Unit initial specie '%s' is not valid for 'composition' element!" % unit)
+
     def save(self, *args, **kwargs):
         kwargs['object'] = self
+        self.check_fields()
         generic_save(*args, **kwargs)
 
+    # TODO Override DELETE and UPDATE
 
+
+# More data columns represent the data of an experiment
 class DataColumn(models.Model):
-    name = models.CharField(max_length=100)
-    label = models.CharField(max_length=100, null=True, blank=True)
-    units = models.CharField(max_length=50)
-    species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
-    data = ArrayField(models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES))
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="data_columns")
+    name = models.CharField(max_length=100)  # is checked
+    label = models.CharField(max_length=100, null=True, blank=True)  # is checked
+    units = models.CharField(max_length=50)  # is checked
+    species = ArrayField(models.CharField(max_length=20), null=True, blank=True)  # is checked
+    data = ArrayField(models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES))  # is checked
+
     dg_id = models.CharField(max_length=10, null=False)
+
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="data_columns")
 
     def range(self):
         return self.data[0], self.data[-1]
 
     def __str__(self):
-        return "%s %s %s" % (self.name, self.species, self.units)
+        return "%s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data)
+
+    def check_fields(self):
+        name = self.name
+        label = self.label
+        unit = self.units
+        species = list(self.species) if self.species is not None else None
+        # data = [float(x) for x in self.data]
+
+        if not validatorProperty.isValid(unit=unit, name=name):
+            raise ValueError("Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
+        if label \
+                and name != 'composition' \
+                and name != 'concentration' \
+                and not validatorProperty.isValidSymbolName(symbol=label, name=name):
+            raise ValueError("Not correspondence between unit '%s' and label '%s' in data column!" % (unit, label))
+        if species and not validatorSpecie.isValid(species):
+            raise ValueError("Name species '%s' is not valid in data column!" % str(species))
+        # Without next if data could be negative
+        # if not all(x >= 0 for x in data):
+        #     raise ValueError("Amount data column '%s' must be positive!" % str(data))
 
     def save(self, *args, **kwargs):
         kwargs['object'] = self
+        self.check_fields()
         generic_save(*args, **kwargs)
+
+    # TODO Override DELETE and UPDATE
 
 
 class ChemModel(models.Model):
@@ -266,3 +359,5 @@ class LoggerModel(models.Model):
     username = models.CharField(max_length=100)
     action = models.CharField(max_length=50)
     date = models.DateTimeField()
+
+
