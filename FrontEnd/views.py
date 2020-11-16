@@ -326,6 +326,15 @@ def experiment_curve_API(request, pk):
 
 
 @api_view(['GET'])
+def experiment_delete(request, pk):
+    try:
+        exp = models.Experiment.objects.get(pk=pk).delete()
+    except Exception:
+        return Response("Error Deleting Experiment", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response("OK", status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
 def curve_matching_results_API(request):
     exp_id = request.query_params.get('experiment', None)
     experiment = get_object_or_404(models.Experiment, pk=exp_id)

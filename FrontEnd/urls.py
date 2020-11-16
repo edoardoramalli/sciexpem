@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/experiments/searchfields', views.experiment_search_fields, name="experiment-search-fields"),
     path('api/models/', views.ChemModelListAPI.as_view(), name="model-list-api"),
     path('api/experiment/<int:pk>', views.ExperimentDetailAPI.as_view(), name="experiment-detail-api"),
+    path('api/experiment/delete/<int:pk>', views.experiment_delete, name="experiment-delete-api"),
     path('api/experiment/curves/<int:pk>', views.experiment_curve_API, name="experiment-curves-api"),
     path('api/opensmoke/curves', views.experiment_models_curve_API, name="experiment-models-curve-api"),
     path('api/curve_matching_results', views.curve_matching_results_API, name='curve-matching-results-api'),
