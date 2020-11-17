@@ -880,22 +880,24 @@ class DetailFormView(APIView):
                                                              experiment.initial_species.all(),
                                                              experiment.common_properties.all(),
                                                              experiment.file_paper)
-                try:
-                    xml, error = OptimaPP.txt_to_xml(txt)
-                except FileNotFoundError:
-                    return Response("OptimaPP executable not found ", status.HTTP_400_BAD_REQUEST)
+
+                xml, error = OptimaPP.txt_to_xml(txt)
 
                 if error:
-                    return Response("OptimaPP Error " + str(error), status.HTTP_400_BAD_REQUEST)
+                    raise ValueError
 
                 experiment.xml_file = xml
                 experiment.save(username=username)
 
+        except ValueError:
+            return Response("OptimaPP Error " + str(error), status.HTTP_400_BAD_REQUEST)
+
+        except FileNotFoundError:
+            return Response("OptimaPP executable not found ", status.HTTP_400_BAD_REQUEST)
+
         except Exception as err:
             err_type, value, traceback = sys.exc_info()
             return Response("Generic Error" + str(value), status.HTTP_400_BAD_REQUEST)
-
-
 
         return JsonResponse({"experiment": experiment.id})
 

@@ -1,10 +1,12 @@
 import tempfile
 import subprocess
 import os
-import sys
+from django.conf import settings
 
 
 class OptimaPP:
+
+    path = settings.OPTIMAPP_PATH
 
     @staticmethod
     def txt_to_xml(txt):
@@ -17,7 +19,7 @@ class OptimaPP:
             tmp_txt_file.write(txt)
             tmp_txt_file.close()
 
-            bashCommand = "cd /home/eramalli/source_code/build/bin/Release && "
+            bashCommand = "cd " + OptimaPP.path + " && "
             bashCommand += " ./OptimaPP TXT_TO_XML "
             bashCommand += tmp_txt_file_name_path
             bashCommand += " -o "
@@ -26,7 +28,6 @@ class OptimaPP:
             process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
             output, error = process.communicate()
             output = str(output)
-            # print(output, file=sys.stderr)
 
             txt_start_warning = "-------------------------------------- + ---------------------------------------"
 
