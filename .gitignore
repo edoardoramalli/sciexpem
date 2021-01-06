@@ -19,3 +19,5 @@ staticfiles
 OpenSmoke/migrations/
 
 ReSpecTh/migrations/
+
+CurveMatching/migrations/

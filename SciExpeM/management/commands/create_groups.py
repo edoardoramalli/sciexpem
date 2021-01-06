@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group
 
 class Command(BaseCommand):
     help = 'Create groups'
-    GROUPS = ['READ', 'WRITE', 'DELETE', 'UPDATE', 'EXECUTE']
+    GROUPS = ['READ', 'WRITE', 'DELETE', 'UPDATE', 'EXECUTE', 'STAFF', 'VALIDATE']
 
     def handle(self, *args, **options):
         for group in self.GROUPS:

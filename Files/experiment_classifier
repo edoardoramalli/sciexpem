@@ -1,0 +1,2 @@
+# NOME = EXP_TYPE = REACTOR  = IGNITION DEF = MODEL = SOLVER = OUTPUTFILE = MAPPING
+EXP1 | ignition delay measurement | shock tube | target->p, type->d/dt max  | H2 | BatchReactor | ParametricAnalysisIDT | temperature->T0, ignition delay->tau_T(slope)

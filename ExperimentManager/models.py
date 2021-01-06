@@ -1,17 +1,23 @@
+# Django import
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
-from enum import Enum
 from django.utils import timezone
 
+# System import
+from enum import Enum
 import sys
 
+# Local import
 from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
+from ReSpecTh.ExperimentClassifier import Classifier
+from ReSpecTh.FuelValid import ValidFuel
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
+validatorFuel = ValidFuel()
 
 
 MAX_DIGITS = 42
@@ -139,14 +145,48 @@ class Experiment(models.Model):
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 
+    # Meta Data
+    fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
+
+    status = models.CharField(max_length=50)
+
+    phi_inf = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+    phi_sup = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+
+    t_inf = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+    t_sup = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+
+    p_inf = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+    p_sup = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
+
     def check_fields(self):
         experiment_type = self.experiment_type
+        fuels = list(self.fuels) if self.fuels is not None else []
+        phi_inf = self.phi_inf if self.phi_inf is not None else 0
+        phi_sup = self.phi_sup if self.phi_sup is not None else 0
+        t_inf = self.t_inf if self.t_inf is not None else 0
+        t_sup = self.t_sup if self.t_sup is not None else 0
+        p_inf = self.p_inf if self.p_inf is not None else 0
+        p_sup = self.p_sup if self.p_sup is not None else 0
 
         if experiment_type is None:
             raise ValueError("Experiment type field is not specified!")
 
         if not validatorExperiment.isValid(experiment_type):
             raise ValueError("Experiment type '%s' is not valid!" % str(experiment_type))
+
+        for fuel in fuels:
+            if not validatorFuel.isValid(fuel):
+                raise ValueError("Fuel type '%s' is not valid!" % str(fuel))
+
+        if not 0 <= phi_inf <= phi_sup:
+            raise ValueError("Invalid values for phi: 0 <= phi_inf <= phi_sup")
+
+        if not 0 <= t_inf <= t_sup:
+            raise ValueError("Invalid values for temperature profile: 0 <= t_inf <= t_sup")
+
+        if not 0 <= p_inf <= p_sup:
+            raise ValueError("Invalid values for pressure profile: 0 <= p_inf <= p_sup")
 
     def save(self, *args, **kwargs):
         kwargs['object'] = self
@@ -191,14 +231,30 @@ class Experiment(models.Model):
         else:
             return None
 
+    def run_experiment_classifier(self):
+        classifier = Classifier()
+        par_input_list = [column.name for column in DataColumn.objects.filter(experiment__pk=self.pk)]
+        e_type = classifier.get_ExperimentClassifier(
+            experiment_type=self.experiment_type,
+            reactor=self.reactor,
+            ignition_type=self.ignition_type.split("-") if self.ignition_type else None,
+            par_input_list=par_input_list)
+        return e_type
+
+    @property
+    def experiment_classifier(self):
+        e_type = self.run_experiment_classifier()
+        if e_type:
+            return e_type.name
+        else:
+            return None
+
 
 # Initial condition of the experiment
 class CommonProperty(models.Model):
     name = models.CharField(max_length=100)  # is checked
     units = models.CharField(max_length=50)  # is checked
     value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)  # is checked
-
-    sourcetype = models.CharField(max_length=50, null=True, blank=True)
 
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="common_properties")
 
@@ -218,41 +274,41 @@ class CommonProperty(models.Model):
             raise ValueError("Unit common property '%s' is not valid for '%s' element!" % (unit, name))
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
+        if 'username' in kwargs:
+            kwargs.pop('username')
         self.check_fields()
-        generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 # Initial species of the fuel
 class InitialSpecie(models.Model):
     name = models.CharField(max_length=20)  # is checked
     units = models.CharField(max_length=50)  # is checked
-    amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)  # is checked
-
-    cas = models.CharField(max_length=20, null=True, blank=True)  # TODO SERVE?
-    role = models.CharField(max_length=20, null=True, blank=True)  # "fuel' and 'oxidizer' # TODO SERVE?
+    value = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)  # is checked
 
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="initial_species")
 
     def __str__(self):
-        return "%s %s %s" % (self.name, self.amount, self.units)
+        return "%s %s %s" % (self.name, self.value, self.units)
 
     def check_fields(self):
         name = self.name
         unit = self.units
-        amount = self.amount
+        value = self.value
 
-        if float(amount) < 0:
-            raise ValueError("Amount initial specie '%s' must be positive!" % amount)
+        if float(value) < 0:
+            raise ValueError("Value initial specie '%s' must be positive!" % value)
         if not validatorSpecie.isValid(name):
             raise ValueError("Name initial specie '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name="composition"):
             raise ValueError("Unit initial specie '%s' is not valid for 'composition' element!" % unit)
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
+        if 'username' in kwargs:
+            kwargs.pop('username')
         self.check_fields()
-        generic_save(*args, **kwargs)
+
+        super().save(*args, **kwargs)
 
     # TODO Override DELETE and UPDATE
 
@@ -264,6 +320,10 @@ class DataColumn(models.Model):
     units = models.CharField(max_length=50)  # is checked
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)  # is checked
     data = ArrayField(models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES))  # is checked
+
+    plotscale = models.CharField(max_length=50)
+    ignore = models.BooleanField()
+    nominal = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES, null=True, blank=True)
 
     dg_id = models.CharField(max_length=10, null=False)
 
@@ -280,6 +340,9 @@ class DataColumn(models.Model):
         label = self.label
         unit = self.units
         species = list(self.species) if self.species is not None else None
+        nominal = self.nominal
+        ignore = self.ignore
+        plotscale = self.plotscale
         # data = [float(x) for x in self.data]
 
         if not validatorProperty.isValid(unit=unit, name=name):
@@ -295,10 +358,20 @@ class DataColumn(models.Model):
         # if not all(x >= 0 for x in data):
         #     raise ValueError("Amount data column '%s' must be positive!" % str(data))
 
+        if ignore and nominal is None:
+            raise ValueError('Data column is ignored but nominal is not set.')
+
+        if ignore and nominal < 0:
+            raise ValueError('Data column nominal must be positive.')
+
+        if plotscale not in ['lin', 'log', 'inv']:  # Hard-coded since very limited future expansion
+            raise ValueError('Plot scale is not valid.')
+
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
+        if 'username' in kwargs:
+            kwargs.pop('username')
         self.check_fields()
-        generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     # TODO Override DELETE and UPDATE
 
@@ -338,8 +411,9 @@ class ExecutionColumn(models.Model):
         return self.data[0], self.data[-1]
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
-        generic_save(*args, **kwargs)
+        if 'username' in kwargs:
+            kwargs.pop('username')
+        super().save(*args, **kwargs)
 
 
 class CurveMatchingResult(models.Model):

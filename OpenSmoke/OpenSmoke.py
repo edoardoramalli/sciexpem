@@ -60,9 +60,9 @@ class OpenSmokeParser:
         with open(path, 'r') as file:
             for line in file:
                 if "@KineticsFolder" in line:
-                    output_string += "@KineticsFolder $PATHKINETICFOLDER$;" + "\n"
+                    output_string += "\t\t@KineticsFolder\t\t\t $PATHKINETICFOLDER$;" + "\n"
                 elif "@OutputFolder" in line:
-                    output_string += "@OutputFolder $PATHOUTPUTFOLDER$;" + "\n"
+                    output_string += "\t\t@OutputFolder\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
                 else:
                     output_string += line
         return output_string

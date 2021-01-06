@@ -23,6 +23,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.conf.urls.static import static
 
+import sys
 
 @login_required
 # @never_cache
@@ -39,5 +40,4 @@ urlpatterns = [
     path('ReSpecTh/', include('ReSpecTh.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
-]
-              # + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]# + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

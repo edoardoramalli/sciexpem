@@ -1,7 +1,7 @@
 # Django Packages
 from rest_framework.decorators import api_view
 from django.http import JsonResponse
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import user_passes_test
 
 # Build-in Packages
 import sys
@@ -11,6 +11,7 @@ import json
 # Local Packages
 from SciExpeM import settings
 import CurveMatching
+from SciExpeM.checkPermissionGroup import *
 
 # Logging
 import logging
@@ -20,7 +21,7 @@ logger.setLevel(logging.INFO)
 
 
 @api_view(['POST'])
-@permission_required('CurveMatching.execute_curve_matching', raise_exception=True)
+@user_in_group("EXECUTE")
 def executeCurveMatchingBase(request):
     user = request.user.username
 
@@ -45,19 +46,3 @@ def executeCurveMatchingBase(request):
     logger.info(f'{user} - Send Execution Curve Matching Request  %f KB', dimension)
 
     return reply
-
-
-# @api_view(['GET'])
-# @permission_required('CurveMatching.execute_curve_matching', raise_exception=True)
-# def prova(request):
-#     response = {'result': None, 'error': None}
-#     parameters = request.query_params
-#     query_execution = json.loads(parameters['query'])
-#
-#     import time
-#     time.sleep(20)
-#
-#     response['result'] = "EDO"
-#
-#     reply = JsonResponse(response)
-#     return reply

@@ -46,8 +46,32 @@ class ReSpecThParser:
     def get_common_property(self, s):
         return self.root.find("./commonProperties/property/[@name='%s']" % s)
 
+    def valid_ignition_type(self, ignition_type):
+        if ignition_type is not None:
+            types = [x.strip() for x in
+                     open(os.path.join(settings.BASE_DIR, "Files/ignition_definition_types")).read().split("\n")]
+
+            target = [[i.strip() for i in x.strip().split(",")]
+                      for x in
+                      open(os.path.join(settings.BASE_DIR, "Files/ignition_definition_measured_quantity")).read().
+                          split("\n")]
+            c_type = ignition_type.attrib.get("type")
+            c_target = ignition_type.attrib.get("target").replace(";", "")
+            if c_type not in types:
+                raise ValueError("Ignition type '%s' is not valid. Possible values are: %s" % (c_type, str(types)))
+            c_target_result = None
+            for ll in target:
+                if c_target in ll:
+                    c_target_result = ll[0]
+                    break
+            if c_target_result is None:
+                raise ValueError("Ignition target '%s' is not valid. Possible values are: %s" % (c_target, str(target)))
+            return str(c_target_result) + "-" + str(c_type)
+        else:
+            return None
+
     def get_ignition_type(self):
-        return self.root.find("./ignitionType")
+        return self.valid_ignition_type(self.root.find("./ignitionType"))
 
     def get_common_property_value_units(self, s):
         element = self.get_common_property(s)
@@ -90,10 +114,12 @@ class ReSpecThParser:
         initial_species = []
         for component in initial_composition:
             name = component.find('speciesLink').attrib.get('preferredKey')
-            amount = component.find('amount').text
-            cas = component.find('speciesLink').attrib.get('CAS')
+            value = component.find('amount').text
+            # cas = component.find('speciesLink').attrib.get('CAS')
             units = component.find('amount').attrib.get("units")
-            initial_specie = {"name": name, "amount": amount, "cas": cas, "units": units}
+            # initial_specie = {"name": name, "value": value, "cas": cas, "units": units}
+            initial_specie = {"name": name, "value": value, "units": units}
+
             initial_species.append(initial_specie)
         return initial_species
 
@@ -115,8 +141,9 @@ class ReSpecThParser:
                 continue
             units = prop.attrib.get("units")
             value = prop.find("value").text
-            sourcetype = prop.attrib.get("sourcetype")
-            props.append({"name": name, "units": units, "value": value, "sourcetype": sourcetype})
+            # sourcetype = prop.attrib.get("sourcetype")
+            # props.append({"name": name, "units": units, "value": value, "sourcetype": sourcetype})
+            props.append({"name": name, "units": units, "value": value})
         return props
 
     # # deprecated
@@ -150,6 +177,11 @@ class ReSpecThParser:
                 units = prop.attrib.get('units')
                 label = prop.attrib.get('label')
 
+
+                ignore = prop.attrib.get('ignore') if prop.attrib.get('ignore') is not None else False
+                nominal = prop.attrib.get('nominal')
+                plotscale = prop.attrib.get('plotscale') if prop.attrib.get('plotscale') is not None else "lin"
+
                 species = None
                 xml_species = prop.findall('speciesLink')
                 if xml_species:
@@ -157,7 +189,9 @@ class ReSpecThParser:
 
                 data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
                 dg_columns.append(
-                    {'name': name, "units": units, "label": label, "species": species, "data": data, "dg_id": dg_id})
+                    {'name': name, "units": units, "label": label,
+                     "species": species, "data": data, "dg_id": dg_id,
+                     'ignore': ignore, 'nominal': nominal, 'plotscale': plotscale})
 
                 # extract dataPoint attributes
             dataPoints = dataGroup.findall('dataPoint')
@@ -165,14 +199,15 @@ class ReSpecThParser:
             for k in dp_attributes.keys():
                 data = [float(dp.attrib[k]) for dp in dataPoints]
                 dg_columns.append(
-                    {'name': k, "units": "unitless", "label": k, "species": None, "data": data, "dg_id": dg_id})
+                    {'name': k, "units": "unitless", "label": k, "species": None, "data": data, "dg_id": dg_id,
+                     'ignore': False, 'nominal': None, 'plotscale': 'lin'})
 
             result.append(dg_columns)
         return result
 
     def extract_uncertainties(self):
         columns = []
-        dataGroup = r.root.find("dataGroup")
+        dataGroup = self.root.find("dataGroup")
         at = dataGroup.findall("property[@name='uncertainty']") + dataGroup.findall("uncertainty")
         for uncertainty in at:
             units = uncertainty.attrib.get('units')
@@ -313,3 +348,15 @@ class ReSpecThValidExperimentType:
 
     def isValid(self, name):
         return name.lower() in self.experiment_type
+
+
+class ReSpecThValidReactorType:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/reactor")):
+        self.reactor_type = []  # Species name list in LOWERCASE only
+        with open(file, "r") as file:
+            for line in file:
+                self.reactor_type.append(line.strip())
+
+    def isValid(self, name):
+        return name.lower() in self.reactor_type

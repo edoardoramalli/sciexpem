@@ -36,7 +36,7 @@ from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 
 import sys
 
-from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
+from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType, ReSpecThValidReactorType
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -317,6 +317,20 @@ def experiment_models_curve_API(request):
 
 
 @api_view(['GET'])
+def experiment_info_API(request, pk):
+    model_name = "Experiment"
+    action = "save"
+    log = models.LoggerModel.objects.get(model_name=model_name,
+                                         pk_model=pk,
+                                         action=action)
+    response = {
+        "author": log.username,
+        "date": log.date.strftime('%Y.%m.%d %H:%M')
+    }
+    return Response(response)
+
+
+@api_view(['GET'])
 def experiment_curve_API(request, pk):
     response = get_curves(pk, None)
     if response is None:
@@ -325,13 +339,7 @@ def experiment_curve_API(request, pk):
     return response
 
 
-@api_view(['GET'])
-def experiment_delete(request, pk):
-    try:
-        exp = models.Experiment.objects.get(pk=pk).delete()
-    except Exception:
-        return Response("Error Deleting Experiment", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return Response("OK", status=status.HTTP_200_OK)
+
 
 
 @api_view(['GET'])
@@ -618,8 +626,12 @@ def download_respecth_file(request, pk):
 
 @api_view(['GET'])
 def download_experiment_excel(request, pk):
+    import sys
+    print("EDO", file=sys.stderr)
+
     df = utils.extract_experiment_table(pk, units_brackets=True, reorder=True)
 
+    print(df, file=sys.stderr)
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, index=False)
@@ -701,6 +713,65 @@ def get_username(request):
     return JsonResponse({"username": username})
 
 
+@api_view(['POST'])
+def get_experiment_file(request, pk):
+    exp = models.Experiment.objects.get(pk=pk)
+    type = request.data['params']['type']
+    if type == "OS":
+        file = exp.os_input_file
+    elif type == "ReSpecTh":
+        file = exp.xml_file
+    else:
+        file = None
+
+    response = {
+        "file": file
+    }
+    return Response(response)
+
+
+@api_view(['POST'])
+def get_experiment_data_columns(request, pk):
+    try:
+        data_group = request.data['params']['type']
+        data_columns = models.DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
+        if data_columns.exists():
+            header = [column.name + " [" + column.units + "]" +
+                      " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
+                      " - Plot Scale: " + column.plotscale + ""
+                      if not column.species
+                      else column.label + " [" + column.units + "]" +
+                      " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
+                      " - Plot Scale: " + column.plotscale + ""
+                      for column in data_columns]
+
+            data = [list(map(lambda x: float(x), column.data)) for column in data_columns]
+
+            df = pd.DataFrame(dict(zip(header, data)))
+
+            columns = list(df.columns)
+            content = df.to_dict(orient="records")
+        else:
+            columns = None
+            content = None
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+
+    return JsonResponse({"header": columns, "data": content})
+
+
+@api_view(['GET'])
+def get_experiment_type_list(request):
+    experiment_type_list = ReSpecThValidExperimentType().experiment_type
+    return JsonResponse({"experiment_type_list": experiment_type_list})
+
+
+@api_view(['GET'])
+def get_reactor_type_list(request):
+    reactor_type_list = ReSpecThValidReactorType().reactor_type
+    return JsonResponse({"reactor_type_list": reactor_type_list})
+
+
 @api_view(['GET'])
 def opensmoke_names(request):
     data_folder = Path(__location__).parents[0] / "Files"
@@ -709,11 +780,19 @@ def opensmoke_names(request):
     return JsonResponse({"names": names})
 
 
+@api_view(['GET'])
+def fuels_names(request):
+    data_folder = Path(__location__).parents[0] / "Files"
+    names = list(
+        set(pd.read_csv(os.path.join(data_folder, "fuels"), header=None)[0]))
+    return JsonResponse({"names": names})
+
+
 class DataExcelUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
-        data = request.data['data_excel'].read()
+        data = request.data['data'].read()
         f = io.BytesIO(data)
 
         try:
@@ -735,7 +814,7 @@ class DataExcelUploadView(APIView):
 class OSInputUploadView(APIView):
 
     def post(self, request):
-        data = request.data['input_dic'].read().decode("utf8")
+        data = request.data['data'].read().decode("utf8")
         result = OpenSmokeParser.parse_input_string(data)
         return JsonResponse({"data": result})
 
@@ -754,41 +833,65 @@ class DetailFormView(APIView):
     def post(self, request):
         # TODO: accesso migliore?
 
-
-
         username = request.user.username
         # username = "root"
 
         # Mandatory Fields
-        data_file_string = request.data['params']['values']['file_upload'][0]['response']['data']
+        data_file_string = request.data['params']['values']['experimental_data'][0]['response']['data']
         experiment_type = request.data['params']['values']['experiment_type']
-        reactor = request.data['params']['values']['reactor']
-        paperDOI = request.data['params']['values']['fileDOI']
-        expReference = request.data['params']['values']['exp_reference']
-        paperReference = request.data['params']['values']['paper_reference']
+        reactor = request.data['params']['values']['reactor_type']
+        paperDOI = request.data['params']['values']['paper_doi']
+        expReference = request.data['params']['values']['experiment_reference']
+        paperReference = request.data['params']['values']['bibliography']
+
+
+        t_inf = request.data['params']['values']['t_profile'][0]
+        t_sup = request.data['params']['values']['t_profile'][1]
+        p_inf = request.data['params']['values']['p_profile'][0]
+        p_sup = request.data['params']['values']['p_profile'][1]
+        phi_inf = request.data['params']['values']['phi'][0]
+        phi_sup = request.data['params']['values']['phi'][1]
+        fuels = request.data['params']['values']['fuels']
+
+
 
         # Optional Fields
-        if 'file_upload_volume_time' in request.data['params']['values']:
-            file_upload_volume_time = request.data['params']['values']['file_upload_volume_time'][0]['response']['data']
+        if 'volume_time_data' in request.data['params']['values']:
+            file_upload_volume_time = request.data['params']['values']['volume_time_data'][0]['response']['data']
         else:
             file_upload_volume_time = None
 
-        if 'file_upload_os' in request.data['params']['values']:
-            file_upload_os = request.data['params']['values']['file_upload_os'][0]['response']['data']
+        if 'os_input_file' in request.data['params']['values']:
+            file_upload_os = request.data['params']['values']['os_input_file'][0]['response']['data']
         else:
             file_upload_os = None
 
-        if 'property' in request.data['params']['values']:
-            properties = request.data['params']['values']['property']
+        if 'common_properties' in request.data['params']['values']:
+            properties = request.data['params']['values']['common_properties']
         else:
             properties = []
 
-        if 'species' in request.data['params']['values']:
-            species = request.data['params']['values']['species']
+        if 'initial_species' in request.data['params']['values']:
+            species = request.data['params']['values']['initial_species']
         else:
             species = []
 
-        fileDOI = paperDOI + "-" + str(hash(expReference))
+        if 'ignition_definition_measured_quantity' in request.data['params']['values']:
+            ignition_definition_measured_quantity = request.data['params']['values']['ignition_definition_measured_quantity']
+        else:
+            ignition_definition_measured_quantity = None
+
+        if 'ignition_definition_type' in request.data['params']['values']:
+            ignition_definition_type = request.data['params']['values']['ignition_definition_type']
+        else:
+            ignition_definition_type = None
+
+        if ignition_definition_measured_quantity and ignition_definition_type:
+            idt = ignition_definition_measured_quantity + "-" + ignition_definition_type
+        else:
+            idt = None
+
+        fileDOI = str(expReference)
 
         if models.Experiment.objects.filter(fileDOI=fileDOI).exists():
             return Response("This experiment already exists", status.HTTP_400_BAD_REQUEST)
@@ -809,7 +912,16 @@ class DetailFormView(APIView):
                                                experiment_type=experiment_type,
                                                fileDOI=fileDOI,
                                                file_paper=paper,
-                                               os_input_file=file_upload_os)
+                                               os_input_file=file_upload_os,
+                                               ignition_type=idt,
+                                               status="new",
+                                               phi_inf=phi_inf,
+                                               phi_sup=phi_sup,
+                                               t_inf=t_inf,
+                                               t_sup=t_sup,
+                                               p_inf=p_inf,
+                                               p_sup=p_sup,
+                                               fuels=fuels)
                 experiment.save(username=username)
 
                 first_row_keys = data_file_string[0].keys()
@@ -834,13 +946,15 @@ class DetailFormView(APIView):
                                            units=units,
                                            data=list(df_values[column]),
                                            dg_id="dg1",
+                                           plotscale='lin',
+                                           ignore=False,
                                            experiment=experiment)
                     dc.save(username=username)
 
                 if file_upload_volume_time:
                     first_row_keys_volume = file_upload_volume_time[0].keys()
                     df_volume_time = pd.DataFrame.from_records(file_upload_volume_time, columns=first_row_keys_volume)
-                    for column in df_values:
+                    for column in df_volume_time:
                         variable, units = utils.split_header(column)
                         name = None
                         sp = None
@@ -861,19 +975,19 @@ class DetailFormView(APIView):
                                                data=list(df_volume_time[column]),
                                                dg_id="dg2",
                                                experiment=experiment)
-                        dc.save(username=username)
+                        dc.save()
 
                 for p in properties:
                     if p is not None:
                         cp = models.CommonProperty(**p)
                         cp.experiment = experiment
-                        cp.save(username=username)
+                        cp.save()
 
                 for s in species:
                     if s is not None:
                         sp = models.InitialSpecie(**s)
                         sp.experiment = experiment
-                        sp.save(username=username)
+                        sp.save()
 
                 txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment,
                                                              experiment.data_columns.all(),
@@ -884,10 +998,10 @@ class DetailFormView(APIView):
                 xml, error = OptimaPP.txt_to_xml(txt)
 
                 if error:
-                    raise ValueError
+                    raise ValueError(error)
 
-                experiment.xml_file = xml
-                experiment.save(username=username)
+                models.Experiment.objects.filter(pk=experiment.pk).update(xml_file=xml)
+
 
         except ValueError:
             return Response("OptimaPP Error " + str(error), status.HTTP_400_BAD_REQUEST)
@@ -896,8 +1010,12 @@ class DetailFormView(APIView):
             return Response("OptimaPP executable not found ", status.HTTP_400_BAD_REQUEST)
 
         except Exception as err:
-            err_type, value, traceback = sys.exc_info()
-            return Response("Generic Error" + str(value), status.HTTP_400_BAD_REQUEST)
+            err_type, value, exc_traceback = sys.exc_info()
+            # import traceback
+            # traceback.print_tb(exc_traceback, file=sys.stderr)
+            # print(err_type, file=sys.stderr)
+
+            return Response("Generic Error " + str(value), status.HTTP_400_BAD_REQUEST)
 
         return JsonResponse({"experiment": experiment.id})
 

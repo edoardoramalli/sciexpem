@@ -12,14 +12,29 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
+
+class SettingsReader:
+    def __init__(self, path='settingsFile'):
+        self.settings = {}
+        with open(path, 'r') as file:
+            for line in file:
+                line_split = line.strip().split("=")
+                key, value = line_split[0], line_split[1]
+                self.settings[key] = value
+
+
+
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -45,12 +60,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'OpenSmoke.apps.OpensmokeConfig',
     'CurveMatching.apps.CurvematchingConfig',
-    'ReSpecTh.apps.RespecthConfig'
+    'ReSpecTh.apps.RespecthConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'compression_middleware.middleware.CompressionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -89,9 +105,11 @@ WSGI_APPLICATION = 'SciExpeM.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
-DATABASE_NAME = os.environ['DATABASE_NAME']
-DATABASE_USER = os.environ['DATABASE_USER']
-DATABASE_PASSWORD = os.environ['DATABASE_PASSWORD']
+DATABASE_NAME = SettingsReader.settings['DATABASE_NAME']
+DATABASE_USER = SettingsReader.settings['DATABASE_USER']
+DATABASE_PASSWORD = SettingsReader.settings['DATABASE_PASSWORD']
+DATABASE_IP = SettingsReader.settings['DATABASE_IP']
+DATABASE_PORT = SettingsReader.settings['DATABASE_PORT']
 
 DATABASES = {
     'default': {
@@ -99,8 +117,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'USER': DATABASE_USER,
         'PASSWORD': DATABASE_PASSWORD,
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'HOST': DATABASE_IP,
+        'PORT': DATABASE_PORT,
     }
 }
 
@@ -127,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Rome'
 
 USE_I18N = True
 
@@ -143,6 +161,8 @@ STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles/")
+
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "FrontEnd", "static", "FrontEnd")]
 
 REST_FRAMEWORK = {
 
@@ -164,8 +184,8 @@ REST_FRAMEWORK = {
 # CSRF_COOKIE_SECURE = True
 # os.environ['HTTPS'] = "on"
 
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/acc'
 LOGOUT_REDIRECT_URL = '/'
 
 # Local
-OPTIMAPP_PATH = os.environ['OPTIMAPP_PATH']
+OPTIMAPP_PATH = SettingsReader.settings['OPTIMAPP_PATH']

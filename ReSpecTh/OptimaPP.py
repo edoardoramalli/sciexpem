@@ -100,7 +100,7 @@ class TranslatorOptimaPP:
                                                     Species=specie.name,
                                                     Source_type="calculated",
                                                     Unit=specie.units,
-                                                    Value=specie.amount) + "\n"
+                                                    Value=specie.value) + "\n"
         return txt
 
     @staticmethod
@@ -156,9 +156,13 @@ class TranslatorOptimaPP:
         return txt
 
     @staticmethod
-    def create_ignition_definition():
-        txt = "Ignition definition:\n MeasuredQuantity: p  Type: d/dt max"
-        return txt
+    def create_ignition_definition(experiment):
+        if experiment.ignition_type is not None:
+            split = experiment.ignition_type.split("-")
+            txt = "Ignition definition:\n MeasuredQuantity: %s  Type: %s" % (split[0], split[1])
+            return txt
+        else:
+            return ""
 
     @staticmethod
     def create_OptimaPP_txt(experiment, data_groups, initial_species, common_properties, file_paper):
@@ -176,5 +180,5 @@ class TranslatorOptimaPP:
         if dg2:
             txt += TranslatorOptimaPP.create_volume_time_profile(dg2)
         if experiment.experiment_type == "ignition delay measurement":
-            txt += TranslatorOptimaPP.create_ignition_definition()
+            txt += TranslatorOptimaPP.create_ignition_definition(experiment)
         return txt
