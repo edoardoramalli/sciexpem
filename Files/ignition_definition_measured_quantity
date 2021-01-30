@@ -1,0 +1,5 @@
+CH, CH*, CHEX, CHV, CH(E), CH(A)
+OH, OH*, OHEX, OHV, OH(E), OH(A)
+CO2, CO2*, CO2EX, CO2V, CO2(E), CO2(A)
+p, pressure, p;
+T, temperature, T;
