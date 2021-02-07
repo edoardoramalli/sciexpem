@@ -15,9 +15,11 @@ urlpatterns = [
     path('API/loadXMLExperimentSimple', views.loadXMLExperimentSimple, name="loadXMLExperimentSimple"),
     # UPDATE
     path('API/insertOSFile/<int:pk>', views.insertOSFile, name="insertOSFile"),
+    path('API/insertOSFileAPI/', views.insertOSFileAPI, name="insertOSFileAPI"),
     # DELETE
     path('API/deleteExperiment/<int:pk>', views.deleteExperiment, name="deleteExperiment"),
-    # VALIDATE
-    path('API/validateExperiment/', views.validateExperiment, name="insertExecution"),
+    # VERIFY
+    path('API/validateExperiment/', views.validateExperiment, name="insertExperiment"),
+    path('API/verifyExperiment/', views.verifyExperiment, name="verifyExperiment"),
 ]
 

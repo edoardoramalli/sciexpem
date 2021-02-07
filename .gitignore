@@ -31,3 +31,7 @@ FrontEnd/static/FrontEnd/main.js
 ReSpecTh/prova.py
 
 SciExpeM/settingsFile
+
+staticfiles/
+
+nohup.out

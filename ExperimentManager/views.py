@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.core.exceptions import FieldError
-from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR
+from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
@@ -16,6 +16,7 @@ from ExperimentManager.serializers import *
 from ExperimentManager.models import *
 from ExperimentManager import QSerializer
 import ExperimentManager
+from OpenSmoke.OpenSmoke import OpenSmokeParser
 from ReSpecTh.ReSpecThParser import ReSpecThParser
 
 from SciExpeM.checkPermissionGroup import user_in_group
@@ -105,8 +106,7 @@ def schemaInsert(request, model, unique, main="", dependencies=None):
 
     response = {'result': None, 'error': ""}
 
-    parameters = request.query_params
-    object_dict = json.loads(parameters['object'])
+    object_dict = json.loads(request.data['object'])
 
     unique_fields_dict = {field: object_dict[field] for field in unique}
 
@@ -144,20 +144,20 @@ def schemaInsert(request, model, unique, main="", dependencies=None):
     return JsonResponse(response)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @user_in_group("WRITE")
 def insertExperiment(request):
     return schemaInsert(request=request, model=Experiment, unique=['fileDOI'], main="experiment",
                         dependencies=["FilePaper", "DataColumn", "CommonProperty", "InitialSpecie"])
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @user_in_group("WRITE")
 def insertChemModel(request):
     return schemaInsert(request=request, model=ChemModel, unique=['name'], dependencies=[])
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @user_in_group("WRITE")
 def insertExecution(request):
     username = request.user.username
@@ -226,6 +226,18 @@ def insertOSFile(request, pk):
     file_upload_os = request.data['params']['values']['os_input_file'][0]['response']['data']
     exp.update(os_input_file=file_upload_os)
     return HttpResponse(status=200)
+
+
+@api_view(['POST'])
+@user_in_group("UPDATE")
+def insertOSFileAPI(request):
+    params = json.loads(request.data['params'])
+    exp_id = params.get('experiment')
+    osFile = params.get('osFile')
+    exp = Experiment.objects.filter(id=exp_id)
+    osFile = OpenSmokeParser.parse_input_string(osFile)
+    exp.update(os_input_file=osFile)
+    return Response(status=HTTP_200_OK, data="OS File added successfully")
 
 
 @api_view(['POST'])
@@ -303,6 +315,33 @@ def deleteExperiment(request, pk):
 # END DELETE
 
 # START VALIDATE
+
+@api_view(['POST'])
+@user_in_group("VALIDATE")
+def verifyExperiment(request):
+    params = json.loads(request.data['params'])
+    exp_id = params.get('experiment')
+    status = params.get('status')
+
+    exp = Experiment.objects.filter(pk=exp_id)
+    c_exp = exp[0]
+
+    if status == 'verified':
+        if not c_exp.os_input_file:
+            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Missing OS input file")
+        if not c_exp.experiment_classifier:
+            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Experiment not managed")
+        exp.update(status='verified')
+        return Response(status=HTTP_200_OK, data="Experiment verified successfully")
+
+    elif status == 'invalid':
+        exp.update(status='invalid')
+        return Response(status=HTTP_200_OK, data="Experiment verified successfully")
+
+    else:
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Experiment status not valid")
+
+
 
 
 @api_view(['POST'])
@@ -393,3 +432,6 @@ def from_text_to_experiment(username, file):
             response['result'] = "OK"
 
     return  response
+
+
+

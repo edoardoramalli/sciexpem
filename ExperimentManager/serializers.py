@@ -39,10 +39,14 @@ class ExperimentSerializerAPI(serializers.ModelSerializer):
     file_paper = FilePaperSerializerAPI()
     initial_species = InitialSpecieSerializerAPI(many=True)
     common_properties = CommonPropertySerializerAPI(many=True)
+    experimentClassifier = serializers.SerializerMethodField()
 
     class Meta:
         model = Experiment
         fields = '__all__'
+
+    def get_experimentClassifier(self, obj):
+        return obj.experiment_classifier
 
 
 class ChemModelSerializerAPI(serializers.ModelSerializer):

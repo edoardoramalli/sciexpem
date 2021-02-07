@@ -1,0 +1,7 @@
+SECRET_KEY=x(5v@5v(gk%%#%xed5qz@!r@6tq3a0#-)iy#-4@p+9di!22o2t
+DATABASE_NAME=SciExpeMDB
+DATABASE_USER=postgres
+DATABASE_PASSWORD=edo
+DATABASE_IP=127.0.0.1
+DATABASE_PORT=5432
+OPTIMAPP_PATH=/home/eramalli/source_code/build/bin/Release

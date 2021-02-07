@@ -15,20 +15,46 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework.authtoken.views import obtain_auth_token
 from django.views.decorators.cache import never_cache
 from django.shortcuts import render
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework.authtoken.views import ObtainAuthToken
+
 
 import sys
+
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+
+
+class CustomAuthToken(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'email': user.email,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'groups': user.groups.values_list('name', flat=True),
+            'permissions': user.get_user_permissions(),
+        })
 
 @login_required
 # @never_cache
 def index(request):
     return render(request, 'FrontEnd/index.html')
+
+
 
 
 urlpatterns = [
@@ -37,7 +63,8 @@ urlpatterns = [
     path('frontend/', include('FrontEnd.urls')),
     path('ExperimentManager/', include('ExperimentManager.urls')),
     path('CurveMatching/', include('CurveMatching.urls')),
+    path('OpenSmoke/', include('OpenSmoke.urls')),
     path('ReSpecTh/', include('ReSpecTh.urls')),
-    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('getInfoUser', CustomAuthToken.as_view(), name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]# + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
