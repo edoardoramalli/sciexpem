@@ -1,4 +1,5 @@
 from FrontEnd import views
+from FrontEnd import newViews
 from django.urls import path
 
 urlpatterns = [
@@ -33,5 +34,9 @@ urlpatterns = [
     path('api/get_experiment_file/<int:pk>', views.get_experiment_file, name="get_os_input"),
     path('api/get_experiment_data_columns/<int:pk>', views.get_experiment_data_columns, name="get_experiment_data_columns"),
     path('api/get_experiment_type_list', views.get_experiment_type_list, name="get_experiment_type_list"),
-    path('api/get_reactor_type_list', views.get_reactor_type_list, name="get_reactor_type_list")
+    path('api/get_reactor_type_list', views.get_reactor_type_list, name="get_reactor_type_list"),
+
+    # NEW
+
+
 ]

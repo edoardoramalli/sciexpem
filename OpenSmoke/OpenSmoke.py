@@ -6,6 +6,7 @@ from django.utils import timezone
 import pandas as pd
 from pint import UnitRegistry
 from io import StringIO
+from ExperimentManager import models
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -84,7 +85,7 @@ class OpenSmokeParser:
         return output_string
 
     @staticmethod
-    def parse_input_string(string):
+    def parse_input_string(string):  # TODO Se non ci sono queste righe bisognerebbe lanciare un'eccezione
         output_string = ""
         for line in string.split("\n"):
             if "@KineticsFolder" in line:
@@ -99,15 +100,30 @@ class OpenSmokeParser:
 class OpenSmokeExecutor:
 
     @staticmethod
-    def execute(exp_id, chemModel_id, execution_id):
-        from ExperimentManager import models
+    def read_output_OS(path, execution):
+        dataframe, units = OpenSmokeParser.parse_output(path)
 
+        list_header = list(dataframe)
+        for header in list_header:
+            data = models.ExecutionColumn(label=header,
+                                          units=units[header],
+                                          data=list(dataframe[header]),
+                                          execution=execution,
+                                          file_type="ParametricAnalysisIDT")
+            data.save()
+
+    @staticmethod
+    def execute(exp_id, chemModel_id, execution_id, solver, username):
+
+        # IDs already checked by caller function
         chemModel = models.ChemModel.objects.get(id=chemModel_id)
         experiment = models.Experiment.objects.get(id=exp_id)
 
+        #  Mandatory fields in the model. So no empty fields
         kinetics_file = chemModel.xml_file_kinetics
         reaction_names_file = chemModel.xml_file_reaction_names
 
+        # Must be present to verify and experiment
         open_smoke_input_file = experiment.os_input_file
 
         # Create SandBox
@@ -131,11 +147,7 @@ class OpenSmokeExecutor:
             os_file.write(open_smoke_input_text)
             os_file.close()
 
-            # import sys
-            # print(sandbox, file=sys.stderr)
-            # input("wait")
-
-            bashCommand = ". ~/.bashrc && OpenSMOKEpp_BatchReactor.sh --input " + sandbox + "/input.xml.dic"
+            bashCommand = ". ~/.bashrc && OpenSMOKEpp_" + solver + ".sh --input " + sandbox + "/input.xml.dic"
 
             import subprocess
 
@@ -144,19 +156,15 @@ class OpenSmokeExecutor:
 
             if not error:
 
-                execution = models.Execution.objects.filter(id=execution_id)
+                execution = models.Execution.objects.get(id=execution_id)
+                execution.execution_end = timezone.localtime()
+                execution.save(username=username)
 
-                execution.update(execution_end=timezone.localtime())
-
-                dataframe, units = OpenSmokeParser.parse_output(os.path.join(sandbox, 'ParametricAnalysisIDT.out'))
-
-                list_header = list(dataframe)
-                for header in list_header:
-                    data = models.ExecutionColumn(label=header,
-                                           units=units[header],
-                                           data=list(dataframe[header]),
-                                           execution=execution[0],
-                                           file_type="ParametricAnalysisIDT")
-                    data.save()
+                OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysisIDT.out'),
+                                                 execution=execution)
+                OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysis.out'),
+                                                 execution=execution)
+            else:
+                models.Execution.objects.get(id=execution_id).delete()
 
 

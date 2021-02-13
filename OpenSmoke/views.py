@@ -5,12 +5,14 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib.auth.decorators import user_passes_test
 from rest_framework.response import Response
-from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
+from rest_framework.status import *
+from django.core.exceptions import ObjectDoesNotExist
 
 # Build-in Packages
 import sys
 import os
 import json
+from threading import Thread
 
 # Local Packages
 from SciExpeM import settings
@@ -30,38 +32,57 @@ logger.setLevel(logging.INFO)
 @api_view(['POST'])
 @user_in_group("EXECUTE")
 def startSimulation(request):
-    user = request.user.username
+    username = request.user.username
+    params = dict(request.data)
+    try:
+        model_id = int(params['chemModel'][0])
+        experiment_id = int(params['experiment'][0])
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="updateElement: KeyError in HTTP parameters. Missing parameter.")
 
-    logger.info(f'{user} - Receive Execution Simulation Request')
+    query_exp = Experiment.objects.filter(id=experiment_id)
+    if query_exp.exists():
+        if not query_exp[0].status == 'verified':
+            return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: Experiment not verified.")
+    else:
+        return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: Experiment not exist.")
 
-    response = {'result': None, 'error': None}
+    if not ChemModel.objects.filter(id=model_id).exists():
+        return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: ChemModel not exist.")
 
-    params = json.loads(request.data['params'])
-
-    exp_id = params['experiment']
-    chemModel_id = params['chemModel']
-
-    if not Experiment.objects.filter(id=exp_id, status='verified').exists():
-        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Experiment not exist or not verified")
 
     try:
         with transaction.atomic():
-            query = Execution.objects.filter(experiment__id=exp_id, chemModel__id=chemModel_id)
+            query = Execution.objects.filter(experiment__id=experiment_id, chemModel__id=model_id)
             if query.exists():
-                return Response(status=HTTP_200_OK, data="Execution already started")
+                return Response(status=HTTP_200_OK, data="startSimulation: Execution already started.")
             else:
-                from threading import Thread
-                exp = Experiment.objects.get(id=exp_id)
-                model = ChemModel.objects.get(id=chemModel_id)
-                new_exec = Execution(experiment=exp, chemModel=model, execution_start=timezone.localtime())
-                new_exec.save(username=user)
-                Thread(target=OpenSmokeExecutor.execute, args=(exp_id, chemModel_id, new_exec.id)).start()
-                return Response(status=HTTP_200_OK, data="Execution Started")
+                try:
+                    exp = query_exp[0]
+                    model = ChemModel.objects.get(id=model_id)
+                except ObjectDoesNotExist:
+                    return Response(status=HTTP_400_BAD_REQUEST,
+                                    data="startSimulation: ID Error.")
 
-    except (OSError, TypeError):
+                new_exec = Execution(experiment=exp, chemModel=model, execution_start=timezone.localtime())
+                new_exec.save(username=username)
+
+                solver = ExperimentClassifier.objects.get(name=exp.experiment_classifier).solver
+
+                Thread(target=OpenSmokeExecutor.execute,
+                       args=(experiment_id, model_id, new_exec.id, solver, username)).start()
+
+    except Exception as err:
         err_type, value, traceback = sys.exc_info()
-        logger.info(f'{user} - Error Execution Simulation Request')
-        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data=str(err_type.__name__) + " : " + str(value))
+        logger.info(f'{username} - Error Simulate' + str(err_type.__name__) + " : " + str(value))
+
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="startSimulation: Generic error in start simulation. "
+                             + str(err_type.__name__) + " : " + str(value))
+
+    logger.info(f'{username} - Simulation Start')
+    return Response('startSimulation: Simulation started.', status=HTTP_200_OK)
 
 
 @api_view(['POST'])

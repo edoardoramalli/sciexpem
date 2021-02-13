@@ -13,12 +13,13 @@ import sys
 from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
 from ReSpecTh.ExperimentClassifier import Classifier
 from ReSpecTh.FuelValid import ValidFuel
+from ExperimentManager.exceptions import *
+from OpenSmoke.OpenSmoke import OpenSmokeParser
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
-
 
 MAX_DIGITS = 42
 DECIMAL_PLACES = 10
@@ -105,7 +106,7 @@ def generic_save(*args, **kwargs):
                           date=timezone.now())
         log.save()
     else:
-        raise ValueError("Username field not specified!")
+        raise ConstraintFieldExperimentError("Username field not specified!")
 
 
 def generic_delete(*args, **kwargs):
@@ -120,12 +121,14 @@ def generic_delete(*args, **kwargs):
                           date=timezone.now())
         log.save()
     else:
-        raise ValueError("Username field not specified!")
+        raise ConstraintFieldExperimentError("Username field not specified!")
 
 
 class FilePaper(models.Model):
     title = models.CharField(max_length=500)
     reference_doi = models.CharField(max_length=100, unique=True, blank=True, null=True)  # DOI paper
+
+    # TODO se inserisco un esperimento con un DOI di un paper già esistente non deve arrabbiarsi ma solo linkarlo
 
     def get_absolute_url(self):
         return reverse('filepaper', kwargs={'pk': self.pk})
@@ -139,7 +142,7 @@ class Experiment(models.Model):
     reactor = models.CharField(max_length=100)
     experiment_type = models.CharField(max_length=100)  # is checked
     fileDOI = models.CharField(max_length=100, unique=True)  # DOI experiment
-    file_paper = models.ForeignKey(FilePaper, on_delete=models.CASCADE, default=None, null=True)
+    file_paper = models.ForeignKey(FilePaper, on_delete=models.SET_NULL, default=None, null=True)
     ignition_type = models.CharField(max_length=100, blank=True, null=True)
 
     xml_file = models.TextField(blank=True, null=True)
@@ -168,29 +171,48 @@ class Experiment(models.Model):
         t_sup = self.t_sup if self.t_sup is not None else 0
         p_inf = self.p_inf if self.p_inf is not None else 0
         p_sup = self.p_sup if self.p_sup is not None else 0
+        status = self.status if self.status is not None else None
+
+        if status not in ['verified', 'invalid', 'unverified']:
+            raise ConstraintFieldExperimentError("Experiment status field '{}' is not valid!".format(status))
 
         if experiment_type is None:
-            raise ValueError("Experiment type field is not specified!")
+            raise ConstraintFieldExperimentError("Experiment type field is not specified!")
 
         if not validatorExperiment.isValid(experiment_type):
-            raise ValueError("Experiment type '%s' is not valid!" % str(experiment_type))
+            raise ConstraintFieldExperimentError("Experiment type '%s' is not valid!" % str(experiment_type))
 
         for fuel in fuels:
             if not validatorFuel.isValid(fuel):
-                raise ValueError("Fuel type '%s' is not valid!" % str(fuel))
+                raise ConstraintFieldExperimentError("Fuel type '%s' is not valid!" % str(fuel))
 
         if not 0 <= phi_inf <= phi_sup:
-            raise ValueError("Invalid values for phi: 0 <= phi_inf <= phi_sup")
+            raise ConstraintFieldExperimentError("Invalid values for phi: 0 <= phi_inf <= phi_sup")
 
         if not 0 <= t_inf <= t_sup:
-            raise ValueError("Invalid values for temperature profile: 0 <= t_inf <= t_sup")
+            raise ConstraintFieldExperimentError("Invalid values for temperature profile: 0 <= t_inf <= t_sup")
 
         if not 0 <= p_inf <= p_sup:
-            raise ValueError("Invalid values for pressure profile: 0 <= p_inf <= p_sup")
+            raise ConstraintFieldExperimentError("Invalid values for pressure profile: 0 <= p_inf <= p_sup")
+
+    def check_verify(self):
+        list_property = ['phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'fuels', 'os_input_file']
+        for prop in list_property:
+            if getattr(self, prop) is None or getattr(self, prop) == []:
+                raise ConstraintFieldExperimentError("'{}' field is not set.".format(prop))
+        if not self.experiment_classifier:
+            raise ConstraintFieldExperimentError("Experiment is not managed yet.")
+
+    def check_os_file(self):
+        if self.os_input_file:
+            self.os_input_file = OpenSmokeParser.parse_input_string(self.os_input_file)
 
     def save(self, *args, **kwargs):
         kwargs['object'] = self
+        self.check_os_file()
         self.check_fields()
+        if self.status == 'verified':
+            self.check_verify()
         generic_save(*args, **kwargs)
 
     def get_params_experiment(self):
@@ -232,22 +254,44 @@ class Experiment(models.Model):
             return None
 
     def run_experiment_classifier(self):
-        classifier = Classifier()
-        par_input_list = [column.name for column in DataColumn.objects.filter(experiment__pk=self.pk)]
-        e_type = classifier.get_ExperimentClassifier(
-            experiment_type=self.experiment_type,
-            reactor=self.reactor,
-            ignition_type=self.ignition_type.split("-") if self.ignition_type else None,
-            par_input_list=par_input_list)
-        return e_type
+        # Rispettare le regole
+        types = ExperimentClassifier.objects.all()
+
+        result = None
+
+        for t in types:
+            test_rule = True
+            for r in RuleClassifier.objects.filter(experiment_classifier=t):
+                property_name = r.property_name
+                property_value = r.property_value
+                if not getattr(self, property_name) == property_value:
+                    test_rule = False
+                    break
+            if test_rule is False:
+                continue
+            # Se arrivo qui ho rispettato tutte le rules. Adesso controllo i campi
+            test_mapping = True
+            for m in MappingClassifier.objects.filter(experiment_classifier=t):
+                x_exp_name = m.x_exp_name
+                x_exp_location = m.x_exp_location
+                diz_x = {'experiment': self, x_exp_location: x_exp_name}
+                if not DataColumn.objects.filter(**diz_x).exists():
+                    test_mapping = False
+                    break
+                y_exp_name = m.y_exp_name
+                y_exp_location = m.y_exp_location
+                diz_y = {'experiment': self, y_exp_location: y_exp_name}
+                if not DataColumn.objects.filter(**diz_y).exists():
+                    test_mapping = False
+                    break
+            if test_mapping:
+                result = t.name
+
+        return result
 
     @property
     def experiment_classifier(self):
-        e_type = self.run_experiment_classifier()
-        if e_type:
-            return e_type.name
-        else:
-            return None
+        return self.run_experiment_classifier()
 
 
 # Initial condition of the experiment
@@ -267,11 +311,12 @@ class CommonProperty(models.Model):
         value = self.value
 
         if float(value) < 0:
-            raise ValueError("Value common property '%s' must be positive!" % value)
+            raise ConstraintFieldExperimentError("Value common property '%s' must be positive!" % value)
         if not validatorProperty.isValidName(name):
-            raise ValueError("Name common property '%s' is not valid!" % name)
+            raise ConstraintFieldExperimentError("Name common property '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name=name):
-            raise ValueError("Unit common property '%s' is not valid for '%s' element!" % (unit, name))
+            raise ConstraintFieldExperimentError(
+                "Unit common property '%s' is not valid for '%s' element!" % (unit, name))
 
     def save(self, *args, **kwargs):
         if 'username' in kwargs:
@@ -297,11 +342,12 @@ class InitialSpecie(models.Model):
         value = self.value
 
         if float(value) < 0:
-            raise ValueError("Value initial specie '%s' must be positive!" % value)
+            raise ConstraintFieldExperimentError("Value initial specie '%s' must be positive!" % value)
         if not validatorSpecie.isValid(name):
-            raise ValueError("Name initial specie '%s' is not valid!" % name)
+            raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name="composition"):
-            raise ValueError("Unit initial specie '%s' is not valid for 'composition' element!" % unit)
+            raise ConstraintFieldExperimentError(
+                "Unit initial specie '%s' is not valid for 'composition' element!" % unit)
 
     def save(self, *args, **kwargs):
         if 'username' in kwargs:
@@ -346,26 +392,28 @@ class DataColumn(models.Model):
         # data = [float(x) for x in self.data]
 
         if not validatorProperty.isValid(unit=unit, name=name):
-            raise ValueError("Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
+            raise ConstraintFieldExperimentError(
+                "Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
         if label \
                 and name != 'composition' \
                 and name != 'concentration' \
                 and not validatorProperty.isValidSymbolName(symbol=label, name=name):
-            raise ValueError("Not correspondence between unit '%s' and label '%s' in data column!" % (unit, label))
+            raise ConstraintFieldExperimentError(
+                "Not correspondence between unit '%s' and label '%s' in data column!" % (unit, label))
         if species and not validatorSpecie.isValid(species):
-            raise ValueError("Name species '%s' is not valid in data column!" % str(species))
+            raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
         # Without next if data could be negative
         # if not all(x >= 0 for x in data):
         #     raise ValueError("Amount data column '%s' must be positive!" % str(data))
 
         if ignore and nominal is None:
-            raise ValueError('Data column is ignored but nominal is not set.')
+            raise ConstraintFieldExperimentError('Data column is ignored but nominal is not set.')
 
         if ignore and nominal < 0:
-            raise ValueError('Data column nominal must be positive.')
+            raise ConstraintFieldExperimentError('Data column nominal must be positive.')
 
         if plotscale not in ['lin', 'log', 'inv']:  # Hard-coded since very limited future expansion
-            raise ValueError('Plot scale is not valid.')
+            raise ConstraintFieldExperimentError('Plot scale is not valid.')
 
     def save(self, *args, **kwargs):
         if 'username' in kwargs:
@@ -376,9 +424,9 @@ class DataColumn(models.Model):
     # TODO Override DELETE and UPDATE
 
 
-class ChemModel(models.Model):
-    name = models.CharField(max_length=100)
-    version = models.CharField(max_length=200, null=True, blank=True)
+class ChemModel(models.Model):  # TODO Fuel list
+    name = models.CharField(max_length=100, unique=True)
+    version = models.CharField(max_length=200, null=True, blank=True)  # For which fuel it is
     xml_file_kinetics = models.TextField()
     xml_file_reaction_names = models.TextField()
 
@@ -386,12 +434,25 @@ class ChemModel(models.Model):
         kwargs['object'] = self
         generic_save(*args, **kwargs)
 
+    @staticmethod
+    def createChemModel(text_dict):
+        name = text_dict['name']
+        version = text_dict['version']
+        xml_file_kinetics = text_dict['xml_file_kinetics']
+        xml_file_reaction_names = text_dict['xml_file_reaction_names']
+        model = ChemModel(name=name, version=version,
+                          xml_file_kinetics=xml_file_kinetics, xml_file_reaction_names=xml_file_reaction_names)
+        return [model]
+
 
 class Execution(models.Model):
     chemModel = models.ForeignKey(ChemModel, on_delete=models.CASCADE, related_name="executions")
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name="executions")
     execution_start = models.DateTimeField(null=True, blank=True)
     execution_end = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('chemModel', 'experiment',)
 
     def save(self, *args, **kwargs):
         kwargs['object'] = self
@@ -435,3 +496,87 @@ class LoggerModel(models.Model):
     date = models.DateTimeField()
 
 
+class ExperimentClassifier(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    model_type = models.CharField(max_length=100)
+    solver = models.CharField(max_length=100)
+
+    def save(self, *args, **kwargs):
+        kwargs['object'] = self
+        generic_save(*args, **kwargs)
+
+    @staticmethod
+    def createExperimentClassifier(text_dict):
+        name = text_dict['name']
+        model_type = text_dict['model_type']
+        solver = text_dict['solver']
+        experiment_classifier = ExperimentClassifier(name=name, model_type=model_type, solver=solver)
+
+        mappings = text_dict['mappings']
+        tmp1 = [MappingClassifier.createMappingClassifier(mapping, experiment_classifier) for mapping in mappings]
+
+        rules = text_dict['rules']
+        tmp2 = [RuleClassifier.createRuleClassifier(rule, experiment_classifier) for rule in rules]
+
+        return [experiment_classifier] + tmp1 + tmp2
+
+
+class RuleClassifier(models.Model):
+    model_name = models.CharField(max_length=100)
+    property_name = models.CharField(max_length=100)
+    property_value = models.CharField(max_length=100)
+    experiment_classifier = models.ForeignKey(ExperimentClassifier, on_delete=models.CASCADE, related_name="rules")
+
+    def save(self, *args, **kwargs):
+        if 'username' in kwargs:
+            kwargs.pop('username')
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def createRuleClassifier(text_dict, experiment_classifier):
+        model_name = text_dict['model_name']
+        property_name = text_dict['property_name']
+        property_value = text_dict['property_value']
+        return RuleClassifier(experiment_classifier=experiment_classifier, model_name=model_name,
+                              property_name=property_name, property_value=property_value)
+
+
+class MappingClassifier(models.Model):
+    x_exp_name = models.CharField(max_length=100)
+    x_exp_location = models.CharField(max_length=100)
+    x_sim_name = models.CharField(max_length=100)
+    x_sim_location = models.CharField(max_length=100)
+
+    y_exp_name = models.CharField(max_length=100)
+    y_exp_location = models.CharField(max_length=100)
+    y_sim_name = models.CharField(max_length=100)
+    y_sim_location = models.CharField(max_length=100)
+
+    file = models.CharField(max_length=100)
+
+    experiment_classifier = models.ForeignKey(ExperimentClassifier, on_delete=models.CASCADE, related_name="mappings")
+
+    def save(self, *args, **kwargs):
+        if 'username' in kwargs:
+            kwargs.pop('username')
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def createMappingClassifier(text_dict, experiment_classifier):
+        x_exp_name = text_dict['x_exp_name']
+        x_exp_location = text_dict['x_exp_location']
+        x_sim_name = text_dict['x_sim_name']
+        x_sim_location = text_dict['x_sim_location']
+
+        y_exp_name = text_dict['y_exp_name']
+        y_exp_location = text_dict['y_exp_location']
+        y_sim_name = text_dict['y_sim_name']
+        y_sim_location = text_dict['y_sim_location']
+
+        file = text_dict['file']
+
+        return MappingClassifier(experiment_classifier=experiment_classifier, file=file,
+                                 x_exp_name=x_exp_name, x_exp_location=x_exp_location,
+                                 x_sim_name=x_sim_name, x_sim_location=x_sim_location,
+                                 y_exp_name=y_exp_name, y_exp_location=y_exp_location,
+                                 y_sim_name=y_sim_name, y_sim_location=y_sim_location)

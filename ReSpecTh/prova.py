@@ -102,9 +102,9 @@
 # counter = import_jsons(respecth_files)
 #
 # print("\rImported ReSpecTh Files: {}/{}".format(counter, len(respecth_files)))
-
-
-path = "../Files/ignition_definition_types"
-
-a = open(path, "r").read().split("\n")
-print(a)
+#
+#
+# path = "../Files/ignition_definition_types"
+#
+# a = open(path, "r").read().split("\n")
+# print(a)

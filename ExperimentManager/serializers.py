@@ -85,11 +85,11 @@ class ExecutionColumnSerializerBackTrackingAPI(serializers.ModelSerializer):
 
 
 class CurveMatchingResultSerializerAPI(serializers.ModelSerializer):
-    execution_column = ExecutionColumnSerializerBackTrackingAPI()
+    # execution_column = ExecutionColumnSerializerBackTrackingAPI()
 
     class Meta:
         model = CurveMatchingResult
-        fields = '__all__'
+        fields = ('id', 'index', 'error')
 
 
 
