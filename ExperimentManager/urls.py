@@ -17,7 +17,7 @@ urlpatterns = [
     path('API/insertOSFile/<int:pk>', views.insertOSFile, name="insertOSFile"),
     path('API/insertOSFileAPI/', views.insertOSFileAPI, name="insertOSFileAPI"),
     # DELETE
-    path('API/deleteExperiment/<int:pk>', views.deleteExperiment, name="deleteExperiment"),
+    # path('API/deleteExperiment/<int:pk>', views.deleteExperiment, name="deleteExperiment"),
     # VERIFY
     path('API/validateExperiment/', views.validateExperiment, name="insertExperiment"),
     # ANALYSIS

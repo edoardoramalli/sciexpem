@@ -13,5 +13,4 @@ class CurveMatchingResult(models.Model):  # TODO nessun campo è controllato
                                             related_name="curve_matching_result")
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
-        T.generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)

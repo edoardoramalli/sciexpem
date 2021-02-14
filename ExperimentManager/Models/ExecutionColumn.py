@@ -17,6 +17,4 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
         return self.data[0], self.data[-1]
 
     def save(self, *args, **kwargs):
-        if 'username' in kwargs:
-            kwargs.pop('username')
         super().save(*args, **kwargs)

@@ -97,8 +97,6 @@ class DataColumn(models.Model):
             raise ConstraintFieldExperimentError("Plot scale field value '{}' is not valid.".format(plotscale))
 
     def save(self, *args, **kwargs):
-        if 'username' in kwargs:
-            kwargs.pop('username')
         self.check_fields()
         super().save(*args, **kwargs)
 

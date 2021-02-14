@@ -67,7 +67,7 @@ __location__ = os.path.realpath(
 
 class FilePaperCreate(CreateView):
     model = FilePaper
-    fields = ['title', 'reference_doi']
+    fields = ['references', 'reference_doi']
     template_name = 'experimentmanagernewpaper.html'
     success_url = "/"
 
@@ -178,7 +178,7 @@ def get_curves(exp_id, chem_models):
         else:
             model_to_dash = dict(zip([float(j) for j in chem_models], len(chem_models) * ['solid']))
 
-    if experiment.run_type() == models.EType.batch_idt:
+    if experiment.run_type() == EType.batch_idt:
         temp_column = experiment.data_columns.get(name="temperature")
         idt_column = experiment.data_columns.get(name="ignition delay")
 
@@ -220,7 +220,7 @@ def get_curves(exp_id, chem_models):
         response = utils.curve_io_formatter([[e_curve] + model_curves], x_axis=x_axis, y_axis=y_axis, logY=True)
         return JsonResponse(response)
 
-    elif experiment.run_type() == models.EType.flame_parPhi:
+    elif experiment.run_type() == EType.flame_parPhi:
         phi_column = experiment.data_columns.get(name="phi")
         lfs_column = experiment.data_columns.get(name="laminar burning velocity")
 
@@ -257,7 +257,7 @@ def get_curves(exp_id, chem_models):
         response = utils.curve_io_formatter([[e_curve] + model_curves], x_axis=x_axis, y_axis=y_axis, logY=True)
         return JsonResponse(response)
 
-    elif experiment.run_type() in (models.EType.stirred_parT, models.EType.flow_isothermal_parT):
+    elif experiment.run_type() in (EType.stirred_parT, EType.flow_isothermal_parT):
         temp_column = experiment.data_columns.get(name="temperature")
         comp_column = experiment.data_columns.filter(name="composition")
 
@@ -945,9 +945,9 @@ class DetailFormView(APIView):
 
                 if not FilePaper.objects.filter(reference_doi=paperDOI).exists():
 
-                    paper = FilePaper(title=paperReference,
+                    paper = FilePaper(references=paperReference,
                                       reference_doi=paperDOI)
-                    paper.save(username=username)
+                    paper.save()
                 else:
                     paper = FilePaper.objects.get(reference_doi=paperDOI)
 
@@ -965,7 +965,7 @@ class DetailFormView(APIView):
                                         p_inf=p_inf,
                                         p_sup=p_sup,
                                         fuels=fuels)
-                experiment.save(username=username)
+                experiment.save()
 
                 first_row_keys = data_file_string[0].keys()
                 df_values = pd.DataFrame.from_records(data_file_string, columns=first_row_keys)
@@ -992,7 +992,7 @@ class DetailFormView(APIView):
                                     plotscale='lin',
                                     ignore=False,
                                     experiment=experiment)
-                    dc.save(username=username)
+                    dc.save()
 
                 if file_upload_volume_time:
                     first_row_keys_volume = file_upload_volume_time[0].keys()

@@ -6,7 +6,7 @@ from django.utils import timezone
 import pandas as pd
 from pint import UnitRegistry
 from io import StringIO
-from ExperimentManager import models
+from ExperimentManager.Models import *
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -105,7 +105,7 @@ class OpenSmokeExecutor:
 
         list_header = list(dataframe)
         for header in list_header:
-            data = models.ExecutionColumn(label=header,
+            data = ExecutionColumn(label=header,
                                           units=units[header],
                                           data=list(dataframe[header]),
                                           execution=execution,
@@ -116,8 +116,8 @@ class OpenSmokeExecutor:
     def execute(exp_id, chemModel_id, execution_id, solver, username):
 
         # IDs already checked by caller function
-        chemModel = models.ChemModel.objects.get(id=chemModel_id)
-        experiment = models.Experiment.objects.get(id=exp_id)
+        chemModel = ChemModel.objects.get(id=chemModel_id)
+        experiment = Experiment.objects.get(id=exp_id)
 
         #  Mandatory fields in the model. So no empty fields
         kinetics_file = chemModel.xml_file_kinetics
@@ -156,15 +156,15 @@ class OpenSmokeExecutor:
 
             if not error:
 
-                execution = models.Execution.objects.get(id=execution_id)
+                execution = Execution.objects.get(id=execution_id)
                 execution.execution_end = timezone.localtime()
-                execution.save(username=username)
+                execution.save()
 
                 OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysisIDT.out'),
                                                  execution=execution)
                 OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysis.out'),
                                                  execution=execution)
             else:
-                models.Execution.objects.get(id=execution_id).delete()
+                Execution.objects.get(id=execution_id).delete()
 
 

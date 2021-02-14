@@ -43,10 +43,7 @@ class InitialSpecie(models.Model):
         return InitialSpecie(name=name, units=units, value=value, experiment=experiment)
 
     def save(self, *args, **kwargs):
-        if 'username' in kwargs:
-            kwargs.pop('username')
         self.check_fields()
-
         super().save(*args, **kwargs)
 
     # TODO Override DELETE and UPDATE

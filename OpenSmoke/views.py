@@ -66,7 +66,7 @@ def startSimulation(request):
                                     data="startSimulation: ID Error.")
 
                 new_exec = Execution(experiment=exp, chemModel=model, execution_start=timezone.localtime())
-                new_exec.save(username=username)
+                new_exec.save()
 
                 solver = ExperimentClassifier.objects.get(name=exp.experiment_classifier).solver
 

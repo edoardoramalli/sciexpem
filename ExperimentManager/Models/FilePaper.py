@@ -30,5 +30,4 @@ class FilePaper(models.Model):
             return FilePaper(references=references, reference_doi=reference_doi)
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
-        Tool.generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)

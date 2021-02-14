@@ -151,7 +151,7 @@ class Experiment(models.Model):
         for prop in list_property:
             if getattr(self, prop) is None or getattr(self, prop) == []:
                 raise ConstraintFieldExperimentError("'{}' field is not set.".format(prop))
-        if not self.experiment_classifier:
+        if not self.experiment_interpreter:
             raise ConstraintFieldExperimentError("Experiment is not managed yet.")
 
     def check_os_file(self):  # TODO in realta non fa il check ma genera solo il file template
@@ -159,12 +159,11 @@ class Experiment(models.Model):
             self.os_input_file = OpenSmokeParser.parse_input_string(self.os_input_file)
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
         self.check_os_file()
         self.check_fields()
         if self.status == 'verified':
             self.check_verify()
-        Tool.generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @staticmethod
     def createExperiment(text_dict):
@@ -242,15 +241,15 @@ class Experiment(models.Model):
         else:
             return None
 
-    def run_experiment_classifier(self):
+    def run_experiment_interpreter(self):
         # Rispettare le regole
-        types = MM.ExperimentClassifier.objects.all()
+        types = MM.ExperimentInterpreter.objects.all()
 
         result = None
 
         for t in types:
             test_rule = True
-            for r in MM.RuleClassifier.objects.filter(experiment_classifier=t):
+            for r in MM.RuleInterpreter.objects.filter(experiment_interpreter=t):
                 property_name = r.property_name
                 property_value = r.property_value
                 if not getattr(self, property_name) == property_value:
@@ -261,24 +260,33 @@ class Experiment(models.Model):
             # Se arrivo qui ho rispettato tutte le rules. Adesso controllo i campi
             # TODO il problema è che experiment non deve avere altri campi !
             test_mapping = True
-            for m in MM.MappingClassifier.objects.filter(experiment_classifier=t):
+            # Controllo che esista un mapping
+            mapping_set = set([])
+            for m in MM.MappingInterpreter.objects.filter(experiment_interpreter=t):
                 x_exp_name = m.x_exp_name
                 x_exp_location = m.x_exp_location
+                mapping_set.add(x_exp_name)
                 diz_x = {'experiment': self, x_exp_location: x_exp_name}
                 if not Model.DataColumn.objects.filter(**diz_x).exists():
                     test_mapping = False
                     break
                 y_exp_name = m.y_exp_name
                 y_exp_location = m.y_exp_location
+                mapping_set.add(y_exp_name)
                 diz_y = {'experiment': self, y_exp_location: y_exp_name}
                 if not Model.DataColumn.objects.filter(**diz_y).exists():
                     test_mapping = False
                     break
+            experiment_set = set([])
+            for DC in Model.DataColumn.objects.filter(experiment=self):
+                experiment_set.add(DC.name)
+            if mapping_set != experiment_set:
+                test_mapping = False
             if test_mapping:
                 result = t.name
 
         return result
 
     @property
-    def experiment_classifier(self):
-        return self.run_experiment_classifier()
+    def experiment_interpreter(self):
+        return self.run_experiment_interpreter()

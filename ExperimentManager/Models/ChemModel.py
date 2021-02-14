@@ -13,8 +13,7 @@ class ChemModel(models.Model):  # TODO Fuel list
     version = models.CharField(max_length=200, null=True, blank=True)  # For which fuel it is
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
-        Tool.generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @staticmethod
     def createChemModel(text_dict):

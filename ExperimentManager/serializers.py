@@ -39,7 +39,7 @@ class ExperimentSerializerAPI(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_experimentClassifier(self, obj):
-        return obj.experiment_classifier
+        return obj.experiment_interpreter
 
 
 class ChemModelSerializerAPI(serializers.ModelSerializer):

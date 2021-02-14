@@ -90,24 +90,24 @@ class NewCurveMatchingResultSerializerAPI(serializers.ModelSerializer):
         fields = ['id', 'index', 'error', 'execution_column']
 
 
-class NewRuleClassifierSerializerAPI(serializers.ModelSerializer):
+class NewRuleInterpreterSerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = RuleClassifier
+        model = RuleInterpreter
         fields = ['id']
 
 
-class NewMappingClassifierSerializerAPI(serializers.ModelSerializer):
+class NewMappingInterpreterSerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = MappingClassifier
+        model = MappingInterpreter
         fields = ['id']
 
 
-class NewExperimentClassifierSerializerAPI(serializers.ModelSerializer):
-    rules = NewRuleClassifierSerializerAPI(many=True)
-    mappings = NewMappingClassifierSerializerAPI(many=True)
+class NewExperimentInterpreterSerializerAPI(serializers.ModelSerializer):
+    rules = NewRuleInterpreterSerializerAPI(many=True)
+    mappings = NewMappingInterpreterSerializerAPI(many=True)
 
     class Meta:
-        model = ExperimentClassifier
+        model = ExperimentInterpreter
         fields = ['id', 'rules', 'mappings']
 
 

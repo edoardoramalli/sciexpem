@@ -13,5 +13,4 @@ class Execution(models.Model):
         unique_together = ('chemModel', 'experiment',)
 
     def save(self, *args, **kwargs):
-        kwargs['object'] = self
-        Tool.generic_save(*args, **kwargs)
+        super().save(*args, **kwargs)

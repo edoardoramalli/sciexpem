@@ -8,16 +8,18 @@ from rest_framework.status import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.db.models import Q
+from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 
 # Import build-in
 import os
 import json
 import sys
+from decimal import Decimal
 
 # Local Packages
 from SciExpeM import settings
-from decimal import Decimal
+from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 
 from ExperimentManager.serializerAPI import *
 
@@ -136,7 +138,7 @@ def schemaInsert(request, model, unique, main="", dependencies=None):
         try:
             with transaction.atomic():
                 main_obj = model(**main_object_dict)
-                main_obj.save(username=username)
+                main_obj.save()
                 logger.info(f'{username} - Insert %s Object', main_obj.__class__.__name__)
                 for dependency_list in dependencies_dict:
                     if not type(dependencies_dict[dependency_list]) == list:
@@ -146,7 +148,7 @@ def schemaInsert(request, model, unique, main="", dependencies=None):
                     for element_dict in outer:
                         element_dict[main] = main_obj
                         tmp_obj = eval(dependency_list)(**element_dict)
-                        tmp_obj.save(username=username)
+                        tmp_obj.save()
                         logger.info(f'{username} - Insert %s Object', tmp_obj.__class__.__name__)
 
                 response['result'] = "OK"
@@ -215,13 +217,13 @@ def insertExecution(request):
                                       experiment=experiment,
                                       execution_start=timezone.now(),
                                       execution_end=timezone.now())
-                execution.save(username=username)
+                execution.save()
 
                 execution_columns = object_dict['ExecutionColumn']
                 for execution_column in execution_columns:
                     execution_column['execution'] = execution
                     exec_column = ExecutionColumn(**execution_column)
-                    exec_column.save(username=username)
+                    exec_column.save()
 
                 response['result'] = "OK"
 
@@ -303,27 +305,27 @@ def loadXMLExperimentSimple(request):
 
 # START DELETE
 
-@api_view(['GET'])
-def deleteExperiment(request, pk):
-    if not request.user.is_authenticated:
-        return HttpResponse(status=403)
-
-    owner = LoggerModel.objects.get(model_name="Experiment", pk_model=pk).username
-
-    if owner != request.user.username:
-        if not(request.user.is_superuser | request.user.groups.filter(name="DELETE").exists()):
-            return HttpResponse(status=403)
-    try:
-        Experiment.objects.get(pk=pk).delete()
-        log = LoggerModel(model_name="Experiment",
-                          pk_model=pk,
-                          username=request.user.username,
-                          action="DELETE",
-                          date=timezone.now())
-        log.save()
-    except Exception:
-        return HttpResponse(content="Error Deleting Experiment", status=500)
-    return HttpResponse(status=200)
+# @api_view(['GET'])
+# def deleteExperiment(request, pk):
+#     if not request.user.is_authenticated:
+#         return HttpResponse(status=403)
+#
+#     owner = LoggerModel.objects.get(model_name="Experiment", pk_model=pk).username
+#
+#     if owner != request.user.username:
+#         if not(request.user.is_superuser | request.user.groups.filter(name="DELETE").exists()):
+#             return HttpResponse(status=403)
+#     try:
+#         Experiment.objects.get(pk=pk).delete()
+#         log = LoggerModel(model_name="Experiment",
+#                           pk_model=pk,
+#                           username=request.user.username,
+#                           action="DELETE",
+#                           date=timezone.now())
+#         log.save()
+#     except Exception:
+#         return HttpResponse(content="Error Deleting Experiment", status=500)
+#     return HttpResponse(status=200)
 
 
 # END DELETE
@@ -344,7 +346,7 @@ def verifyExperiment(request):
     try:
         exp = Experiment.objects.get(pk=exp_id)
         exp.status = status
-        exp.save(username=username)
+        exp.save()
     except ConstraintFieldExperimentError as e:
         return Response(status=HTTP_400_BAD_REQUEST,  data="verifyExperiment: " + str(e))
     except Exception as err:
@@ -375,7 +377,7 @@ def validateExperiment(request):
 
     if not c_exp.os_input_file:
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Missing OS input file")
-    if not c_exp.experiment_classifier:
+    if not c_exp.experiment_interpreter:
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Experiment not managed")
 
     exp.update(
@@ -401,7 +403,7 @@ def filterDataBase(request):
     username = request.user.username
     params = dict(request.data)
     try:
-        model_name = params['model'][0]
+        model_name = params['model_name'][0]
         query_str = params['query'][0]
     except KeyError:
         return Response(status=HTTP_400_BAD_REQUEST,
@@ -444,7 +446,7 @@ def requestProperty(request):
     username = request.user.username
     params = dict(request.data)
     try:
-        model_name = params['model'][0]
+        model_name = params['model_name'][0]
         element_id = int(params['id'][0])
         property_name = params['property'][0]
     except KeyError:
@@ -541,40 +543,41 @@ def loadExperiment(request):
 @user_in_group("UPDATE")
 def updateElement(request):
     username = request.user.username
-    params = dict(request.data)
     try:
-        model_name = params['model_name'][0]
-        property_dict = json.loads(params['property'][0])
-        element_id = int(params['id'][0])
-    except KeyError:
-        return Response(status=HTTP_400_BAD_REQUEST,
-                        data="updateElement: KeyError in HTTP parameters. Missing parameter.")
+        params = dict(request.data)
+        try:
+            model_name = params['model_name'][0]
+            property_dict = json.loads(params['property'][0])
+            element_id = int(params['id'][0])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="updateElement: KeyError in HTTP parameters. Missing parameter.")
 
-    if model_name == 'Experiment' and 'status' in property_dict:
-        return Response(status=HTTP_400_BAD_REQUEST,
-                        data="updateElement: It is not possible to verify and experiment.")
-    try:
-        model = eval(model_name)
-    except NameError:
-        return Response(status=HTTP_400_BAD_REQUEST,
-                        data="updateElement: NameError. Model '{}' not exist.".format(model_name))
+        if model_name == 'Experiment' and 'status' in property_dict:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="updateElement: It is not possible to verify and experiment.")
+        try:
+            model = eval(model_name)
+        except NameError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="updateElement: NameError. Model '{}' not exist.".format(model_name))
 
-    try:
-        element = model.objects.get(pk=element_id)
-        for prop in property_dict:
-            if prop in element.__dict__:
-                setattr(element, prop, property_dict[prop])
-            else:
-                return Response(status=HTTP_400_BAD_REQUEST,
-                                data="updateElement: Attribute '{}' not exist in model '{}'".format(prop, model_name))
-        element.save(username=username)
-    except ObjectDoesNotExist:
-        return Response(status=HTTP_400_BAD_REQUEST,
-                        data="updateElement: ID Error. Element ID '{}' in Model '{}' not exist."
-                        .format(element_id, model_name))
+        try:
+            element = model.objects.get(pk=element_id)
+            for prop in property_dict:
+                if prop in element.__dict__:
+                    setattr(element, prop, property_dict[prop])
+                else:
+                    return Response(status=HTTP_400_BAD_REQUEST,
+                                    data="updateElement: Attribute '{}' not exist in model '{}'".format(prop, model_name))
+            element.save()
+        except ObjectDoesNotExist:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="updateElement: ID Error. Element ID '{}' in Model '{}' not exist."
+                            .format(element_id, model_name))
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
-        logger.info(f'{username} - Error Insert Experiment Query' + str(err_type.__name__) + " : " + str(value))
+        logger.info(f'{username} - Error Update Query' + str(err_type.__name__) + " : " + str(value))
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                         data="updateElement: Generic error updating Experiment. "
                              + str(err_type.__name__) + " : " + str(value))
@@ -590,7 +593,7 @@ def insertElement(request):
 
     params = dict(request.data)
 
-    supported_models = ['ExperimentClassifier', 'ChemModel', 'Experiment']
+    supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment']
     try:
         model_name = params['model_name'][0]
         property_dict = json.loads(params['property'][0])
@@ -607,16 +610,33 @@ def insertElement(request):
     except NameError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="insertElement: NameError. Model '{}' not exist.".format(model_name))
-
+    experiment_optima = None
     try:
         with transaction.atomic():
             list_objects = getattr(model, 'create' + model_name)(property_dict)
             for obj in list_objects:
-                obj.save(username=username)
+                obj.save()
+                if isinstance(obj, Experiment):
+                    experiment_optima = obj
+        if experiment_optima:
+            txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment_optima,
+                                                         experiment_optima.data_columns.all(),
+                                                         experiment_optima.initial_species.all(),
+                                                         experiment_optima.common_properties.all(),
+                                                         experiment_optima.file_paper)
+            xml, error = OptimaPP.txt_to_xml(txt)
+            if error:
+                raise OptimaPPError(error)
+            else:
+                experiment_optima.xml_file = xml
+                experiment_optima.save()
     except DatabaseError as e:
         return Response("insertElement: " + str(e.__cause__), status=HTTP_400_BAD_REQUEST)
     except ConstraintFieldExperimentError as e:
         return Response("insertElement: " + str(e), status=HTTP_400_BAD_REQUEST)
+    except OptimaPPError as e:
+        return Response("insertElement: Experiment added but without ReSpecTh File. " + str(e),
+                        status=HTTP_400_BAD_REQUEST)
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
         logger.info(f'{username} - Error Insert Element' + str(err_type.__name__) + " : " + str(value))
@@ -635,7 +655,7 @@ def deleteElement(request):
 
     params = dict(request.data)
 
-    supported_models = ['ChemModel', 'FilePaper', 'Experiment', 'Execution', 'CurveMatchingResult']
+    supported_models = ['ChemModel', 'FilePaper', 'Experiment', 'Execution', 'CurveMatchingResult', 'ExperimentInterpreter']
 
     try:
         model_name = params['model_name'][0]
@@ -654,19 +674,21 @@ def deleteElement(request):
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="deleteElement: NameError. Model '{}' not exist.".format(model_name))
 
-    owner = LoggerModel.objects.get(model_name=model_name, pk_model=element_identifier).username
-
-    if owner != request.user.username:
-        if not(request.user.is_superuser | request.user.groups.filter(name="DELETE").exists()):
+    if model_name == 'Experiment' and model.objects.get(pk=element_identifier).status == 'verified':
+        if not(request.user.is_superuser or request.user.groups.filter(name="DELETE").exists()):
             return Response("deleteElement. User does not have permission.", status=HTTP_403_FORBIDDEN)
+    elif model_name != 'Experiment':
+        if not(request.user.is_superuser or request.user.groups.filter(name="DELETE").exists()):
+            return Response("deleteElement. User does not have permission.", status=HTTP_403_FORBIDDEN)
+
     try:
         model.objects.get(pk=element_identifier).delete()
-        log = LoggerModel(model_name="Experiment",
-                          pk_model=element_identifier,
-                          username=request.user.username,
-                          action="DELETE",
-                          date=timezone.now())
-        log.save()
+        # log = LoggerModel(model_name="Experiment",
+        #                   pk_model=element_identifier,
+        #                   username=request.user.username,
+        #                   action="DELETE",
+        #                   date=timezone.now())
+        # log.save()
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
         logger.info(f'{request.user.username} - Error Delete Element' + str(err_type.__name__) + " : " + str(value))
@@ -742,7 +764,7 @@ def analyzeExecution(request):
         cm_result = CurveMatchingResult(execution_column=y_exec,
                                         index=index,
                                         error=error)
-        cm_result.save(username=username)
+        cm_result.save()
 
         # print(data_columns_data, file=sys.stderr)
         # print(execution_columns_data)
@@ -779,8 +801,8 @@ def respecth_text_to_experiment(username, file):
         else:
             ignition_type = respecth_obj.get_ignition_type()
 
-            paper = FilePaper(title=respecth_obj.getBiblio())
-            paper.save(username=username)
+            paper = FilePaper(references=respecth_obj.getBiblio())
+            paper.save()
 
             e = Experiment(reactor=reactor,
                            experiment_type=experiment_type,
@@ -789,7 +811,7 @@ def respecth_text_to_experiment(username, file):
                            file_paper=paper,
                            xml_file=file,
                            status=status)
-            e.save(username=username)
+            e.save()
 
             columns_groups = respecth_obj.extract_columns_multi_dg()
 
@@ -811,8 +833,6 @@ def respecth_text_to_experiment(username, file):
                 ip.save()
 
 
-
-
 def from_text_to_experiment(username, file):
     response = {'result': None, 'error': ''}
     status = "unverified"
@@ -830,8 +850,8 @@ def from_text_to_experiment(username, file):
 
             ignition_type = respecth_obj.get_ignition_type()
 
-            paper = FilePaper(title=respecth_obj.getBiblio())
-            paper.save(username=username)
+            paper = FilePaper(references=respecth_obj.getBiblio())
+            paper.save()
 
             e = Experiment(reactor=reactor,
                            experiment_type=experiment_type,

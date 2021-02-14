@@ -35,7 +35,7 @@ class ExperimentSerializer(serializers.ModelSerializer):
         model = Experiment
         fields = ('id', 'reactor', 'experiment_type',
                   'fileDOI', 'file_paper', 'common_properties',
-                  'initial_species', 'ignition_type', 'status', 'experiment_classifier',
+                  'initial_species', 'ignition_type', 'status', 'experiment_interpreter',
                   'fuels', 'phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup')
 
 

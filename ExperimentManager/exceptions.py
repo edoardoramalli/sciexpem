@@ -16,3 +16,8 @@ class ConstraintFieldExperimentError(Exception):
 class MissingRequirementsVerificationExperimentError(Exception):
     def __init__(self, message):
         super().__init__("Missing Requirements for Experiment Verification. " + message)
+
+
+class OptimaPPError(Exception):
+    def __init__(self, message):
+        super().__init__("OptimaPP Error. " + message)

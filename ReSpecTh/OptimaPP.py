@@ -75,8 +75,8 @@ class TranslatorOptimaPP:
     @staticmethod
     def create_header(experiment, file_paper):
         txt = ""
-        if file_paper.title:
-            txt += TranslatorOptimaPP.create_lines(Reference__description=file_paper.title)
+        if file_paper.references:
+            txt += TranslatorOptimaPP.create_lines(Reference__description=file_paper.references)
         if file_paper.reference_doi:
             txt += TranslatorOptimaPP.create_lines(Reference__DOI=file_paper.reference_doi)
 
