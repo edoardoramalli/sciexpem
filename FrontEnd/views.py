@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from ExperimentManager import models
+from ExperimentManager.Models import *
 from FrontEnd import serializers
 from FrontEnd import utils
 from django.db.models import Avg
@@ -28,6 +29,7 @@ from collections import defaultdict
 from pathlib import Path
 import os
 from CurveMatching import CurveMatching
+from FrontEnd.serializers import DataColumnSerializer
 
 from django.contrib.auth.decorators import login_required
 
@@ -36,7 +38,8 @@ from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 
 import sys
 
-from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType, ReSpecThValidReactorType
+from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType, \
+    ReSpecThValidReactorType
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -63,20 +66,20 @@ __location__ = os.path.realpath(
 
 
 class FilePaperCreate(CreateView):
-    model = models.FilePaper
+    model = FilePaper
     fields = ['title', 'reference_doi']
     template_name = 'experimentmanagernewpaper.html'
     success_url = "/"
 
 
 class ExperimentCreate(CreateView):
-    model = models.Experiment
+    model = Experiment
     fields = '__all__'
     template_name = "experimentmanagernewpaper.html"
 
 
 class ExperimentListAPI(generics.ListAPIView):
-    queryset = models.Experiment.objects.all()
+    queryset = Experiment.objects.all()
     serializer_class = serializers.ExperimentSerializer
 
 
@@ -88,7 +91,7 @@ class ExperimentFilteredListAPI(generics.ListAPIView):
         Optionally restricts the returned purchases to a given user,
         by filtering against a `username` query parameter in the URL.
         """
-        queryset = models.Experiment.objects.all()
+        queryset = Experiment.objects.all()
         experiments = self.request.query_params.getlist('experiments[]', None)
         if experiments is not None:
             queryset = queryset.filter(id__in=experiments)
@@ -96,13 +99,13 @@ class ExperimentFilteredListAPI(generics.ListAPIView):
 
 
 def experiment_search_fields(request):
-    experiments = models.Experiment.objects.all()
+    experiments = Experiment.objects.all()
     reactors_to_types = defaultdict(list)
     for e in experiments:
         if e.experiment_type not in reactors_to_types[e.reactor]:
             reactors_to_types[e.reactor].append(e.experiment_type)
 
-    species = [i for i in models.InitialSpecie.objects.values_list("name", flat=True).distinct()]
+    species = [i for i in InitialSpecie.objects.values_list("name", flat=True).distinct()]
     response = {"reactors": list(reactors_to_types.keys()), "reactors_to_types": reactors_to_types, "species": species}
     return JsonResponse(response)
 
@@ -111,7 +114,7 @@ class SearchExperiments(generics.ListAPIView):
     serializer_class = serializers.ExperimentSerializer
 
     def get_queryset(self):
-        queryset = models.Experiment.objects.all()
+        queryset = Experiment.objects.all()
 
         reactor = self.request.query_params.get('reactor', None)
         experiment_type = self.request.query_params.get('experiment_type', None)
@@ -151,18 +154,18 @@ class SearchExperiments(generics.ListAPIView):
 
 
 class ChemModelListAPI(generics.ListAPIView):
-    queryset = models.ChemModel.objects.all()
+    queryset = ChemModel.objects.all()
     serializer_class = serializers.ChemModelSerializer
 
 
 class ExperimentDetailAPI(generics.RetrieveDestroyAPIView):
-    queryset = models.Experiment.objects.all()
+    queryset = Experiment.objects.all()
     serializer_class = serializers.ExperimentDetailSerializer
 
 
 # both for experiments and experiments + chem_models
 def get_curves(exp_id, chem_models):
-    experiment = get_object_or_404(models.Experiment, pk=exp_id)
+    experiment = get_object_or_404(Experiment, pk=exp_id)
     target_executions = []
 
     if chem_models and len(chem_models) > 0:
@@ -339,13 +342,10 @@ def experiment_curve_API(request, pk):
     return response
 
 
-
-
-
 @api_view(['GET'])
 def curve_matching_results_API(request):
     exp_id = request.query_params.get('experiment', None)
-    experiment = get_object_or_404(models.Experiment, pk=exp_id)
+    experiment = get_object_or_404(Experiment, pk=exp_id)
     chem_models = request.query_params.getlist('chemModels[]', None)
 
     executions = models.Execution.objects.filter(chemModel__id__in=chem_models, experiment=experiment)
@@ -388,7 +388,7 @@ def curve_matching_global_results_API_OLD(request):
     data = []
     names = []
 
-    chem_models = models.ChemModel.objects.filter(id__in=chem_models_ids)
+    chem_models = ChemModel.objects.filter(id__in=chem_models_ids)
 
     for cm in chem_models:
         executions = models.Execution.objects.filter(chemModel=cm, experiment__id__in=exp_ids)
@@ -452,8 +452,8 @@ def curve_matching_global_results_API(request):
 
     for item in mancanti:
         exp_id, model_id = item
-        exp = models.Experiment.objects.filter(pk=exp_id)[0]
-        chemModel = models.ChemModel.objects.filter(pk=model_id)[0]
+        exp = Experiment.objects.filter(pk=exp_id)[0]
+        chemModel = ChemModel.objects.filter(pk=model_id)[0]
         try:
             with transaction.atomic():
                 execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
@@ -540,8 +540,8 @@ def curve_matching_global_results_dict_API(request):
 
     for item in mancanti:
         exp_id, model_id = item
-        exp = models.Experiment.objects.filter(pk=exp_id)[0]
-        chemModel = models.ChemModel.objects.filter(pk=model_id)[0]
+        exp = Experiment.objects.filter(pk=exp_id)[0]
+        chemModel = ChemModel.objects.filter(pk=model_id)[0]
         try:
             with transaction.atomic():
                 execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
@@ -597,7 +597,7 @@ def curve_matching_global_results_dict_API(request):
 
 @api_view(['GET'])
 def download_input_file(request, pk):
-    experiment = get_object_or_404(models.Experiment, pk=pk)
+    experiment = get_object_or_404(Experiment, pk=pk)
     input_opensmoke = experiment.os_input_file
     if not input_opensmoke:
         content = 'Unable to create this input file'
@@ -612,7 +612,7 @@ def download_input_file(request, pk):
 
 @api_view(['GET'])
 def download_respecth_file(request, pk):
-    experiment = get_object_or_404(models.Experiment, pk=pk)
+    experiment = get_object_or_404(Experiment, pk=pk)
     respecth_file = experiment.xml_file
     if not respecth_file:
         content = 'Unable to create this input file'
@@ -715,7 +715,7 @@ def get_username(request):
 
 @api_view(['POST'])
 def get_experiment_file(request, pk):
-    exp = models.Experiment.objects.get(pk=pk)
+    exp = Experiment.objects.get(pk=pk)
     type = request.data['params']['type']
     if type == "OS":
         file = exp.os_input_file
@@ -734,15 +734,15 @@ def get_experiment_file(request, pk):
 def get_experiment_data_columns(request, pk):
     try:
         data_group = request.data['params']['type']
-        data_columns = models.DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
+        data_columns = DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
         if data_columns.exists():
             header = [column.name + " [" + column.units + "]" +
                       " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
                       " - Plot Scale: " + column.plotscale + ""
                       if not column.species
                       else column.label + " [" + column.units + "]" +
-                      " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
-                      " - Plot Scale: " + column.plotscale + ""
+                           " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
+                           " - Plot Scale: " + column.plotscale + ""
                       for column in data_columns]
 
             data = [list(map(lambda x: float(x), column.data)) for column in data_columns]
@@ -788,27 +788,72 @@ def fuels_names(request):
     return JsonResponse({"names": names})
 
 
+def serialize_DC(col):
+    return {'name': col.name, 'units': col.units, 'data': col.data, 'dg_id': col.dg_id, 'label': col.label,
+            'species': col.species, 'nominal': col.nominal, 'plotscale': col.plotscale, 'ignore': col.ignore}
+
+
+
 class DataExcelUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
-    def post(self, request):
-        data = request.data['data'].read()
-        f = io.BytesIO(data)
+    def post(self, request):  # autenticazione? TODO
+        params = dict(request.data)
+        excel_file = params['file'][0]
+        data_group = params['data_group'][0]
+
+        excel_file_bytes = io.BytesIO(excel_file.read())
 
         try:
-            e = pd.read_excel(f)
-        except Exception:
-            return Response("Error parsing file", status.HTTP_400_BAD_REQUEST)
+            data_frame = pd.read_excel(excel_file_bytes)
+        except Exception as error:
+            return Response("Errors checking the file" + str(error), status.HTTP_400_BAD_REQUEST)
 
-        check = utils.check_data_excel(e)
+        check = utils.check_data_excel(data_frame) # null ed ha struttura qualcosa [unità]
 
         if not check:
             return Response("Errors checking the file", status.HTTP_400_BAD_REQUEST)
 
-        columns = list(e.columns)
-        content = e.to_dict(orient="records")
+        columns = list(data_frame.columns)
+        content = data_frame.to_dict(orient="records")
 
-        return JsonResponse({"names": columns, "data": content})
+        list_dataColumn = []
+
+        for cols in columns:
+            split_col = cols.rsplit('[', maxsplit=1)
+            name = split_col[0].strip()
+            unit = split_col[1].strip().replace(']', '')
+            # Check prop
+            if not validatorProperty.isValid(unit=unit, name=name):
+                # Se non è una prop normale magari è una specie
+                new_name = name.replace('[', '').replace(']', '')
+                if validatorSpecie.isValid(new_name):
+                    list_dataColumn.append(DataColumn(name='composition',
+                                                      units='mole fraction',
+                                                      data=list(data_frame[cols]),
+                                                      label='[' + new_name + ']',
+                                                      species=[new_name],
+                                                      plotscale='lin',
+                                                      ignore=False,
+                                                      dg_id=data_group))
+                else:
+                    return Response("DataExcelUploadView. Name column '{}' is not valid with unit '{}'."
+                                    .format(name, unit), status=status.HTTP_400_BAD_REQUEST)
+            else:
+                list_dataColumn.append(DataColumn(name=name,
+                                                  units=unit,
+                                                  data=list(data_frame[cols]),
+                                                  label=validatorProperty.getSymbol(name),
+                                                  species=None,
+                                                  plotscale='lin',
+                                                  ignore=False,
+                                                  dg_id=data_group))
+
+        new_list = [serialize_DC(x) for x in list_dataColumn]
+
+        response = {'names': columns, 'data': content, 'serialized': new_list}
+
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class OSInputUploadView(APIView):
@@ -844,7 +889,6 @@ class DetailFormView(APIView):
         expReference = request.data['params']['values']['experiment_reference']
         paperReference = request.data['params']['values']['bibliography']
 
-
         t_inf = request.data['params']['values']['t_profile'][0]
         t_sup = request.data['params']['values']['t_profile'][1]
         p_inf = request.data['params']['values']['p_profile'][0]
@@ -852,8 +896,6 @@ class DetailFormView(APIView):
         phi_inf = request.data['params']['values']['phi'][0]
         phi_sup = request.data['params']['values']['phi'][1]
         fuels = request.data['params']['values']['fuels']
-
-
 
         # Optional Fields
         if 'volume_time_data' in request.data['params']['values']:
@@ -877,7 +919,8 @@ class DetailFormView(APIView):
             species = []
 
         if 'ignition_definition_measured_quantity' in request.data['params']['values']:
-            ignition_definition_measured_quantity = request.data['params']['values']['ignition_definition_measured_quantity']
+            ignition_definition_measured_quantity = request.data['params']['values'][
+                'ignition_definition_measured_quantity']
         else:
             ignition_definition_measured_quantity = None
 
@@ -893,35 +936,35 @@ class DetailFormView(APIView):
 
         fileDOI = str(expReference)
 
-        if models.Experiment.objects.filter(fileDOI=fileDOI).exists():
+        if Experiment.objects.filter(fileDOI=fileDOI).exists():
             return Response("This experiment already exists", status.HTTP_400_BAD_REQUEST)
 
         try:
 
             with transaction.atomic():
 
-                if not models.FilePaper.objects.filter(reference_doi=paperDOI).exists():
+                if not FilePaper.objects.filter(reference_doi=paperDOI).exists():
 
-                    paper = models.FilePaper(title=paperReference,
-                                             reference_doi=paperDOI)
+                    paper = FilePaper(title=paperReference,
+                                      reference_doi=paperDOI)
                     paper.save(username=username)
                 else:
-                    paper = models.FilePaper.objects.get(reference_doi=paperDOI)
+                    paper = FilePaper.objects.get(reference_doi=paperDOI)
 
-                experiment = models.Experiment(reactor=reactor,
-                                               experiment_type=experiment_type,
-                                               fileDOI=fileDOI,
-                                               file_paper=paper,
-                                               os_input_file=file_upload_os,
-                                               ignition_type=idt,
-                                               status="new",
-                                               phi_inf=phi_inf,
-                                               phi_sup=phi_sup,
-                                               t_inf=t_inf,
-                                               t_sup=t_sup,
-                                               p_inf=p_inf,
-                                               p_sup=p_sup,
-                                               fuels=fuels)
+                experiment = Experiment(reactor=reactor,
+                                        experiment_type=experiment_type,
+                                        fileDOI=fileDOI,
+                                        file_paper=paper,
+                                        os_input_file=file_upload_os,
+                                        ignition_type=idt,
+                                        status="new",
+                                        phi_inf=phi_inf,
+                                        phi_sup=phi_sup,
+                                        t_inf=t_inf,
+                                        t_sup=t_sup,
+                                        p_inf=p_inf,
+                                        p_sup=p_sup,
+                                        fuels=fuels)
                 experiment.save(username=username)
 
                 first_row_keys = data_file_string[0].keys()
@@ -940,15 +983,15 @@ class DetailFormView(APIView):
                         sp = None
                         label = validatorProperty.getSymbol(variable)
 
-                    dc = models.DataColumn(name=name,
-                                           label=label,
-                                           species=sp,
-                                           units=units,
-                                           data=list(df_values[column]),
-                                           dg_id="dg1",
-                                           plotscale='lin',
-                                           ignore=False,
-                                           experiment=experiment)
+                    dc = DataColumn(name=name,
+                                    label=label,
+                                    species=sp,
+                                    units=units,
+                                    data=list(df_values[column]),
+                                    dg_id="dg1",
+                                    plotscale='lin',
+                                    ignore=False,
+                                    experiment=experiment)
                     dc.save(username=username)
 
                 if file_upload_volume_time:
@@ -968,24 +1011,24 @@ class DetailFormView(APIView):
                             sp = None
                             label = validatorProperty.getSymbol(variable)
 
-                        dc = models.DataColumn(name=name,
-                                               label=label,
-                                               species=sp,
-                                               units=units,
-                                               data=list(df_volume_time[column]),
-                                               dg_id="dg2",
-                                               experiment=experiment)
+                        dc = DataColumn(name=name,
+                                        label=label,
+                                        species=sp,
+                                        units=units,
+                                        data=list(df_volume_time[column]),
+                                        dg_id="dg2",
+                                        experiment=experiment)
                         dc.save()
 
                 for p in properties:
                     if p is not None:
-                        cp = models.CommonProperty(**p)
+                        cp = CommonProperty(**p)
                         cp.experiment = experiment
                         cp.save()
 
                 for s in species:
                     if s is not None:
-                        sp = models.InitialSpecie(**s)
+                        sp = InitialSpecie(**s)
                         sp.experiment = experiment
                         sp.save()
 
@@ -1000,7 +1043,7 @@ class DetailFormView(APIView):
                 if error:
                     raise ValueError(error)
 
-                models.Experiment.objects.filter(pk=experiment.pk).update(xml_file=xml)
+                Experiment.objects.filter(pk=experiment.pk).update(xml_file=xml)
 
 
         except ValueError:
@@ -1044,10 +1087,10 @@ class InputFileFormView(APIView):
             name = dict_excel_names.get(variable)
             if not name:
                 continue
-            dc = models.DataColumn(name=name, units=units, data=list(df[column]), dg_id=1)
+            dc = DataColumn(name=name, units=units, data=list(df[column]), dg_id=1)
             data_columns.append(dc)
 
-        experiment = models.Experiment(reactor=reactor, experiment_type="temp", temp=True, fileDOI=fileDOI)
+        experiment = Experiment(reactor=reactor, experiment_type="temp", temp=True, fileDOI=fileDOI)
         experiment.save()
         for dc in data_columns:
             dc.experiment = experiment
@@ -1062,7 +1105,7 @@ class InputFileFormView(APIView):
         return JsonResponse({"experiment": experiment.id})
 
 # def experiment_curve_API(request, pk):
-#     experiment = get_object_or_404(models.Experiment, pk=pk)
+#     experiment = get_object_or_404(Experiment, pk=pk)
 #     if experiment.reactor == "shock tube" and experiment.experiment_type == "ignition delay measurement":
 #         temp_column = experiment.data_columns.get(name="temperature")
 #         idt_column = experiment.data_columns.get(name="ignition delay")

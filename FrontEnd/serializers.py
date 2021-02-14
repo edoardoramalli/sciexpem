@@ -1,13 +1,5 @@
 from rest_framework import serializers
-from ExperimentManager.models import CommonProperty
-from ExperimentManager.models import InitialSpecie
-from ExperimentManager.models import DataColumn
-from ExperimentManager.models import FilePaper
-from ExperimentManager.models import Experiment
-from ExperimentManager.models import ExecutionColumn
-from ExperimentManager.models import Execution
-from ExperimentManager.models import CurveMatchingResult
-from ExperimentManager.models import ChemModel
+from ExperimentManager.Models import *
 
 
 class CommonPropertySerializer(serializers.ModelSerializer):

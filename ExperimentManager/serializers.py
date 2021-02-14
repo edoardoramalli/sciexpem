@@ -1,36 +1,29 @@
 from rest_framework import serializers
-from ExperimentManager.models import CommonProperty
-from ExperimentManager.models import InitialSpecie
-from ExperimentManager.models import DataColumn
-from ExperimentManager.models import FilePaper
-from ExperimentManager.models import Experiment
-from ExperimentManager.models import ExecutionColumn
-from ExperimentManager.models import Execution
-from ExperimentManager.models import CurveMatchingResult
-from ExperimentManager.models import ChemModel
+
+import ExperimentManager.Models as Model
 
 
 class CommonPropertySerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = CommonProperty
+        model = Model.CommonProperty
         fields = '__all__'
 
 
 class InitialSpecieSerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = InitialSpecie
+        model = Model.InitialSpecie
         fields = '__all__'
 
 
 class DataColumnSerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = DataColumn
+        model = Model.DataColumn
         fields = '__all__'
 
 
 class FilePaperSerializerAPI(serializers.ModelSerializer):
     class Meta:
-        model = FilePaper
+        model = Model.FilePaper
         fields = '__all__'
 
 
@@ -42,7 +35,7 @@ class ExperimentSerializerAPI(serializers.ModelSerializer):
     experimentClassifier = serializers.SerializerMethodField()
 
     class Meta:
-        model = Experiment
+        model = Model.Experiment
         fields = '__all__'
 
     def get_experimentClassifier(self, obj):
@@ -52,14 +45,14 @@ class ExperimentSerializerAPI(serializers.ModelSerializer):
 class ChemModelSerializerAPI(serializers.ModelSerializer):
 
     class Meta:
-        model = ChemModel
+        model = Model.ChemModel
         fields = '__all__'
 
 
 class ExecutionColumnSerializerAPI(serializers.ModelSerializer):
 
     class Meta:
-        model = ExecutionColumn
+        model = Model.ExecutionColumn
         fields = '__all__'
 
 
@@ -69,7 +62,7 @@ class ExecutionSerializerAPI(serializers.ModelSerializer):
     execution_columns = ExecutionColumnSerializerAPI(many=True)
 
     class Meta:
-        model = Execution
+        model = Model.Execution
         fields = '__all__'
 
 
@@ -80,7 +73,7 @@ class ExecutionColumnSerializerBackTrackingAPI(serializers.ModelSerializer):
     execution = ExecutionSerializerAPI()
 
     class Meta:
-        model = ExecutionColumn
+        model = Model.ExecutionColumn
         fields = '__all__'
 
 
@@ -88,7 +81,7 @@ class CurveMatchingResultSerializerAPI(serializers.ModelSerializer):
     # execution_column = ExecutionColumnSerializerBackTrackingAPI()
 
     class Meta:
-        model = CurveMatchingResult
+        model = Model.CurveMatchingResult
         fields = ('id', 'index', 'error')
 
 

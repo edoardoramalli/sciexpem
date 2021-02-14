@@ -13,6 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 # Import build-in
 import os
 import json
+import sys
 
 # Local Packages
 from SciExpeM import settings
@@ -24,6 +25,7 @@ from ExperimentManager.serializerAPI import *
 # Import Local
 from ExperimentManager.serializers import *
 from ExperimentManager.models import *
+from ExperimentManager.Models import *
 from ExperimentManager import QSerializer
 from ExperimentManager.exceptions import *
 import ExperimentManager
@@ -585,14 +587,13 @@ def updateElement(request):
 @user_in_group("WRITE")
 def insertElement(request):
     username = request.user.username
+
     params = dict(request.data)
 
-    supported_models = ['ExperimentClassifier', 'ChemModel']
+    supported_models = ['ExperimentClassifier', 'ChemModel', 'Experiment']
     try:
         model_name = params['model_name'][0]
         property_dict = json.loads(params['property'][0])
-        # print(property_dict)
-        # return Response("OK TMP".format(model_name), status=HTTP_200_OK)
     except KeyError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="insertElement: KeyError in HTTP parameters. Missing parameter.")
@@ -614,6 +615,8 @@ def insertElement(request):
                 obj.save(username=username)
     except DatabaseError as e:
         return Response("insertElement: " + str(e.__cause__), status=HTTP_400_BAD_REQUEST)
+    except ConstraintFieldExperimentError as e:
+        return Response("insertElement: " + str(e), status=HTTP_400_BAD_REQUEST)
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
         logger.info(f'{username} - Error Insert Element' + str(err_type.__name__) + " : " + str(value))
