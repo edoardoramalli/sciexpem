@@ -112,6 +112,8 @@ class Experiment(models.Model):
     p_inf = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
     p_sup = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
 
+    username = models.CharField(max_length=75, blank=True, null=True)
+
     def check_fields(self):
         experiment_type = self.experiment_type
         fuels = list(self.fuels) if self.fuels is not None else []
@@ -123,6 +125,10 @@ class Experiment(models.Model):
         p_sup = self.p_sup if self.p_sup is not None else 0
         self.status = self.status if self.status is not None else 'unverified'
         status = self.status if self.status is not None else None
+        username = self.username
+
+        if not username:
+            raise ConstraintFieldExperimentError("Experiment username is not specified!")
 
         if status not in ['verified', 'invalid', 'unverified']:
             raise ConstraintFieldExperimentError("Experiment status field '{}' is not valid!".format(status))

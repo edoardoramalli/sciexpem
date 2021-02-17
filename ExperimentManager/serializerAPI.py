@@ -87,7 +87,7 @@ class NewCurveMatchingResultSerializerAPI(serializers.ModelSerializer):
 
     class Meta:
         model = Model.CurveMatchingResult
-        fields = ['id', 'index', 'error', 'execution_column']
+        fields = ['id', 'error', 'score', 'execution_column']
 
 
 class NewRuleInterpreterSerializerAPI(serializers.ModelSerializer):

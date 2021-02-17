@@ -4,8 +4,6 @@ from django.urls import path
 
 urlpatterns = [
     path('', views.index),
-    path('newpaper', views.FilePaperCreate.as_view(), name='newpaper'),
-    path('newexperiment', views.ExperimentCreate.as_view(), name='newexperiment'),
     path('api/experiments/', views.ExperimentListAPI.as_view(), name="experiment-list-api"),
     path('api/experiments/filter', views.ExperimentFilteredListAPI.as_view(), name="experiment-filtered-list-api"),
     path('api/experiments/search', views.SearchExperiments.as_view(), name="search-experiment"),
@@ -26,8 +24,7 @@ urlpatterns = [
     path('input/data_excel', views.DataExcelUploadView.as_view(), name="data-excel-upload"),
     path('input/input_file', views.InputUploadView.as_view(), name="input-dic-upload"),
     path('input/os_input_file', views.OSInputUploadView.as_view(), name="os-input-dic-upload"),
-    path('input/submit', views.DetailFormView.as_view(), name="detail-submit"),
-    path('input/submit_file', views.InputFileFormView.as_view(), name="input-file-submit"),
+
     path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"),
     path('api/opensmoke/fuels_names', views.fuels_names, name="fuels-names"),
     path('api/get_username', views.get_username, name="get_username"),

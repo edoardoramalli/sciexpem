@@ -13,6 +13,8 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
     execution = models.ForeignKey(Model.Execution, on_delete=models.CASCADE, related_name="execution_columns")
     file_type = models.CharField(max_length=100)
 
+    # TODO file_type con label o name deve essere unique
+
     def range(self):
         return self.data[0], self.data[-1]
 

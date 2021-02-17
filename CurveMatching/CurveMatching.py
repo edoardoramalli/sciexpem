@@ -1,83 +1,21 @@
-import shutil, os, glob
-import numpy as np
-import subprocess
+import os
 import traceback
-import pandas as pd
-from ExperimentManager import models
-from pint import UnitRegistry
+import ExperimentManager.Models as Model
+import ExperimentManager.models as OldModel
 from . import CurveMatchingPython
-# from CurveMatchingPython import CurveMatchingPython
 from django.db import transaction
 
-ureg = UnitRegistry()
+from ReSpecTh.units import convert
 
 
-def normalize_execution_column(execution_column, experiment=None, target_column=None):
-    if execution_column.species is not None:
-        return execution_column.data
-
-    if experiment is None and target_column is None:
-        experiment = execution_column.execution.experiment
-        target_column = experiment.data_columns.all().get(name=execution_column.name)
-    elif experiment is not None and target_column is None:
-        target_column = experiment.data_columns.all().get(name=execution_column.name)
-
-    target_units = target_column.units
-
-    return [(float(t) * ureg.parse_expression(execution_column.units)).to(target_units).magnitude for t in
-            execution_column.data]
-
-
-# for curve matching
-def get_experiment_table(exp_id, reorder=True):
-    dc = models.DataColumn.objects.filter(experiment_id=exp_id)
-    column_names = [d.name.replace(" ", "-") if d.species is None else d.species[0] for d in dc]
-    column_data = [[float(dd) for dd in d.data] for d in dc]
-    r = pd.DataFrame(dict(zip(column_names, column_data)))
-
-    if reorder:
-        e = models.Experiment.objects.get(pk=exp_id)
-        if e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement" or e.reactor == "stirred reactor":
-            column_names.remove("temperature")
-            column_names.insert(0, "temperature")
-            r = r[column_names]
-    return r
-
-
-def get_models_table(exp_id, target_models=None, reorder=True, split=False):
-    if target_models is None:
-        target_models = []
-
-    executions = models.Execution.objects.filter(experiment=exp_id, chemModel__in=target_models)
-
-    data_frames = []
-    for execution in executions:
-        ec = execution.execution_columns.all()
-
-        column_names = [d.name.replace(" ", "-") if d.species is None else d.species[0] for d in ec]
-        column_data = [[float(dd) for dd in normalize_execution_column(d)] for d in ec]
-        r = pd.DataFrame(dict(zip(column_names, column_data)))
-
-        if reorder:
-            e = models.Experiment.objects.get(pk=exp_id)
-            if e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement" or e.reactor == "stirred reactor":
-                column_names.remove("temperature")
-                column_names.insert(0, "temperature")
-                r = r[column_names]
-
-        r.columns = [i + "_" + execution.chemModel.name for i in r.columns]
-        data_frames.append(r)
-
-    if not split:
-        return pd.concat(data_frames, axis=1, sort=False)
-    return data_frames
 
 
 class CurveMatchingExecutor():
     def __init__(self, curve_matching_path):
         self.curve_matching_path = curve_matching_path
         # self.curve_matching = CurveMatchingPython.CurveMatchingPython("/Users/edoardo/Documents/GitHub/sciexpem/experimentmanager/CurveMatchingPython.o")
-        self.curve_matching = CurveMatchingPython("/Users/edoardo/PycharmProjects/SciExpeM/CurveMatching/CurveMatchingPython.o")
+        self.curve_matching = CurveMatchingPython(
+            "/Users/edoardo/PycharmProjects/SciExpeM/CurveMatching/CurveMatchingPython.o")
         # TODO FIX ABS PATH
 
     def execute_CM(self, execution_column_x, execution_column_y):
@@ -142,7 +80,6 @@ class CurveMatchingExecutor():
         except Exception as err:
             print(traceback.format_exc())
 
-
     # def __execute(self):
     #     command = os.path.join(self.curve_matching_path, r"Curve Matching.exe")
     #     out = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
@@ -179,7 +116,6 @@ class CurveMatchingExecutor():
     #         r.append((columns_exp, columns_mod))
     #     return r
 
-
     # def flush_output_folder(self):
     #     shutil.rmtree(self.output_path)
     #     os.makedirs(self.output_path)
@@ -189,7 +125,6 @@ class CurveMatchingExecutor():
     #         name = i[0].columns[1]
     #         i[0].to_csv(os.path.join(self.output_path, name + "_exp.txt"), sep="\t", index=False)
     #         i[1].to_csv(os.path.join(self.output_path, name + "_mod.txt"), sep="\t", index=False)
-
 
     def store_results(self, r, exp_id):
         for index, row in r.iterrows():
@@ -214,3 +149,98 @@ def execute_curve_matching_django(execution):
 
     curve_matching_executor = CurveMatchingExecutor("path")
     curve_matching_executor.execute_CM(execution_column_x=t0, execution_column_y=slope)
+
+
+from CurveMatching.CurveMatchingPython import CurveMatching
+from SciExpeM import settings
+
+
+def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
+    library_path = os.path.join(settings.BASE_DIR, CurveMatching.__name__, "CurveMatchingPython.o")
+
+    if not os.path.isfile(library_path):
+        raise FileNotFoundError('CurveMatching executable not found.')
+
+    x_exp = [float(e) for e in x_exp]
+    y_exp = [float(e) for e in y_exp]
+    x_sim = [float(e) for e in x_sim]
+    y_sim = [float(e) for e in y_sim]
+    uncertainty = [float(e) for e in uncertainty]
+
+    score, error = CurveMatching.execute(
+        x_exp=x_exp,
+        y_exp=y_exp,
+        x_sim=x_sim,
+        y_sim=y_sim,
+        uncertainty=uncertainty,
+        verbose=False,
+        library_path=library_path,
+        **kwargs)
+
+    return score, error
+
+
+def curveMatchingExecution(current_execution):
+    experiment = current_execution.experiment
+    mappings_list = OldModel.MappingInterpreter.objects.filter(experiment_interpreter__name=experiment.experiment_interpreter)
+
+    for mapping in mappings_list:
+        file = mapping.file
+
+        # Lato Esperimento
+        x_exp_name = mapping.x_exp_name
+        x_exp_location = mapping.x_exp_location
+        y_exp_name = mapping.y_exp_name
+        y_exp_location = mapping.y_exp_location
+
+        x_exp_params = {'experiment': experiment, x_exp_location: x_exp_name}
+        y_exp_params = {'experiment': experiment, y_exp_location: y_exp_name}
+        x_exp_dc = Model.DataColumn.objects.get(**x_exp_params)
+        y_exp_dc = Model.DataColumn.objects.get(**y_exp_params)
+
+        x_exp_units = x_exp_dc.units
+        x_exp_data = x_exp_dc.data
+        x_exp_plotscale = x_exp_dc.plotscale
+
+        y_exp_units = y_exp_dc.units
+        y_exp_data = y_exp_dc.data
+        y_exp_plotscale = y_exp_dc.plotscale
+
+        # Lato Simulazione
+
+        x_sim_name = mapping.x_sim_name
+        x_sim_location = mapping.x_sim_location
+        y_sim_name = mapping.y_sim_name
+        y_sim_location = mapping.y_sim_location
+
+        x_sim_params = {'execution': current_execution, x_sim_location: x_sim_name, 'file_type': file}
+        y_sim_params = {'execution': current_execution, y_sim_location: y_sim_name, 'file_type': file}
+
+        x_sim_ec = Model.ExecutionColumn.objects.get(**x_sim_params)
+        y_sim_ec = Model.ExecutionColumn.objects.get(**y_sim_params) # ATTENZIONE è questa che verrà presa come rif per il CM
+
+        x_sim_units = x_sim_ec.units
+        x_sim_data = x_sim_ec.data
+
+        y_sim_units = y_sim_ec.units
+        y_sim_data = y_sim_ec.data
+
+        # Converto x_axis nella stessa unità di misura e plotscale
+
+        x_exp_data, x_sim_data = convert(list_a=x_exp_data, unit_a=x_exp_units,
+                                         list_b=x_sim_data, unit_b=x_sim_units,
+                                         plotscale='lin')
+
+        # Converto y_axis nella stessa unità di misura e plotscale
+
+        y_exp_data, y_sim_data = convert(list_a=y_exp_data, unit_a=y_exp_units,
+                                         list_b=y_sim_data, unit_b=y_sim_units,
+                                         plotscale=y_exp_plotscale)
+
+        # TODO non controlliamo se c'è incertezza
+
+        score, error = executeCurveMatching(x_exp=x_exp_data, y_exp=y_exp_data, x_sim=x_sim_data, y_sim=y_sim_data)
+
+        cm_result = Model.CurveMatchingResult(execution_column=y_sim_ec, score=score, error=error)
+        cm_result.save()
+

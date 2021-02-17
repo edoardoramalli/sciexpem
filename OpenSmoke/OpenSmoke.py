@@ -6,7 +6,8 @@ from django.utils import timezone
 import pandas as pd
 from pint import UnitRegistry
 from io import StringIO
-from ExperimentManager.Models import *
+import ExperimentManager.Models as Model
+from CurveMatching.CurveMatching import curveMatchingExecution
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -100,71 +101,83 @@ class OpenSmokeParser:
 class OpenSmokeExecutor:
 
     @staticmethod
-    def read_output_OS(path, execution):
+    def read_output_OS(folder, file_name, execution):
+        path = os.path.join(folder, file_name + '.out')
         dataframe, units = OpenSmokeParser.parse_output(path)
 
         list_header = list(dataframe)
         for header in list_header:
-            data = ExecutionColumn(label=header,
+            data = Model.ExecutionColumn(label=header,
                                           units=units[header],
                                           data=list(dataframe[header]),
                                           execution=execution,
-                                          file_type="ParametricAnalysisIDT")
+                                          file_type=file_name)
             data.save()
 
     @staticmethod
-    def execute(exp_id, chemModel_id, execution_id, solver, username):
+    def execute(exp_id, chemModel_id, execution_id, solver):
+        try:
 
-        # IDs already checked by caller function
-        chemModel = ChemModel.objects.get(id=chemModel_id)
-        experiment = Experiment.objects.get(id=exp_id)
+            # IDs already checked by caller function
+            chemModel = Model.ChemModel.objects.get(id=chemModel_id)
+            experiment = Model.Experiment.objects.get(id=exp_id)
 
-        #  Mandatory fields in the model. So no empty fields
-        kinetics_file = chemModel.xml_file_kinetics
-        reaction_names_file = chemModel.xml_file_reaction_names
+            #  Mandatory fields in the model. So no empty fields
+            kinetics_file = chemModel.xml_file_kinetics
+            reaction_names_file = chemModel.xml_file_reaction_names
 
-        # Must be present to verify and experiment
-        open_smoke_input_file = experiment.os_input_file
+            # Must be present to verify and experiment
+            open_smoke_input_file = experiment.os_input_file
 
-        # Create SandBox
-        import tempfile
+            # Create SandBox
+            import tempfile
 
-        # create a temporary directory
-        with tempfile.TemporaryDirectory() as sandbox:
-            kinetic_path = os.path.join(sandbox, "kinetics")
-            os.mkdir(kinetic_path)
+            # create a temporary directory
+            with tempfile.TemporaryDirectory() as sandbox:
+                kinetic_path = os.path.join(sandbox, "kinetics")
+                os.mkdir(kinetic_path)
 
-            kin_file = open(os.path.join(kinetic_path, "kinetics.xml"), "w+")
-            kin_file.write(kinetics_file)
-            kin_file.close()
+                kin_file = open(os.path.join(kinetic_path, "kinetics.xml"), "w+")
+                kin_file.write(kinetics_file)
+                kin_file.close()
 
-            reac_file = open(os.path.join(kinetic_path, "reaction_names.xml"), "w+")
-            reac_file.write(reaction_names_file)
-            reac_file.close()
+                reac_file = open(os.path.join(kinetic_path, "reaction_names.xml"), "w+")
+                reac_file.write(reaction_names_file)
+                reac_file.close()
 
-            open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, kinetic_path, sandbox)
-            os_file = open(os.path.join(sandbox, "input.xml.dic"), "w+")
-            os_file.write(open_smoke_input_text)
-            os_file.close()
+                open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, kinetic_path, sandbox)
+                os_file = open(os.path.join(sandbox, "input.xml.dic"), "w+")
+                os_file.write(open_smoke_input_text)
+                os_file.close()
 
-            bashCommand = ". ~/.bashrc && OpenSMOKEpp_" + solver + ".sh --input " + sandbox + "/input.xml.dic"
+                bashCommand = ". ~/.bashrc && OpenSMOKEpp_" + solver + ".sh --input " + sandbox + "/input.xml.dic"
 
-            import subprocess
+                import subprocess
 
-            process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
-            output, error = process.communicate()
+                process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+                output, error = process.communicate()
 
-            if not error:
+                # print(output)
 
-                execution = Execution.objects.get(id=execution_id)
-                execution.execution_end = timezone.localtime()
-                execution.save()
+                if not error:
 
-                OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysisIDT.out'),
-                                                 execution=execution)
-                OpenSmokeExecutor.read_output_OS(path=os.path.join(sandbox, 'ParametricAnalysis.out'),
-                                                 execution=execution)
-            else:
-                Execution.objects.get(id=execution_id).delete()
+                    execution = Model.Execution.objects.get(id=execution_id)
+                    execution.execution_end = timezone.localtime()
+                    execution.save()
 
+                    # TODO I NOMI DEI FILE SONO HARCODATI. LI DOVREI PRENDERE O DAL MAPPING O BOH
+                    # TODO FORSE DATO IL TIPO DI EXP SO QUALI FILE GENERA!
+                    OpenSmokeExecutor.read_output_OS(folder=sandbox, file_name='ParametricAnalysisIDT',
+                                                     execution=execution)
+                    OpenSmokeExecutor.read_output_OS(folder=sandbox, file_name='ParametricAnalysis',
+                                                     execution=execution)
+
+                    curveMatchingExecution(current_execution=execution)
+
+                else:
+                    # print(error)
+                    Model.Execution.objects.get(id=execution_id).delete()
+        except Exception as e:
+            # print("ECCEZIONE" + str(e))
+            Model.Execution.objects.get(id=execution_id).delete()
 

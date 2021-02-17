@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.contrib.auth.decorators import user_passes_test
 from rest_framework.response import Response
-from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
+from rest_framework.status import *
 
 # Build-in Packages
 import sys
@@ -11,9 +11,9 @@ import os
 import json
 
 # Local Packages
-from SciExpeM import settings
 import CurveMatching
-from SciExpeM.checkPermissionGroup import *
+from SciExpeM.checkPermissionGroup import user_in_group
+from CurveMatching.CurveMatching import executeCurveMatching as ExeCM
 
 # Logging
 import logging
@@ -24,46 +24,37 @@ logger.setLevel(logging.INFO)
 
 @api_view(['POST'])
 @user_in_group("EXECUTE")
-def executeCurveMatchingBase(request):
-    user = request.user.username
+def executeCurveMatching(request):
+    username = request.user.username
+    params = dict(request.data)
+    try:
+        x_sim = params['x_sim']
+        y_sim = params['y_sim']
+        x_exp = params['x_exp']
+        y_exp = params['y_exp']
+        uncertainty = json.loads(params['uncertainty'][0])
+        configuration = json.loads(params['configuration'][0])
 
-    logger.info(f'{user} - Receive Execution Curve Matching Request')
+        score, error = ExeCM(x_exp=x_exp, y_exp=y_exp,
+                             x_sim=x_sim, y_sim=y_sim,
+                             uncertainty=uncertainty, **configuration)
 
-    # response = {'result': None, 'error': None}
-    #
-    # query_execution = json.loads(request.data['query'])
+        logger.info(f'{username} - Simulation Start')
+        return Response(json.dumps({'score': score, 'error': error}), status=HTTP_200_OK)
 
-    x = [1, 2, 3, 4, 5]
-    y = [1, 2, 3, 4, 5]
+    except FileNotFoundError as e:
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="executeCurveMatching: " + str(e))
 
-    path_executable_cm = os.path.join(settings.BASE_DIR, CurveMatching.__name__, "CurveMatchingPython.o")
+    except OSError as e:
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="executeCurveMatching: " + str(e))
 
-    path_executable_cm = '/home/eramalli/CurveMatchingPython/CurveMatchingPython/CurveMatchingPython.o'
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="executeCurveMatching: KeyError in HTTP parameters. Missing parameter.")
+    except Exception as e:
+        err_type, value, traceback = sys.exc_info()
+        logger.info(f'{username} - Error CurveMatching' + str(err_type.__name__) + " : " + str(value))
 
-    score, error = CurveMatching.CurveMatchingPython.CurveMatching.execute(
-        x_exp=x,
-        y_exp=y,
-        x_sim=x,
-        y_sim=y,
-        library_path=path_executable_cm)
-
-    print(score, error)
-
-    return Response(status=HTTP_200_OK, data="Experiment verified successfully")
-
-    # try:
-    #     path_executable_cm = os.path.join(settings.BASE_DIR, CurveMatching.__name__, "CurveMatchingPython.o")
-    #     cm = CurveMatching.CurveMatchingPython.CurveMatchingPython(library_path=path_executable_cm)
-    #     index, error = cm.execute(**query_execution)
-    #     response['result'] = (index, error)
-    #     # return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="Experiment not exist or not verified")
-    # except (OSError, TypeError):
-    #     err_type, value, traceback = sys.exc_info()
-    #     response['error'] = "SERVER - " + str(err_type.__name__) + " : " + str(value)
-    #     logger.info(f'{user} - Error Execution Curve Matching Request')
-    #
-    # reply = JsonResponse(response)
-    # dimension = round(sys.getsizeof(response['result']) / 1000.0, 3)
-    # logger.info(f'{user} - Send Execution Curve Matching Request  %f KB', dimension)
-    #
-    # return reply
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="executeCurveMatching: Generic error. "
+                             + str(err_type.__name__) + " : " + str(value))

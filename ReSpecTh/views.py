@@ -10,14 +10,14 @@ from rest_framework.response import Response
 # Build-in Packages
 import sys
 import json
-from pint import UndefinedUnitError
+from pint import UndefinedUnitError, DimensionalityError
 
 # Local Packages
 import ReSpecTh
 from SciExpeM.checkPermissionGroup import user_in_group
 from ReSpecTh.OptimaPP import OptimaPP
 from ExperimentManager import models
-from ReSpecTh.units import covert_list
+from ReSpecTh.units import convert_list
 from ReSpecTh.GetReactor import GetReactor
 
 # Logging
@@ -62,10 +62,14 @@ def convertList(request):
                         data="convertList: KeyError in HTTP parameters. Missing parameter.")
 
     try:
-        result = covert_list(my_list=my_list, unit=unit, desired_unit=desired_unit)
+        result = convert_list(my_list=my_list, unit=unit, desired_unit=desired_unit)
     except UndefinedUnitError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data='convertList: Unit not defined.')
+    except DimensionalityError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="convertList: It is not possible to convert '{}' to '{}'.".format(unit, desired_unit))
+
     except Exception:
         err_type, value, traceback = sys.exc_info()
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,

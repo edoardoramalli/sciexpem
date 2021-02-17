@@ -93,7 +93,7 @@ class DataColumn(models.Model):
             raise ConstraintFieldExperimentError('Data column nominal must be positive.')
 
         # Hard-coded since very limited future expansion
-        if plotscale not in ['lin', 'log', 'inv', 'log10'] and plotscale is not None:
+        if plotscale not in ['lin', 'log', 'inv', 'log10', 'ln'] and plotscale is not None:
             raise ConstraintFieldExperimentError("Plot scale field value '{}' is not valid.".format(plotscale))
 
     def save(self, *args, **kwargs):

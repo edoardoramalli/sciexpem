@@ -19,6 +19,7 @@ from SciExpeM import settings
 import OpenSmoke
 from .OpenSmoke import OpenSmokeParser, OpenSmokeExecutor
 from SciExpeM.checkPermissionGroup import *
+from ExperimentManager.Models import *
 from ExperimentManager.models import *
 
 # Logging
@@ -65,13 +66,15 @@ def startSimulation(request):
                     return Response(status=HTTP_400_BAD_REQUEST,
                                     data="startSimulation: ID Error.")
 
-                new_exec = Execution(experiment=exp, chemModel=model, execution_start=timezone.localtime())
+                new_exec = Execution(experiment=exp, chemModel=model,
+                                     execution_start=timezone.localtime(),
+                                     username=username)
                 new_exec.save()
 
-                solver = ExperimentClassifier.objects.get(name=exp.experiment_classifier).solver
+                solver = ExperimentInterpreter.objects.get(name=exp.experiment_interpreter).solver
 
                 Thread(target=OpenSmokeExecutor.execute,
-                       args=(experiment_id, model_id, new_exec.id, solver, username)).start()
+                       args=(experiment_id, model_id, new_exec.id, solver)).start()
 
     except Exception as err:
         err_type, value, traceback = sys.exc_info()

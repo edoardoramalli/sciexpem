@@ -127,7 +127,7 @@ class CurveMatching:
         try:
             c_library = cdll.LoadLibrary(library_path)
         except OSError:
-            raise OSError("Unable to load the system C library")
+            raise OSError("Unable to load the system C library.")
 
         c_library.curveMatching.argtypes = [c_int,
                                             c_int,
