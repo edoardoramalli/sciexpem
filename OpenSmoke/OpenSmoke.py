@@ -3,7 +3,9 @@ import os, logging, re
 # from . import models
 # from pathlib import Path
 from django.utils import timezone
+from django import db
 import pandas as pd
+import sys
 from pint import UnitRegistry
 from io import StringIO
 import ExperimentManager.Models as Model
@@ -157,7 +159,7 @@ class OpenSmokeExecutor:
                 process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
                 output, error = process.communicate()
 
-                # print(output)
+                # print(output, file=sys.stderr)
 
                 if not error:
 
@@ -173,11 +175,15 @@ class OpenSmokeExecutor:
                                                      execution=execution)
 
                     curveMatchingExecution(current_execution=execution)
-
+                    print("luna", file=sys.stderr)
                 else:
-                    # print(error)
                     Model.Execution.objects.get(id=execution_id).delete()
+                    print("EDO", file=sys.stderr)
         except Exception as e:
-            # print("ECCEZIONE" + str(e))
+            print("ele", exp_id, file=sys.stderr)
+            print(str(e))
             Model.Execution.objects.get(id=execution_id).delete()
+
+        finally:
+            db.close_old_connections()
 

@@ -2,6 +2,7 @@
 from django.db import transaction
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from django.utils import timezone
+from django import db
 from django.http import JsonResponse
 from django.contrib.auth.decorators import user_passes_test
 from rest_framework.response import Response
@@ -76,6 +77,8 @@ def startSimulation(request):
                 Thread(target=OpenSmokeExecutor.execute,
                        args=(experiment_id, model_id, new_exec.id, solver)).start()
 
+        return Response('startSimulation: Simulation started.', status=HTTP_200_OK)
+
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
         logger.info(f'{username} - Error Simulate' + str(err_type.__name__) + " : " + str(value))
@@ -83,9 +86,10 @@ def startSimulation(request):
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                         data="startSimulation: Generic error in start simulation. "
                              + str(err_type.__name__) + " : " + str(value))
+    finally:
+        db.close_old_connections()
+        logger.info(f'{username} - Simulation Start')
 
-    logger.info(f'{username} - Simulation Start')
-    return Response('startSimulation: Simulation started.', status=HTTP_200_OK)
 
 
 @api_view(['POST'])

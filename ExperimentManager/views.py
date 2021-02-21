@@ -1,5 +1,5 @@
 # Import django
-from django.db import transaction, DatabaseError
+from django.db import transaction, DatabaseError, close_old_connections
 from django.core.exceptions import FieldError
 from rest_framework.status import *
 from rest_framework.response import Response
@@ -509,3 +509,56 @@ def respecth_text_to_experiment(username, file):
             for i in initial_species:
                 ip = InitialSpecie(experiment=e, **i)
                 ip.save()
+
+
+@api_view(['POST'])
+@user_in_group("READ")
+def getCurveMatching(request):
+    username = request.user.username
+
+    try:
+        params = dict(request.data)
+
+        try:
+            experiment_id = params['experiment'][0]
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getExecution: KeyError in HTTP parameters. Missing parameter.")
+
+        # All the CM of an experiment
+        cm_results = CurveMatchingResult.objects.filter(execution_column__execution__experiment__id=experiment_id)
+
+        model_list = {}
+
+        for result in cm_results:
+            model_name = result.execution_column.execution.chemModel.name
+            model_list[model_name] = {'score': result.score, 'error': result.error}
+
+        return Response(model_list, status=HTTP_200_OK)
+
+    except Exception as err:
+        err_type, value, traceback = sys.exc_info()
+        logger.info(f'{username} - Error Get Execution' + str(err_type.__name__) + " : " + str(value))
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getExecution: Generic error in get execution. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+def prova(request):
+
+    fp = Experiment.objects.get(id=5)
+
+    a = ExperimentSerializer(fp)
+
+    print(json.dumps(a.data))
+
+    # data = {'id': 2, 'references': 'edo', 'pippo': 90}
+    #
+    # serializer = FilePaperSerializer(data=data)
+    # print(serializer.is_valid())
+    # print(serializer.validated_data)
+
+    return Response("OK", status=HTTP_200_OK)

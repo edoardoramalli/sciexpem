@@ -14,5 +14,10 @@ urlpatterns = [
     path('API/insertElement', views.insertElement, name="insertElement"),
     path('API/deleteElement', views.deleteElement, name="deleteElement"),
 
+    path('API/getCurveMatching', views.getCurveMatching, name="getExecution"),
+
+
+    path('API/prova', views.prova, name="prova"),
+
 ]
 

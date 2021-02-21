@@ -615,11 +615,9 @@ def download_respecth_file(request, pk):
 @api_view(['GET'])
 def download_experiment_excel(request, pk):
     import sys
-    print("EDO", file=sys.stderr)
 
     df = utils.extract_experiment_table(pk, units_brackets=True, reorder=True)
 
-    print(df, file=sys.stderr)
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, index=False)

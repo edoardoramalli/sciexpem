@@ -187,6 +187,9 @@ def curveMatchingExecution(current_execution):
     for mapping in mappings_list:
         file = mapping.file
 
+        x_transformation = mapping.x_transformation
+        y_transformation = mapping.y_transformation
+
         # Lato Esperimento
         x_exp_name = mapping.x_exp_name
         x_exp_location = mapping.x_exp_location
@@ -229,13 +232,43 @@ def curveMatchingExecution(current_execution):
 
         x_exp_data, x_sim_data = convert(list_a=x_exp_data, unit_a=x_exp_units,
                                          list_b=x_sim_data, unit_b=x_sim_units,
-                                         plotscale='lin')
+                                         plotscale=x_transformation)
 
         # Converto y_axis nella stessa unità di misura e plotscale
 
         y_exp_data, y_sim_data = convert(list_a=y_exp_data, unit_a=y_exp_units,
                                          list_b=y_sim_data, unit_b=y_sim_units,
-                                         plotscale=y_exp_plotscale)
+                                         plotscale=y_transformation)
+
+        # Provo ad invertire la conversione
+
+        if not all(x >= 0 for x in x_exp_data) or not all(x >= 0 for x in x_sim_data) or \
+            not all(x >= 0 for x in y_exp_data) or not all(x >= 0 for x in y_sim_data):
+
+            x_exp_data, x_sim_data = convert(list_a=x_sim_data, unit_a=x_sim_units,
+                                             list_b=x_exp_data, unit_b=x_exp_units,
+                                             plotscale=x_transformation)
+
+            # Converto y_axis nella stessa unità di misura e plotscale
+
+            y_exp_data, y_sim_data = convert(list_a=y_sim_data, unit_a=y_sim_units,
+                                             list_b=y_exp_data, unit_b=y_exp_units,
+                                             plotscale=y_transformation)
+
+        # Se sono negativo non applico la transformazione
+
+        if not all(x >= 0 for x in x_exp_data) or not all(x >= 0 for x in x_sim_data) or \
+            not all(x >= 0 for x in y_exp_data) or not all(x >= 0 for x in y_sim_data):
+            x_exp_data, x_sim_data = convert(list_a=x_exp_data, unit_a=x_exp_units,
+                                             list_b=x_sim_data, unit_b=x_sim_units,
+                                             plotscale='lin')
+
+            # Converto y_axis nella stessa unità di misura e plotscale
+
+            y_exp_data, y_sim_data = convert(list_a=y_exp_data, unit_a=y_exp_units,
+                                             list_b=y_sim_data, unit_b=y_sim_units,
+                                             plotscale='lin')
+
 
         # TODO non controlliamo se c'è incertezza
 

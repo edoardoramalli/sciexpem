@@ -50,11 +50,13 @@ class MappingInterpreter(models.Model):
     x_exp_location = models.CharField(max_length=100)
     x_sim_name = models.CharField(max_length=100)
     x_sim_location = models.CharField(max_length=100)
+    x_transformation = models.CharField(max_length=15, default='lin')
 
     y_exp_name = models.CharField(max_length=100)
     y_exp_location = models.CharField(max_length=100)
     y_sim_name = models.CharField(max_length=100)
     y_sim_location = models.CharField(max_length=100)
+    y_transformation = models.CharField(max_length=15, default='lin')
 
     file = models.CharField(max_length=100)
 
