@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from ExperimentManager.Models import ChemModel
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
 
 
 class ChemModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ChemModel
-        fields = ['id', 'name', 'xml_file_kinetics', 'xml_file_reaction_names', 'version']
+        fields = ('id', 'name', 'xml_file_kinetics', 'xml_file_reaction_names', 'version')
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

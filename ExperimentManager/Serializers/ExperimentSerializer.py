@@ -1,17 +1,14 @@
 from rest_framework import serializers
 from ExperimentManager.Models import Experiment
-from ExperimentManager.Serializers import *
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
+import ExperimentManager.Serializers as Serializers
 
 
 class ExperimentSerializer(serializers.ModelSerializer):
-    # common_properties_fields = []
-    # initial_species_fields = []
-    # file_paper_fields = []
-    common_properties = CommonPropertySerializer(many=True, read_only=True)
-    initial_species = InitialSpecieSerializer(many=True, read_only=True)
-    file_paper = FilePaperSerializer(read_only=True)
-    data_columns = DataColumnSerializer(many=True)
+    common_properties = Serializers.CommonPropertySerializer(many=True, read_only=True)
+    initial_species = Serializers.InitialSpecieSerializer(many=True, read_only=True)
+    file_paper = Serializers.FilePaperSerializer(read_only=True)
+    data_columns = Serializers.DataColumnSerializer(many=True)
 
     class Meta:
         model = Experiment
@@ -23,7 +20,7 @@ class ExperimentSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
 
-        req = ['id', 'common_properties', 'initial_species', 'data_columns', 'common_properties', 'file_paper']
+        req = ['common_properties', 'initial_species', 'data_columns', 'common_properties', 'file_paper']
 
         if fields is None:
             fields = tuple(req)

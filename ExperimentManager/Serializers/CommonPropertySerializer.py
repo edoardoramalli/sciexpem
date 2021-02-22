@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ExperimentManager.Models import CommonProperty
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
 
 
 class CommonPropertySerializer(serializers.ModelSerializer):

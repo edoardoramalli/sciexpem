@@ -1,7 +1,6 @@
 import os
 import traceback
 import ExperimentManager.Models as Model
-import ExperimentManager.models as OldModel
 from . import CurveMatchingPython
 from django.db import transaction
 
@@ -128,21 +127,20 @@ class CurveMatchingExecutor():
 
     def store_results(self, r, exp_id):
         for index, row in r.iterrows():
-            ecs = models.ExecutionColumn.objects.filter(execution__chemModel__name=index, execution__experiment=exp_id)
+            ecs = Model.ExecutionColumn.objects.filter(execution__chemModel__name=index, execution__experiment=exp_id)
 
             for d in ecs:
                 name = d.name.replace(" ", "-") if d.species is None else d.species[0]
                 if name in row:
                     index, error = row[name]['Index'], row[name]['Error']
-                    cm = models.CurveMatchingResult(index=index, error=error, execution_column=d)
+                    cm = Model.CurveMatchingResult(index=index, error=error, execution_column=d)
                     cm.save()
 
 
 def execute_curve_matching_django(execution):
-    from ExperimentManager import models
-    t0 = models.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
+    t0 = Model.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
     try:
-        slope = models.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
+        slope = Model.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
     except IndexError:
         # print("Error Exec PK", execution.pk)
         return
@@ -182,7 +180,7 @@ def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
 
 def curveMatchingExecution(current_execution):
     experiment = current_execution.experiment
-    mappings_list = OldModel.MappingInterpreter.objects.filter(experiment_interpreter__name=experiment.experiment_interpreter)
+    mappings_list = Model.MappingInterpreter.objects.filter(experiment_interpreter__name=experiment.experiment_interpreter)
 
     for mapping in mappings_list:
         file = mapping.file

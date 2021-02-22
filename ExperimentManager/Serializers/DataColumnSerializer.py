@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ExperimentManager.Models import DataColumn
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
 
 
 class DataColumnSerializer(serializers.ModelSerializer):

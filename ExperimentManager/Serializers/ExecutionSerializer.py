@@ -1,21 +1,28 @@
 from rest_framework import serializers
 from ExperimentManager.Models import Execution
-from ExperimentManager.Serializers import Tool
-from ExperimentManager.Serializers import *
+import ExperimentManager.Serializers.Tool as Tool
+import ExperimentManager.Serializers as Serializers
 
 
 class ExecutionSerializer(serializers.ModelSerializer):
-    chemModel = ChemModelSerializer()
-    experiment = ExperimentSerializer()
-    execution_columns = ExecutionColumnSerializer(many=True)
+    chemModel = Serializers.ChemModelSerializer()
+    experiment = Serializers.ExperimentSerializer()
+    execution_columns = Serializers.ExecutionColumnSerializer(many=True)
 
     class Meta:
         model = Execution
-        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username']
+        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username', 'execution_columns']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
+
+        req = ['chemModel', 'experiment', 'execution_columns']
+
+        if fields is None:
+            fields = tuple(req)
+        elif req not in fields:
+            fields = fields + tuple(req)
 
         super(ExecutionSerializer, self).__init__(*args, **kwargs)
 

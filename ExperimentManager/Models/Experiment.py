@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 import ExperimentManager.Models as Model
-import ExperimentManager.models as MM
 from ExperimentManager.exceptions import *
 from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
 from ReSpecTh.FuelValid import ValidFuel
@@ -249,13 +248,13 @@ class Experiment(models.Model):
 
     def run_experiment_interpreter(self):
         # Rispettare le regole
-        types = MM.ExperimentInterpreter.objects.all()
+        types = Model.ExperimentInterpreter.objects.all()
 
         result = None
 
         for t in types:
             test_rule = True
-            for r in MM.RuleInterpreter.objects.filter(experiment_interpreter=t):
+            for r in Model.RuleInterpreter.objects.filter(experiment_interpreter=t):
                 property_name = r.property_name
                 property_value = r.property_value
                 if not getattr(self, property_name) == property_value:
@@ -268,7 +267,7 @@ class Experiment(models.Model):
             test_mapping = True
             # Controllo che esista un mapping
             mapping_set = set([])
-            for m in MM.MappingInterpreter.objects.filter(experiment_interpreter=t):
+            for m in Model.MappingInterpreter.objects.filter(experiment_interpreter=t):
                 x_exp_name = m.x_exp_name
                 x_exp_location = m.x_exp_location
                 mapping_set.add(x_exp_name)

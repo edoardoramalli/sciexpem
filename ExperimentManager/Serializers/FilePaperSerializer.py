@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ExperimentManager.Models import FilePaper
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
 
 
 class FilePaperSerializer(serializers.ModelSerializer):

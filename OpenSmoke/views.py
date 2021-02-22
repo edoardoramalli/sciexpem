@@ -21,7 +21,6 @@ import OpenSmoke
 from .OpenSmoke import OpenSmokeParser, OpenSmokeExecutor
 from SciExpeM.checkPermissionGroup import *
 from ExperimentManager.Models import *
-from ExperimentManager.models import *
 
 # Logging
 import logging

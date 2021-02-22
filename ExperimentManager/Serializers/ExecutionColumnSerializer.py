@@ -1,10 +1,9 @@
 from rest_framework import serializers
 from ExperimentManager.Models import ExecutionColumn
-from ExperimentManager.Serializers import Tool
+import ExperimentManager.Serializers.Tool as Tool
 
 
 class ExecutionColumnSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = ExecutionColumn
         fields = ['id', 'name', 'units', 'species', 'data', 'label', 'file_type']
