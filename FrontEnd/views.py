@@ -9,6 +9,7 @@ from FrontEnd import serializers
 from FrontEnd import utils
 from django.db.models import Avg
 from django.db import transaction
+import json
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -27,12 +28,13 @@ from rest_framework.views import APIView
 import numpy as np
 from collections import defaultdict
 from pathlib import Path
+from rest_framework.status import *
 import os
 from CurveMatching import CurveMatching
 from FrontEnd.serializers import DataColumnSerializer
-
+from SciExpeM.checkPermissionGroup import user_in_group
 from django.contrib.auth.decorators import login_required
-
+from django.db import transaction, DatabaseError, close_old_connections
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 
@@ -859,6 +861,97 @@ class InputUploadView(APIView):
         return JsonResponse({"data": data})
 
 
+
+import ExperimentManager.Serializers as Serializers
+
+
+@api_view(['POST'])
+# @user_in_group("READ")
+def getExperimentList(request):
+    try:
+        params = dict(request.data)
+        try:
+            fields = tuple(params['fields'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getExperimentList: KeyError in HTTP parameters. Missing parameter.")
+
+        queryset = Experiment.objects.all()
+        results = []
+
+        for element in queryset:
+            results.append(Serializers.ExperimentSerializer(element, fields=fields).data)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getExperimentList: Generic error filtering the database. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+# @user_in_group("READ")
+def getPropertyList(request):
+    try:
+        params = dict(request.data)
+        try:
+            name = params['name']
+            exp_id = int(params['experiment'])
+            fields = tuple(params['fields'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getCommonPropertyList: KeyError in HTTP parameters. Missing parameter.")
+
+        model = eval(name)
+
+        queryset = model.objects.filter(experiment__id=exp_id)
+        results = []
+
+        serializer = eval('Serializers.' + name + 'Serializer')
+
+        for element in queryset:
+            results.append(serializer(element, fields=fields).data)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getCommonPropertyList: Generic error filtering the database. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+# @user_in_group("READ")
+def getFilePaper(request):
+    try:
+        params = dict(request.data)
+        try:
+            exp_id = int(params['experiment'])
+            fields = tuple(params['fields'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getCommonPropertyList: KeyError in HTTP parameters. Missing parameter.")
+
+        file_paper = Experiment.objects.get(id=exp_id).file_paper
+
+        results = [Serializers.FilePaperSerializer(file_paper, fields=fields).data]
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getCommonPropertyList: Generic error filtering the database. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
 
 
 

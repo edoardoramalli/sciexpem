@@ -36,4 +36,9 @@ urlpatterns = [
     # NEW
 
 
+    path('api/getExperimentList', views.getExperimentList, name="getExperimentList"),
+    path('api/getPropertyList', views.getPropertyList, name="getPropertyList"),
+    path('api/getFilePaper', views.getFilePaper, name="getFilePaper"),
+
+
 ]

@@ -13,6 +13,7 @@ urlpatterns = [
     path('API/verifyExperiment', views.verifyExperiment, name="verifyExperiment"),
     path('API/insertElement', views.insertElement, name="insertElement"),
     path('API/deleteElement', views.deleteElement, name="deleteElement"),
+    path('API/requestPropertyList', views.requestPropertyList, name="requestPropertyList"),
 
     path('API/getCurveMatching', views.getCurveMatching, name="getExecution"),
 

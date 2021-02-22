@@ -14,7 +14,7 @@ class ExperimentSerializer(serializers.ModelSerializer):
         model = Experiment
         fields = ['id', 'reactor', 'experiment_type', 'fileDOI', 'file_paper', 'ignition_type', 'xml_file',
                   'os_input_file', 'comment', 'fuels', 'status', 'common_properties', 'initial_species', 'data_columns',
-                  'phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'username']
+                  'phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'username', 'experiment_interpreter']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):
@@ -24,8 +24,6 @@ class ExperimentSerializer(serializers.ModelSerializer):
 
         if fields is None:
             fields = tuple(req)
-        elif req not in fields:
-            fields = fields + tuple(req)
 
         super(ExperimentSerializer, self).__init__(*args, **kwargs)
 

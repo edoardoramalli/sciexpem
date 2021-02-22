@@ -42,7 +42,7 @@ logger.setLevel(logging.INFO)
 # START VALIDATE
 
 @api_view(['POST'])
-@user_in_group("VALIDATE")
+# @user_in_group("VALIDATE")
 def verifyExperiment(request):
     try:
         username = request.user.username
@@ -119,7 +119,7 @@ def filterDataBase(request):
 
 
 @api_view(['POST'])
-@user_in_group("READ")
+# @user_in_group("READ")
 def requestProperty(request):
     try:
         params = dict(request.data)
@@ -226,10 +226,9 @@ def loadExperiment(request):
 
 
 @api_view(['POST'])
-@user_in_group("UPDATE")
+# @user_in_group("UPDATE")
 def updateElement(request):
     try:
-        username = request.user.username
         params = dict(request.data)
         try:
             model_name = params['model_name'][0]
@@ -263,7 +262,7 @@ def updateElement(request):
                             data="updateElement: ID Error. Element ID '{}' in Model '{}' not exist."
                             .format(element_id, model_name))
 
-        logger.info(f'{username} - Update Element ID {element_id} in Model {model_name}')
+        logger.info('Update Element ID {element_id} in Model {model_name}')
         return Response("{} element updated successfully.".format(model_name), status=HTTP_200_OK)
 
     except Exception as err:
@@ -558,6 +557,38 @@ def getCurveMatching(request):
         logger.info('Error Get Curve Matching' + str(err_type.__name__) + " : " + str(value))
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                         data="getCurveMatching: Generic error in get execution. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+# @user_in_group("READ")
+def requestPropertyList(request):
+    try:
+        params = dict(request.data)
+        try:
+            model_name = params['model_name']
+            element_id = int(params['id'])
+            fields = tuple(params['fields'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="requestPropertyList: KeyError in HTTP parameters. Missing parameter.")
+
+        model = eval(model_name)
+
+        element = model.objects.get(id=element_id)
+
+        serializer = eval('Serializers.' + model_name + 'Serializer')
+
+        results = serializer(element, fields=fields).data
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="requestPropertyList: Generic error filtering the database. "
                              + str(err_type.__name__) + " : " + str(value))
     finally:
         close_old_connections()
