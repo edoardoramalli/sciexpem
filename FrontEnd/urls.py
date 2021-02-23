@@ -3,7 +3,6 @@ from FrontEnd import newViews
 from django.urls import path
 
 urlpatterns = [
-    path('', views.index),
     path('api/experiments/', views.ExperimentListAPI.as_view(), name="experiment-list-api"),
     path('api/experiments/filter', views.ExperimentFilteredListAPI.as_view(), name="experiment-filtered-list-api"),
     path('api/experiments/search', views.SearchExperiments.as_view(), name="search-experiment"),

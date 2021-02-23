@@ -42,7 +42,7 @@ logger.setLevel(logging.INFO)
 # START VALIDATE
 
 @api_view(['POST'])
-# @user_in_group("VALIDATE")
+@user_in_group("VALIDATE")
 def verifyExperiment(request):
     try:
         username = request.user.username
@@ -119,7 +119,7 @@ def filterDataBase(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def requestProperty(request):
     try:
         params = dict(request.data)
@@ -226,7 +226,7 @@ def loadExperiment(request):
 
 
 @api_view(['POST'])
-# @user_in_group("UPDATE")
+@user_in_group("UPDATE")
 def updateElement(request):
     try:
         params = dict(request.data)
@@ -563,7 +563,7 @@ def getCurveMatching(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def requestPropertyList(request):
     try:
         params = dict(request.data)

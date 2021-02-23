@@ -47,12 +47,6 @@ validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
 
 
-@login_required
-@never_cache
-def index(request):
-    return render(request, 'FrontEnd/index.html')
-
-
 dict_excel_names = {"IDT": "ignition delay", "T": "temperature"}
 
 from pint import UnitRegistry
@@ -866,7 +860,7 @@ import ExperimentManager.Serializers as Serializers
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getExperimentList(request):
     try:
         params = dict(request.data)
@@ -894,7 +888,7 @@ def getExperimentList(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getPropertyList(request):
     try:
         params = dict(request.data)
@@ -928,7 +922,7 @@ def getPropertyList(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getFilePaper(request):
     try:
         params = dict(request.data)

@@ -37,7 +37,7 @@ SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile
 SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 COMPRESS_ENABLED = True
 
 ALLOWED_HOSTS = ['*']
@@ -172,8 +172,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        # 'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
+        # 'rest_framework.permissions.AllowAny',
     ),
 
 }
@@ -184,7 +184,7 @@ REST_FRAMEWORK = {
 # CSRF_COOKIE_SECURE = True
 # os.environ['HTTPS'] = "on"
 
-LOGIN_REDIRECT_URL = '/acc'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Local
