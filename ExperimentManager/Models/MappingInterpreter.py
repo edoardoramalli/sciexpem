@@ -29,15 +29,18 @@ class MappingInterpreter(models.Model):
         x_exp_location = text_dict['x_exp_location']
         x_sim_name = text_dict['x_sim_name']
         x_sim_location = text_dict['x_sim_location']
+        x_transformation = text_dict['x_transformation']
 
         y_exp_name = text_dict['y_exp_name']
         y_exp_location = text_dict['y_exp_location']
         y_sim_name = text_dict['y_sim_name']
         y_sim_location = text_dict['y_sim_location']
+        y_transformation = text_dict['y_transformation']
 
         file = text_dict['file']
 
         return MappingInterpreter(experiment_interpreter=experiment_interpreter, file=file,
+                                  x_transformation=x_transformation, y_transformation=y_transformation,
                                   x_exp_name=x_exp_name, x_exp_location=x_exp_location,
                                   x_sim_name=x_sim_name, x_sim_location=x_sim_location,
                                   y_exp_name=y_exp_name, y_exp_location=y_exp_location,

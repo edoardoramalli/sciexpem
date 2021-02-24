@@ -1,5 +1,6 @@
 from pint import UnitRegistry
 import math
+from ReSpecTh.Tool import applyTransformation
 u_reg = UnitRegistry()
 
 
@@ -20,17 +21,8 @@ def convert(list_a: list, unit_a: str, list_b: list, unit_b: str, plotscale: str
 
     # Applico la transformazione
 
-    if plotscale == 'lin':
-        pass
-    elif plotscale == 'log' or plotscale == 'log10':
-        list_a = [math.log10(x) for x in list_a]
-        list_b = [math.log10(x) for x in list_b]
-    elif plotscale == 'inv':
-        list_a = [1/x for x in list_a]
-        list_b = [1/x for x in list_b]
-    elif plotscale == 'ln':
-        list_a = [math.log(x, math.e) for x in list_a]
-        list_b = [math.log(x, math.e) for x in list_b]
+    list_a = applyTransformation(list_a, plotscale)
+    list_b = applyTransformation(list_b, plotscale)
 
     return list_a, list_b
 

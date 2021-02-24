@@ -37,6 +37,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction, DatabaseError, close_old_connections
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
+from ReSpecTh.Tool import visualizeExperiment
 
 import sys
 
@@ -57,94 +58,7 @@ __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-# def index(request):
-#     return render(request, '../frontend/index.html')
 
-
-
-class ExperimentListAPI(generics.ListAPIView):
-    queryset = Experiment.objects.all()
-    serializer_class = serializers.ExperimentSerializer
-
-
-class ExperimentFilteredListAPI(generics.ListAPIView):
-    serializer_class = serializers.ExperimentSerializer
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned purchases to a given user,
-        by filtering against a `username` query parameter in the URL.
-        """
-        queryset = Experiment.objects.all()
-        experiments = self.request.query_params.getlist('experiments[]', None)
-        if experiments is not None:
-            queryset = queryset.filter(id__in=experiments)
-        return queryset
-
-
-def experiment_search_fields(request):
-    experiments = Experiment.objects.all()
-    reactors_to_types = defaultdict(list)
-    for e in experiments:
-        if e.experiment_type not in reactors_to_types[e.reactor]:
-            reactors_to_types[e.reactor].append(e.experiment_type)
-
-    species = [i for i in InitialSpecie.objects.values_list("name", flat=True).distinct()]
-    response = {"reactors": list(reactors_to_types.keys()), "reactors_to_types": reactors_to_types, "species": species}
-    return JsonResponse(response)
-
-
-class SearchExperiments(generics.ListAPIView):
-    serializer_class = serializers.ExperimentSerializer
-
-    def get_queryset(self):
-        queryset = Experiment.objects.all()
-
-        reactor = self.request.query_params.get('reactor', None)
-        experiment_type = self.request.query_params.get('experiment_type', None)
-        species = self.request.query_params.getlist('species[]', None)
-
-        if reactor is not None:
-            queryset = queryset.filter(reactor=reactor)
-        if experiment_type is not None:
-            queryset = queryset.filter(experiment_type=experiment_type)
-        if species:
-            queryset = queryset.filter(initial_species__name__in=species)
-
-        complex_query = self.request.query_params.get('complex_query', None)
-
-        # complex query handling
-        if complex_query is not None and len(complex_query) > 0:
-            # TODO: validate complex query
-            # TODO: better filtering method (custom manager)
-            p = boolparser.BooleanParser(complex_query.upper())
-            result_list_ids = []
-            for e in queryset:
-                cond = False
-                try:
-                    cond = p.evaluate(e.get_params_experiment())
-                except:
-                    pass
-                if cond:
-                    result_list_ids.append(e.id)
-
-            queryset = queryset.filter(id__in=result_list_ids)
-
-        # filter based on existence of run_type # TODO: improve
-        result_list_ids = [e.id for e in queryset if e.run_type() is not None]
-        queryset = queryset.filter(id__in=result_list_ids)
-
-        return queryset
-
-
-class ChemModelListAPI(generics.ListAPIView):
-    queryset = ChemModel.objects.all()
-    serializer_class = serializers.ChemModelSerializer
-
-
-class ExperimentDetailAPI(generics.RetrieveDestroyAPIView):
-    queryset = Experiment.objects.all()
-    serializer_class = serializers.ExperimentDetailSerializer
 
 
 # both for experiments and experiments + chem_models
@@ -326,257 +240,6 @@ def experiment_curve_API(request, pk):
     return response
 
 
-@api_view(['GET'])
-def curve_matching_results_API(request):
-    exp_id = request.query_params.get('experiment', None)
-    experiment = get_object_or_404(Experiment, pk=exp_id)
-    chem_models = request.query_params.getlist('chemModels[]', None)
-
-    executions = models.Execution.objects.filter(chemModel__id__in=chem_models, experiment=experiment)
-
-    data = []
-    names = []
-    for exe in executions:
-        target_CM_results = models.CurveMatchingResult.objects.filter(execution_column__execution=exe)
-        exe_data = dict()
-        exe_data['model'] = exe.chemModel.name
-
-        average_index = average_error = 0
-        if len(target_CM_results) > 0:
-            averages = target_CM_results.aggregate(Avg('index'), Avg('error'))
-            average_index, average_error = averages['index__avg'], averages['error__avg']
-
-        exe_data['average_index'] = round(average_index, 7)
-        exe_data['average_error'] = round(average_error, 7)
-
-        for t in target_CM_results:
-            execution_column = t.execution_column
-            name = execution_column.name if not execution_column.species else execution_column.species[0]
-            names.append(name)
-            # exe_data[name] = {'index' : float(t.index), 'error' : float(t.error)}
-            exe_data[name + '_index'] = round(t.index, 7) if t.index is not None else None
-            exe_data[name + '_error'] = round(t.error, 7) if t.error is not None else None
-        data.append(exe_data)
-
-    return JsonResponse({'data': data, 'names': list(set(names))})
-
-
-# deprecated
-@api_view(['GET'])
-def curve_matching_global_results_API_OLD(request):
-    exp_ids = request.query_params.getlist('experiments[]', None)
-    chem_models_ids = request.query_params.getlist('chemModels[]', None)
-
-    details = request.query_params.get('details', "1")
-
-    data = []
-    names = []
-
-    chem_models = ChemModel.objects.filter(id__in=chem_models_ids)
-
-    for cm in chem_models:
-        executions = models.Execution.objects.filter(chemModel=cm, experiment__id__in=exp_ids)
-        cmr = models.CurveMatchingResult.objects.filter(execution_column__execution__in=executions)
-
-        ind = defaultdict(list)
-        err = defaultdict(list)
-
-        result = dict()
-        for c in cmr:
-            result["model"] = cm.name
-
-            execution_column = c.execution_column
-            name = execution_column.name if not execution_column.species else execution_column.species[0]
-            ind[name].append(c.index)
-            err[name].append(c.error)
-
-            if details == "1":
-                names.append(name)
-
-        for name, i in ind.items():
-            result[name + '_index'] = round(float(np.mean(i)), 7)
-
-        for name, e in err.items():
-            result[name + '_error'] = round(float(np.mean(e)), 7)
-
-            average_index = average_error = 0
-            if len(cmr) > 0:
-                averages = cmr.aggregate(Avg('index'), Avg('error'))
-                average_index, average_error = averages['index__avg'], averages['error__avg']
-
-            result['average_index'] = round(average_index, 7)
-            result['average_error'] = round(average_error, 7)
-
-        data.append(result)
-
-    return JsonResponse({'data': data, 'names': list(set(names))})
-
-
-@api_view(['GET'])
-def curve_matching_global_results_API(request):
-    exp_ids = request.query_params.getlist('experiments[]', None)
-    chem_models_ids = request.query_params.getlist('chemModels[]', None)
-    details = request.query_params.get('details', "1")
-
-    cmr = []
-    mancanti = []
-
-    for exp, model in zip(exp_ids, chem_models_ids):
-        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model,
-                                                            execution__experiment__pk=exp)
-
-        cmr += current
-
-        if not current.exists():
-            mancanti.append((exp, model))
-
-    # cmr = models.CurveMatchingResult.objects.filter(execution__chemModel__in=chem_models_ids,
-    #                                                 execution__experiment__in=exp_ids)
-    # Se non ci sono i risultati calcolali
-
-    for item in mancanti:
-        exp_id, model_id = item
-        exp = Experiment.objects.filter(pk=exp_id)[0]
-        chemModel = ChemModel.objects.filter(pk=model_id)[0]
-        try:
-            with transaction.atomic():
-                execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
-                if execution.exists():
-                    execution = execution[0]
-                else:
-                    OpenSmoke.OpenSmokeExecutor.execute(experiment=exp, chemModel=chemModel)
-        except Exception as err:
-            pass
-
-        # t0 = models.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
-        # slope = models.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
-        #
-        # curve_matching_executor = curve_matching.CurveMatchingExecutor("path")
-        # curve_matching_executor.execute_CM(execution_column_x=t0, execution_column_y=slope)
-
-        CurveMatching.execute_curve_matching_django(execution)
-
-        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model_id,
-                                                            execution__experiment__pk=exp_id)
-
-        cmr += current
-
-    result = []
-    for i in cmr:
-        if i.index is None or i.error is None:
-            continue
-        modelName = i.execution.chemModel.name
-        experimentDOI = i.execution.experiment.fileDOI
-
-        # execution_column = i.execution_column
-        # name = execution_column.name if not execution_column.species else execution_column.species[0]
-
-        r = dict()
-        r['model'] = modelName
-        r['experiment'] = experimentDOI
-        r['name'] = experimentDOI
-        r['ind'] = float(i.index)
-        r['err'] = float(i.error)
-        result.append(r)
-
-    df = pd.DataFrame.from_dict(result)[['model', 'experiment', 'name', 'ind', 'err']]
-    df = df.groupby(["model", "name"]).mean()
-
-    data = []
-    names = set()
-    for model, new_df in df.groupby(level=0):
-        d = {'model': model}
-        overall = new_df.groupby(['model']).mean()
-        d['average_index'] = round(new_df['ind'].mean(), 7)
-        d['average_error'] = round(new_df['err'].mean(), 7)
-
-        if details == "1":
-            for i, t in new_df.iterrows():
-                d[i[1] + "_index"] = round(t['ind'], 7)
-                d[i[1] + "_error"] = round(t['err'], 7)
-                names.add(i[1])
-        data.append(d)
-
-    result = {"data": data, "names": list(names)}
-    return JsonResponse(result, safe=False)
-
-
-@api_view(['GET'])
-def curve_matching_global_results_dict_API(request):
-    exp_ids = request.query_params.getlist('experiments[]', None)
-    chem_models_ids = request.query_params.getlist('chemModels[]', None)
-
-    cmr = []
-    mancanti = []
-
-    for exp, model in zip(exp_ids, chem_models_ids):
-        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model,
-                                                            execution__experiment__pk=exp)
-
-        cmr += current
-
-        if not current.exists():
-            mancanti.append((exp, model))
-
-    # cmr = models.CurveMatchingResult.objects.filter(execution__chemModel__in=chem_models_ids,
-    #                                                 execution__experiment__in=exp_ids)
-    # Se non ci sono i risultati calcolali
-
-    for item in mancanti:
-        exp_id, model_id = item
-        exp = Experiment.objects.filter(pk=exp_id)[0]
-        chemModel = ChemModel.objects.filter(pk=model_id)[0]
-        try:
-            with transaction.atomic():
-                execution = models.Execution.objects.filter(experiment=exp, chemModel=chemModel)
-                if execution.exists():
-                    execution = execution[0]
-                else:
-                    OpenSmoke.OpenSmokeExecutor.execute(experiment=exp, chemModel=chemModel)
-        except Exception as err:
-            pass
-
-        # t0 = models.ExecutionColumn.objects.filter(execution=execution, label="T0")[0]
-        # slope = models.ExecutionColumn.objects.filter(execution=execution, label="tau_T(slope)")[0]
-        #
-        # curve_matching_executor = curve_matching.CurveMatchingExecutor("path")
-        # curve_matching_executor.execute_CM(execution_column_x=t0, execution_column_y=slope)
-
-        CurveMatching.execute_curve_matching_django(execution)
-
-        current = models.CurveMatchingResult.objects.filter(execution__chemModel__pk=model_id,
-                                                            execution__experiment__pk=exp_id)
-
-        cmr += current
-
-    result = []
-    for i in cmr:
-        if i.index is None or i.error is None:
-            continue
-        modelName = i.execution.chemModel.name
-        experimentDOI = i.execution.experiment.fileDOI
-
-        # execution_column = i.execution_column
-        # name = execution_column.name if not execution_column.species else execution_column.species[0]
-
-        r = dict()
-        r['model'] = modelName
-        r['experiment'] = experimentDOI
-        # r['name'] = name
-        r['name'] = experimentDOI
-        r['ind'] = float(i.index)
-        r['err'] = float(i.error)
-        result.append(r)
-
-    df = pd.DataFrame.from_dict(result)[['model', 'experiment', 'name', 'ind', 'err']]
-    df = df.groupby(["model", "name"]).mean()
-
-    result = []
-    for model, new_df in df.groupby(level=0):
-        d = pd.Series(new_df.ind.values, index=new_df.index.levels[1]).to_dict()
-        result.append({"model": model, "data": d})
-
-    return JsonResponse(result, safe=False)
 
 
 @api_view(['GET'])
@@ -860,7 +523,7 @@ import ExperimentManager.Serializers as Serializers
 
 
 @api_view(['POST'])
-@user_in_group("READ")
+# @user_in_group("READ")
 def getExperimentList(request):
     try:
         params = dict(request.data)
@@ -948,4 +611,31 @@ def getFilePaper(request):
         close_old_connections()
 
 
+@api_view(['POST'])
+# @user_in_group("READ")
+def getPlotExperiment(request):
+    try:
+        params = dict(request.data)
+        try:
+            exp_id = int(params['experiment'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getPlotExperiment: KeyError in HTTP parameters. Missing parameter.")
 
+        experiment = Experiment.objects.get(id=exp_id)
+
+        if experiment.experiment_interpreter is None:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getPlotExperiment: Experiment is not managed.")
+
+        results = visualizeExperiment(experiment)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    # except Exception:
+    #     err_type, value, traceback = sys.exc_info()
+    #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+    #                     data="getPlotExperiment: Generic error ploting experiment. "
+    #                          + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()

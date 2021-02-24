@@ -70,7 +70,6 @@ def home(request):
 @api_view(['GET'])
 @permission_classes([])
 def testAuthentication(request):
-    print(request.user)
     if request.user.is_authenticated:
         return Response(status=HTTP_200_OK)
     else:
