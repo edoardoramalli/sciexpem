@@ -116,4 +116,4 @@ def returnResult(request):
                                file_type=file_type)
         data.save()
 
-    return Response(status=HTTP_200_OK, data="okokokok")
+    return Response(status=HTTP_200_OK)

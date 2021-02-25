@@ -36,6 +36,9 @@ urlpatterns = [
 
     # NEW NEW
     path('API/getPlotExperiment', views.getPlotExperiment, name="getPlotExperiment"),
+    path('API/getExecutionList', views.getExecutionList, name="getExecutionList"),
+    path('API/getPlotExecution', views.getPlotExecution, name="getPlotExecution"),
+    path('API/getAllPlotExecution', views.getAllPlotExecution, name="getAllPlotExecution"),
 
 
 

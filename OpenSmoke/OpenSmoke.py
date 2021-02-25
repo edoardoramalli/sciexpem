@@ -175,13 +175,9 @@ class OpenSmokeExecutor:
                                                      execution=execution)
 
                     curveMatchingExecution(current_execution=execution)
-                    print("luna", file=sys.stderr)
                 else:
                     Model.Execution.objects.get(id=execution_id).delete()
-                    print("EDO", file=sys.stderr)
         except Exception as e:
-            print("ele", exp_id, file=sys.stderr)
-            print(str(e))
             Model.Execution.objects.get(id=execution_id).delete()
 
         finally:

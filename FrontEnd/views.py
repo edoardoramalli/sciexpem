@@ -37,7 +37,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction, DatabaseError, close_old_connections
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
-from ReSpecTh.Tool import visualizeExperiment
+from ReSpecTh.Tool import visualizeExperiment, visualizeExecution, visualizeAllExecution, resultExecutionVisualization
 
 import sys
 
@@ -523,7 +523,7 @@ import ExperimentManager.Serializers as Serializers
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getExperimentList(request):
     try:
         params = dict(request.data)
@@ -612,7 +612,7 @@ def getFilePaper(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getPlotExperiment(request):
     try:
         params = dict(request.data)
@@ -632,10 +632,96 @@ def getPlotExperiment(request):
 
         return Response(json.dumps(results), status=HTTP_200_OK)
 
-    # except Exception:
-    #     err_type, value, traceback = sys.exc_info()
-    #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-    #                     data="getPlotExperiment: Generic error ploting experiment. "
-    #                          + str(err_type.__name__) + " : " + str(value))
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getPlotExperiment: Generic error ploting experiment. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+@user_in_group("READ")
+def getExecutionList(request):
+    try:
+        params = dict(request.data)
+        try:
+            fields = tuple(params['fields'])
+            exp_id = int(params['experiment'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getExecutionList: KeyError in HTTP parameters. Missing parameter.")
+
+        queryset = Execution.objects.filter(experiment__id=exp_id)
+
+        results = []
+
+        for element in queryset:
+            results.append(Serializers.ExecutionSerializer(element, fields=fields).data)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getExecutionList: Generic error querying execution. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+@user_in_group("READ")
+def getPlotExecution(request):
+    try:
+        params = dict(request.data)
+        try:
+            exec_id = int(params['id'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getPlotExperiment: KeyError in HTTP parameters. Missing parameter.")
+
+        execution = Execution.objects.get(id=exec_id)
+
+        consistency = visualizeExecution(execution)
+
+        results = resultExecutionVisualization(consistency)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getPlotExperiment: Generic error ploting experiment. "
+                             + str(err_type.__name__) + " : " + str(value))
+    finally:
+        close_old_connections()
+
+
+@api_view(['POST'])
+@user_in_group("READ")
+def getAllPlotExecution(request):
+    try:
+        params = dict(request.data)
+        try:
+            exe_id = int(params['id'])
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="getAllPlotExecution: KeyError in HTTP parameters. Missing parameter.")
+
+        experiment = Experiment.objects.get(id=exe_id)
+
+        consistency = visualizeAllExecution(experiment)
+
+        results = resultExecutionVisualization(consistency)
+
+        return Response(json.dumps(results), status=HTTP_200_OK)
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="getAllPlotExecution: Generic error ploting experiment. "
+                             + str(err_type.__name__) + " : " + str(value))
     finally:
         close_old_connections()

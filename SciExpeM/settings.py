@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'OpenSmoke.apps.OpensmokeConfig',
     'CurveMatching.apps.CurvematchingConfig',
     'ReSpecTh.apps.RespecthConfig',
+    'dbbackup',
+    'django_cron'
 ]
 
 MIDDLEWARE = [
@@ -121,6 +123,27 @@ DATABASES = {
         'PORT': DATABASE_PORT,
     }
 }
+
+
+# DB BACKUP
+
+# DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+# DBBACKUP_STORAGE_OPTIONS = {'location': '/tmp/'}
+
+DBBACKUP_STORAGE = 'storages.backends.sftpstorage.SFTPStorage'
+DBBACKUP_STORAGE_OPTIONS = {
+    'host': SettingsReader.settings['SSH_HOSTS'],
+    'params': {
+        'username': SettingsReader.settings['SSH_USERNAME'],
+        'password': SettingsReader.settings['SSH_PASSWORD'],
+    },
+    'known_host_file': 'known_hosts',
+    'root_path': SettingsReader.settings['SSH_PATH'],
+}
+
+CRON_CLASSES = [
+    "ExperimentManager.admin.Backup",
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators

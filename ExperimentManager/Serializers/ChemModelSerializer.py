@@ -13,6 +13,13 @@ class ChemModelSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
 
+        req = ['name']
+
+        if fields is None:
+            fields = tuple(req)
+        elif req not in fields:
+            fields = fields + tuple(req)
+
         super(ChemModelSerializer, self).__init__(*args, **kwargs)
 
         Tool.drop_fields(self, fields)

@@ -17,6 +17,8 @@ python manage.py makemigrations FrontEnd
 python manage.py makemigrations OpenSmoke
 python manage.py makemigrations ReSpecTh
 
+python manage.py migrate django_cron
+
 python manage.py migrate
 
 python manage.py createsuperuser

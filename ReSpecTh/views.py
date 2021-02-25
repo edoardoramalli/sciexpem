@@ -79,7 +79,7 @@ def convertList(request):
 
 
 @api_view(['POST'])
-# @user_in_group("READ")
+@user_in_group("READ")
 def getReactors(request):
     username = request.user.username
     params = dict(request.data)
