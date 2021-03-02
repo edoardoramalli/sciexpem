@@ -277,7 +277,7 @@ class Experiment(models.Model):
                     break
                 y_exp_name = m.y_exp_name
                 y_exp_location = m.y_exp_location
-                mapping_set.add(y_exp_name)
+                mapping_set.add(y_exp_name if not y_exp_name.startswith('[') else 'composition')
                 diz_y = {'experiment': self, y_exp_location: y_exp_name}
                 if not Model.DataColumn.objects.filter(**diz_y).exists():
                     test_mapping = False

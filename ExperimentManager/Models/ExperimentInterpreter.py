@@ -1,9 +1,10 @@
 from django.db import models
 import ExperimentManager.Models as Model
 
+
 class ExperimentInterpreter(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    model_type = models.CharField(max_length=100)
+    model_type = models.CharField(max_length=100)  # TODO da rimuovere non serve a nulla. Il modello lo riprendo dai fuel
     solver = models.CharField(max_length=100)
 
     def save(self, *args, **kwargs):

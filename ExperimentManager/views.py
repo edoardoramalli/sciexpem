@@ -5,6 +5,7 @@ from rest_framework.status import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.views import APIView
 
 # Import build-in
 import os
@@ -20,6 +21,7 @@ from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 
 import ExperimentManager.Serializers as Serializers
 from ExperimentManager.Models import *
+from SciExpeM.checkPermissionGroup import HasGroupPermission
 from ExperimentManager import QSerializer
 from ExperimentManager.exceptions import *
 import ExperimentManager
@@ -39,6 +41,63 @@ logger.setLevel(logging.INFO)
 # END LOGGER
 
 
+class ExperimentManagerBaseView(APIView):
+    viewName = 'BaseView'
+    paramsType = {}
+    permission_classes = [HasGroupPermission] if settings.GROUP_ACTIVE else []
+
+    def view_post(self, request):
+        pass
+
+    def view_get(self, request):
+        pass
+
+    # def get(self, request):
+    #     try:
+    #         params = dict(request.query_params)
+    #         try:
+    #             for par in self.paramsType:
+    #                 self.__setattr__(par, self.paramsType[par](params[par][0]))
+    #         except KeyError:
+    #             return Response(status=HTTP_400_BAD_REQUEST,
+    #                             data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+    #
+    #         return self.view_get()
+    #
+    #     except Exception:
+    #         err_type, value, traceback = sys.exc_info()
+    #         logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
+    #         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+    #                         data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+    #     finally:
+    #         close_old_connections()
+
+    def post(self, request):
+        try:
+            params = request.data
+            try:
+                for par in self.paramsType:
+                    self.__setattr__(par, self.paramsType[par](params[par]))
+            except KeyError:
+                return Response(status=HTTP_400_BAD_REQUEST,
+                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+
+            return self.view_post(request=request)
+
+        except Exception:
+            err_type, value, traceback = sys.exc_info()
+            logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
+            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                            data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+        finally:
+            close_old_connections()
+
+
+
+
+
+
+
 # START VALIDATE
 
 @api_view(['POST'])
@@ -49,7 +108,7 @@ def verifyExperiment(request):
         params = dict(request.data)
         try:
             status = params['status'][0]
-            exp_id = params['id'][0]
+            exp_id = params['experiment_id'][0]
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="verifyExperiment: KeyError in HTTP parameters. Missing parameter.")
@@ -78,10 +137,11 @@ def verifyExperiment(request):
 @user_in_group("READ")
 def filterDataBase(request):
     try:
-        params = dict(request.data)
+        params = json.loads(request.data)
+
         try:
-            model_name = params['model_name'][0]
-            query_str = params['query'][0]
+            model_name = params['model_name']
+            query_str = params['query']
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="filterDataBase: KeyError in HTTP parameters. Missing parameter.")
@@ -119,13 +179,13 @@ def filterDataBase(request):
 
 
 @api_view(['POST'])
-@user_in_group("READ")
+# @user_in_group("READ")
 def requestProperty(request):
     try:
         params = dict(request.data)
         try:
             model_name = params['model_name'][0]
-            element_id = int(params['id'][0])
+            element_id = int(params['element_id'][0])
             property_name = params['property'][0]
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
@@ -189,13 +249,13 @@ def loadExperiment(request):
         username = request.user.username
         params = dict(request.data)
         try:
-            format_name = params['format_file'][0]
+            format_file = params['format_file'][0]
             file_text = params['file_text'][0]
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="loadExperiment: KeyError in HTTP parameters. Missing parameter.")
 
-        if format_name == 'XML_ReSpecTh':
+        if format_file == 'XML_ReSpecTh':
             try:
                 respecth_text_to_experiment(username, file_text)
             except DuplicateExperimentError:
@@ -233,7 +293,7 @@ def updateElement(request):
         try:
             model_name = params['model_name'][0]
             property_dict = json.loads(params['property'][0])
-            element_id = int(params['id'][0])
+            element_id = int(params['element_id'][0])
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="updateElement: KeyError in HTTP parameters. Missing parameter.")
@@ -303,23 +363,27 @@ def insertElement(request):
         try:
             with transaction.atomic():
                 list_objects = getattr(model, 'create' + model_name)(property_dict)
+                exp = None
                 for obj in list_objects:
                     if isinstance(obj, Experiment):
-                        if obj:
-                            txt = TranslatorOptimaPP.create_OptimaPP_txt(obj,
-                                                                         obj.data_columns.all(),
-                                                                         obj.initial_species.all(),
-                                                                         obj.common_properties.all(),
-                                                                         obj.file_paper)
-                            xml, error = OptimaPP.txt_to_xml(txt)
-                            if error:
-                                raise OptimaPPError(error)
-                            else:
-                                obj.xml_file = xml
-                                obj.username = username
-                                obj.save()
+                        obj.username = username
+                        obj.save()
+                        exp = obj
                     else:
                         obj.save()
+                if exp is not None:
+                    txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment=exp,
+                                                                 data_groups=exp.data_columns.all(),
+                                                                 initial_species=exp.initial_species.all(),
+                                                                 common_properties=exp.common_properties.all(),
+                                                                 file_paper=exp.file_paper)
+                    xml, error = OptimaPP.txt_to_xml(txt)
+                    if error:
+                        raise OptimaPPError(error)
+                    else:
+                        exp.xml_file = xml
+                        exp.save()
+
         except DatabaseError as e:
             return Response("insertElement: " + str(e.__cause__), status=HTTP_400_BAD_REQUEST)
         except ConstraintFieldExperimentError as e:
@@ -331,12 +395,12 @@ def insertElement(request):
         logger.info(f'{username} - Insert %s Object', model_name)
         return Response("{} element inserted successfully.".format(model_name), status=HTTP_200_OK)
 
-    except Exception as err:
-        err_type, value, traceback = sys.exc_info()
-        logger.info('Error Insert Element' + str(err_type.__name__) + " : " + str(value))
-        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                        data="insertElement: Generic error in experiment verification. "
-                             + str(err_type.__name__) + " : " + str(value))
+    # except Exception as err:
+    #     err_type, value, traceback = sys.exc_info()
+    #     logger.info('Error Insert Element' + str(err_type.__name__) + " : " + str(value))
+    #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+    #                     data="insertElement: Generic error in insert experiment. "
+    #                          + str(err_type.__name__) + " : " + str(value))
     finally:
         close_old_connections()
 
@@ -536,7 +600,7 @@ def getCurveMatching(request):
         params = dict(request.data)
 
         try:
-            experiment_id = params['experiment'][0]
+            experiment_id = params['exp_id'][0]
         except KeyError:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="getCurveMatching: KeyError in HTTP parameters. Missing parameter.")

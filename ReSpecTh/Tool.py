@@ -71,9 +71,18 @@ def visualizeExperiment(experiment) -> dict:
         info[y_dataColumn.name]['yaxis'] = {
             'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name}
 
+        if y_dataColumn.name == 'composition':
+            name = y_dataColumn.label
+        elif y_dataColumn.name:
+            name = y_dataColumn.name
+        elif not y_dataColumn.name and y_dataColumn.label:
+            name = y_dataColumn.name
+        else:
+            name = 'No Name'
+
         result[y_dataColumn.name].append({'x': x, 'y': y,
                                           'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                                          'name': y_dataColumn.name if y_dataColumn.name else y_dataColumn.label})
+                                          'name': name})
 
         # TODO devono avere stessa unita
 

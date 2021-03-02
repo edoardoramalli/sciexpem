@@ -37,7 +37,7 @@ SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile
 SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 COMPRESS_ENABLED = True
 
 ALLOWED_HOSTS = ['*']
@@ -200,6 +200,8 @@ REST_FRAMEWORK = {
     ),
 
 }
+
+GROUP_ACTIVE = False
 
 # Security
 
