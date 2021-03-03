@@ -21,3 +21,8 @@ class MissingRequirementsVerificationExperimentError(Exception):
 class OptimaPPError(Exception):
     def __init__(self, message):
         super().__init__("OptimaPP Error. " + message)
+
+
+class MandatoryFieldError(Exception):
+    def __init__(self, message):
+        super().__init__("Mandatory Field Error. Missing '{}'".format(message))

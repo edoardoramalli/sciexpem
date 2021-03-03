@@ -55,7 +55,7 @@ class DataColumn(models.Model):
                           plotscale=plotscale, ignore=ignore, nominal=nominal, experiment=experiment)
 
     def __str__(self):
-        return "%s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data)
+        return "%s %s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data, self.dg_id)
 
     def check_fields(self):
         name = self.name

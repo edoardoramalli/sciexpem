@@ -15,13 +15,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.status import *
 from django.views.decorators.cache import never_cache
 from django.shortcuts import render
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import authentication_classes, permission_classes
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view
+from rest_framework.permissions import AllowAny
 
 
 import sys
@@ -50,15 +56,46 @@ class CustomAuthToken(ObtainAuthToken):
         })
 
 @login_required
-# @never_cache
-def index(request):
+def UI(request):
     return render(request, 'FrontEnd/index.html')
 
 
+# @never_cache
+@authentication_classes([])
+@permission_classes([])
+def home(request):
+    return render(request, 'FrontEnd/home.html')
+
+
+@api_view(['GET'])
+@permission_classes([])
+def testAuthentication(request):
+    if request.user.is_authenticated:
+        return Response(status=HTTP_200_OK)
+    else:
+        return Response(status=HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def loginUser(request):
+    params = request.data
+    username = params['username']
+    password = params['password']
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return Response('Username or Password are wrong', status=HTTP_200_OK)
+    else:
+        return Response('Username or Password are wrong', status=HTTP_403_FORBIDDEN)
 
 
 urlpatterns = [
-    path('', index),
+    path('', home, name='home'),
+    path('UI', UI, name='UI'),
+    path('testAuthentication', testAuthentication),
+    path('login', loginUser),
     path('admin/', admin.site.urls),
     path('frontend/', include('FrontEnd.urls')),
     path('ExperimentManager/', include('ExperimentManager.urls')),

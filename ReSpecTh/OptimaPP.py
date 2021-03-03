@@ -108,8 +108,8 @@ class TranslatorOptimaPP:
         txt = "Varied experimental conditions and measured results:\n"
         txt += TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id) + "\n"
         ids = set([])
-        for data in data_group:
-            id_x = "x" + str(data.id)
+        for index, data in enumerate(data_group):
+            id_x = "x" + str(index)
             ids.add(id_x)
             txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                     Label=data.label,

@@ -1,0 +1,1 @@
+. /home/eramalli/.bashrc &&  /home/eramalli/.conda/envs/django/bin/python /home/eramalli/sciexpem/manage.py runcrons --silent

@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 import ExperimentManager.Models as Model
-import ExperimentManager.models as MM
 from ExperimentManager.exceptions import *
 from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
 from ReSpecTh.FuelValid import ValidFuel
@@ -15,75 +14,6 @@ validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
-
-
-class EType(Enum):
-    batch_idt = "batch_idt"
-    stirred_parT = "stirred_parT"
-    flow_isothermal_parT = "flow_isothermal_parT"
-    flame_parPhi = "flame_parPhi"
-    rcm_idt = "rcm_idt"
-
-    @staticmethod
-    def _check_existence(common_names, columns_names, mandatory_common, mandatory_columns):
-        return all([i in common_names for i in mandatory_common]) and all(
-            [i in columns_names for i in mandatory_columns])
-
-    @staticmethod
-    def _check_not_existence(common_names, columns_names, forbidden_common, forbidden_columns):
-        return all([i not in common_names for i in forbidden_common]) and all(
-            [i not in columns_names for i in forbidden_columns])
-
-    @staticmethod
-    def retrieve_type(e):
-        common_properties = e.common_properties.all()
-        common_properties_names = set([c.name for c in common_properties])
-
-        data_columns = e.data_columns.all()
-        data_columns_names = set([d.name for d in data_columns])
-
-        if e.reactor == "flow reactor":
-
-            mandatory_common = ['residence time', 'pressure']
-            mandatory_columns = ['temperature', 'composition']
-            forbidden_columns = ['dT']
-            o1 = EType._check_existence(common_properties_names, data_columns_names, mandatory_common,
-                                        mandatory_columns)
-            o2 = EType._check_not_existence(common_properties_names, data_columns_names, [], forbidden_columns)
-            if o1 and o2:
-                return EType.flow_isothermal_parT
-
-        if e.reactor == "stirred reactor":
-
-            mandatory_common = ['pressure', 'volume', 'residence time']
-            mandatory_columns = ['temperature', 'composition']
-            o = EType._check_existence(common_properties_names, data_columns_names, mandatory_common, mandatory_columns)
-            if o:
-                return EType.stirred_parT
-
-        if e.reactor == "shock tube":
-
-            mandatory_common = ['pressure']
-            mandatory_columns = ['ignition delay', 'temperature', 'volume', 'time']
-            o = EType._check_existence(common_properties_names, data_columns_names, mandatory_common, mandatory_columns)
-            if o:
-                # return EType.rcm_idt
-                return None
-
-            mandatory_common = ['pressure']
-            mandatory_columns = ['ignition delay', 'temperature']
-            o = EType._check_existence(common_properties_names, data_columns_names, mandatory_common, mandatory_columns)
-            if o:
-                return EType.batch_idt
-
-        if e.reactor == "flame":
-            mandatory_common = ['temperature', 'pressure']
-            mandatory_columns = ['laminar burning velocity', 'phi']
-            o = EType._check_existence(common_properties_names, data_columns_names, mandatory_common, mandatory_columns)
-            if o:
-                return EType.flame_parPhi
-
-        return None
 
 
 class Experiment(models.Model):
@@ -189,9 +119,12 @@ class Experiment(models.Model):
         ignition_type = text_dict.get('ignition_type')
 
         # Model Mandatory
-        fileDOI = text_dict['fileDOI']
-        reactor = text_dict['reactor']
-        experiment_type = text_dict['experiment_type']
+        try:
+            fileDOI = text_dict['fileDOI']
+            reactor = text_dict['reactor']
+            experiment_type = text_dict['experiment_type']
+        except KeyError as error:
+            raise MandatoryFieldError(error)
 
         exp = Experiment(experiment_type=experiment_type, reactor=reactor, fileDOI=fileDOI, os_input_file=os_input_file,
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
@@ -249,13 +182,13 @@ class Experiment(models.Model):
 
     def run_experiment_interpreter(self):
         # Rispettare le regole
-        types = MM.ExperimentInterpreter.objects.all()
+        types = Model.ExperimentInterpreter.objects.all()
 
         result = None
 
         for t in types:
             test_rule = True
-            for r in MM.RuleInterpreter.objects.filter(experiment_interpreter=t):
+            for r in Model.RuleInterpreter.objects.filter(experiment_interpreter=t):
                 property_name = r.property_name
                 property_value = r.property_value
                 if not getattr(self, property_name) == property_value:
@@ -268,7 +201,7 @@ class Experiment(models.Model):
             test_mapping = True
             # Controllo che esista un mapping
             mapping_set = set([])
-            for m in MM.MappingInterpreter.objects.filter(experiment_interpreter=t):
+            for m in Model.MappingInterpreter.objects.filter(experiment_interpreter=t):
                 x_exp_name = m.x_exp_name
                 x_exp_location = m.x_exp_location
                 mapping_set.add(x_exp_name)
@@ -278,7 +211,7 @@ class Experiment(models.Model):
                     break
                 y_exp_name = m.y_exp_name
                 y_exp_location = m.y_exp_location
-                mapping_set.add(y_exp_name)
+                mapping_set.add(y_exp_name if not y_exp_name.startswith('[') else 'composition')
                 diz_y = {'experiment': self, y_exp_location: y_exp_name}
                 if not Model.DataColumn.objects.filter(**diz_y).exists():
                     test_mapping = False

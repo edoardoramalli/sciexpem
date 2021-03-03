@@ -21,7 +21,6 @@ import OpenSmoke
 from .OpenSmoke import OpenSmokeParser, OpenSmokeExecutor
 from SciExpeM.checkPermissionGroup import *
 from ExperimentManager.Models import *
-from ExperimentManager.models import *
 
 # Logging
 import logging
@@ -117,4 +116,4 @@ def returnResult(request):
                                file_type=file_type)
         data.save()
 
-    return Response(status=HTTP_200_OK, data="okokokok")
+    return Response(status=HTTP_200_OK)

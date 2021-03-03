@@ -1,6 +1,5 @@
 from django.db import models
-
-import ExperimentManager.Models.Tool as Tool
+from ExperimentManager.exceptions import *
 
 
 class ChemModel(models.Model):  # TODO Fuel list
@@ -18,11 +17,15 @@ class ChemModel(models.Model):  # TODO Fuel list
     @staticmethod
     def createChemModel(text_dict):
         # Mandatory
-        name = text_dict['name']
-        xml_file_kinetics = text_dict['xml_file_kinetics']
-        xml_file_reaction_names = text_dict['xml_file_reaction_names']
+        try:
+            name = text_dict['name']
+            xml_file_kinetics = text_dict['xml_file_kinetics']
+            xml_file_reaction_names = text_dict['xml_file_reaction_names']
+        except KeyError as error:
+            raise MandatoryFieldError(error)
+
         # Optional
-        version = text_dict['version']
+        version = text_dict.get('version')
 
         model = ChemModel(name=name, version=version,
                           xml_file_kinetics=xml_file_kinetics, xml_file_reaction_names=xml_file_reaction_names)

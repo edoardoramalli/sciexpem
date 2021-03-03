@@ -1,7 +1,9 @@
 from django.apps import AppConfig
 import logging
-from SciExpeM import settings
 import os
+
+from django.conf import settings
+
 
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 logger_handler = logging.FileHandler(filename=os.path.join(settings.BASE_DIR, 'Files', 'ExperimentManager.log'),
@@ -15,7 +17,3 @@ class ExperimentManagerConfig(AppConfig):
 
     def ready(self):
         pass
-
-
-
-
