@@ -1,7 +1,5 @@
-from django.contrib import admin
 from django_cron import CronJobBase, Schedule
 from django.core import management
-# Register your models here.
 
 
 class Backup(CronJobBase):

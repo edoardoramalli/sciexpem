@@ -35,7 +35,11 @@ class insertElement(View.ExperimentManagerBaseView):
                             data=self.viewName + ": NameError. Model '{}' not exist.".format(self.model_name))
         try:
             with transaction.atomic():
-                list_objects = getattr(model, 'create' + self.model_name)(self.property_dict)
+                try:
+                    list_objects = getattr(model, 'create' + self.model_name)(self.property_dict)
+                except MandatoryFieldError as e:
+                    return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
+
                 exp = None
                 for obj in list_objects:
                     if isinstance(obj, Experiment):

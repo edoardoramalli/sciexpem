@@ -1,5 +1,5 @@
 from .FilePaper import FilePaper
-from .Experiment import Experiment, EType
+from .Experiment import Experiment
 from .DataColumn import DataColumn
 from .CommonProperty import CommonProperty
 from .InitialSpecie import InitialSpecie

@@ -1,6 +1,5 @@
 from django.apps import AppConfig
 import logging
-from SciExpeM import settings
 import os
 
 from django.conf import settings

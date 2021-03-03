@@ -11,6 +11,13 @@ from django.core.exceptions import FieldError
 
 
 class filterDataBase(View.ExperimentManagerBaseView):
+    """
+    Scope  -> API to query all the models in the database. Used by BE.
+    Param  -> model_name = a string with the name of the model to interrogate
+    Param  -> query = a serialize django object Q
+    Method -> POST
+    Access -> READ Group
+    """
     viewName = 'filterDataBase'
     paramsType = {'model_name': str, 'query': str}
     required_groups = {'POST': ['READ']}
