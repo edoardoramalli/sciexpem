@@ -117,7 +117,7 @@ class OpenSmokeExecutor:
             data.save()
 
     @staticmethod
-    def execute(exp_id, chemModel_id, execution_id, solver):
+    def execute(exp_id, chemModel_id, execution_id, solver, files):
         try:
 
             # IDs already checked by caller function
@@ -159,23 +159,19 @@ class OpenSmokeExecutor:
                 process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
                 output, error = process.communicate()
 
-                # print(output, file=sys.stderr)
-
                 if not error:
 
                     execution = Model.Execution.objects.get(id=execution_id)
                     execution.execution_end = timezone.localtime()
                     execution.save()
 
-                    # TODO I NOMI DEI FILE SONO HARCODATI. LI DOVREI PRENDERE O DAL MAPPING O BOH
-                    # TODO FORSE DATO IL TIPO DI EXP SO QUALI FILE GENERA!
-                    OpenSmokeExecutor.read_output_OS(folder=sandbox, file_name='ParametricAnalysisIDT',
-                                                     execution=execution)
-                    OpenSmokeExecutor.read_output_OS(folder=sandbox, file_name='ParametricAnalysis',
-                                                     execution=execution)
+
+                    for file in files:
+                        OpenSmokeExecutor.read_output_OS(folder=sandbox, file_name=file, execution=execution)
 
                     curveMatchingExecution(current_execution=execution)
                 else:
+                    print("HEEEEEERE")
                     Model.Execution.objects.get(id=execution_id).delete()
         except Exception as e:
             Model.Execution.objects.get(id=execution_id).delete()

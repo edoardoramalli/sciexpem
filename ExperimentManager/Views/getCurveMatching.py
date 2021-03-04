@@ -16,10 +16,10 @@ class getCurveMatching(View.ExperimentManagerBaseView):
         # All the CM of an experiment
         cm_results = CurveMatchingResult.objects.filter(execution_column__execution__experiment__id=self.exp_id)
 
-        model_list = {}
+        model_list = []
 
         for result in cm_results:
             model_name = result.execution_column.execution.chemModel.name
-            model_list[model_name] = {'score': result.score, 'error': result.error}
+            model_list.append({'name': model_name, 'score': result.score, 'error': result.error})
 
         return Response(model_list, status=HTTP_200_OK)

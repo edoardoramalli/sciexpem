@@ -34,10 +34,10 @@ logger.setLevel(logging.INFO)
 @user_in_group("EXECUTE")
 def startSimulation(request):
     username = request.user.username
-    params = dict(request.data)
+    params = request.data
     try:
-        model_id = int(params['chemModel'][0])
-        experiment_id = int(params['experiment'][0])
+        model_id = int(params['chemModel'])
+        experiment_id = int(params['experiment'])
     except KeyError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="updateElement: KeyError in HTTP parameters. Missing parameter.")
@@ -51,7 +51,6 @@ def startSimulation(request):
 
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: ChemModel not exist.")
-
 
     try:
         with transaction.atomic():
@@ -73,8 +72,11 @@ def startSimulation(request):
 
                 solver = ExperimentInterpreter.objects.get(name=exp.experiment_interpreter).solver
 
+                mapping_files = list(set([mapping.file for mapping in MappingInterpreter.objects.filter(
+                    experiment_interpreter__name=exp.experiment_interpreter)]))
+
                 Thread(target=OpenSmokeExecutor.execute,
-                       args=(experiment_id, model_id, new_exec.id, solver)).start()
+                       args=(experiment_id, model_id, new_exec.id, solver, mapping_files)).start()
 
         return Response('startSimulation: Simulation started.', status=HTTP_200_OK)
 
@@ -88,7 +90,6 @@ def startSimulation(request):
     finally:
         db.close_old_connections()
         logger.info(f'{username} - Simulation Start')
-
 
 
 @api_view(['POST'])

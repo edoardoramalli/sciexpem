@@ -32,21 +32,19 @@ logger.setLevel(logging.INFO)
 def executeOptimaPP(request):
     user = request.user.username
 
-    logger.info(f'{user} - Receive Execution OptimaPP Request')
 
-    response = {'result': None, 'error': ''}
+    params = request.data
 
-    query_execution = json.loads(request.data['query'])
-
-    file = query_execution['file']
+    file = params['file']
 
     result, error = OptimaPP.txt_to_xml(file)
-    response['result'] = result
-    response['error'] = error
 
-    reply = JsonResponse(response)
 
-    return reply
+    print(error)
+
+
+
+    return Response(result, HTTP_200_OK)
 
 
 @api_view(['POST'])

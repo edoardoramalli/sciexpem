@@ -3,16 +3,15 @@ import ExperimentManager.Models as Models
 import ReSpecTh.units as Unit
 
 
-def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[
-    float]:  # TODO  cosa succede se x è 0?
+def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:  # TODO  cosa succede se x è 0?
     if plotscale == 'lin':
         list_a = [float(x) for x in my_list]
     elif plotscale == 'log' or plotscale == 'log10':
-        list_a = [math.log10(float(x)) for x in my_list]
+        list_a = [math.log10(float(x)) if float(x) != 0 else 0 for x in my_list]
     elif plotscale == 'inv':
-        list_a = [1000 / float(x) for x in my_list]
+        list_a = [1000 / float(x) if float(x) != 0 else 0 for x in my_list]
     elif plotscale == 'ln':
-        list_a = [math.log(float(x), math.e) for x in my_list]
+        list_a = [math.log(float(x), math.e) if float(x) != 0 else 0 for x in my_list]
     else:
         list_a = []
 

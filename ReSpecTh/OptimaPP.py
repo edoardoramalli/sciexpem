@@ -113,6 +113,7 @@ class TranslatorOptimaPP:
             ids.add(id_x)
             txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                     Label=data.label,
+                                                    Species=data.species[0] if data.species else None,
                                                     Unit=data.units,
                                                     ID=id_x,
                                                     Source_type="reported")
@@ -130,12 +131,12 @@ class TranslatorOptimaPP:
         return txt
 
     @staticmethod
-    def create_volume_time_profile(data_group):
+    def create_volume_time_profile(data_group, offset_dg2):
         txt = "Volume-time profile:\n"
         txt += TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id) + "\n"
         ids = set([])
-        for data in data_group:
-            id_x = "x" + str(data.id)
+        for index, data in enumerate(data_group):
+            id_x = "x" + str(offset_dg2 + index)
             ids.add(id_x)
             txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                     Label=data.label,
@@ -176,9 +177,10 @@ class TranslatorOptimaPP:
                 dg1.append(column)
             elif column.dg_id == "dg2":
                 dg2.append(column)
+        offset_dg2 = len(dg1)
         txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(dg1)
         if dg2:
-            txt += TranslatorOptimaPP.create_volume_time_profile(dg2)
+            txt += TranslatorOptimaPP.create_volume_time_profile(dg2, offset_dg2)
         if experiment.experiment_type == "ignition delay measurement":
             txt += TranslatorOptimaPP.create_ignition_definition(experiment)
         return txt
