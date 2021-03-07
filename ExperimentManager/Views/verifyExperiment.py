@@ -6,6 +6,7 @@ from ExperimentManager.exceptions import *
 # Django import
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from django.db import transaction
 
 
 class verifyExperiment(View.ExperimentManagerBaseView):
@@ -15,9 +16,10 @@ class verifyExperiment(View.ExperimentManagerBaseView):
 
     def view_post(self, request):
         try:
-            exp = Experiment.objects.get(pk=self.exp_id)
-            exp.status = self.status
-            exp.save()
+            with transaction.atomic():
+                exp = Experiment.objects.get(pk=self.exp_id)
+                exp.status = self.status
+                exp.save()
         except ConstraintFieldExperimentError as e:
             return Response(status=HTTP_400_BAD_REQUEST, data="verifyExperiment: " + str(e))
 

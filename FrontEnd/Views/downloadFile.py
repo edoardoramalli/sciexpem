@@ -3,6 +3,7 @@ import FrontEnd.views as View
 import ExperimentManager.Models as Models
 from django.shortcuts import get_object_or_404
 from FrontEnd import utils
+from FrontEnd.Views.getExecutionColumn import supportGetExecutionColumn
 
 # Django import
 from rest_framework.response import Response
@@ -21,7 +22,7 @@ class downloadFile(View.FrontEndBaseView):
     paramsType = {'element_id': int, 'file': str, 'model_name': str}
     required_groups = {'GET': ['READ']}
 
-    def view_get(self):
+    def view_get(self, request):
 
         response_file = None
 
@@ -57,7 +58,20 @@ class downloadFile(View.FrontEndBaseView):
                 zf.close()
                 response_file = s.getvalue()
 
+            else:
+                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                         status=HTTP_400_BAD_REQUEST)
+        elif self.model_name == 'Execution':
+            if self.file == 'rawData':
 
+                execution = Models.Execution.objects.get(id=self.element_id)
+
+                if not execution.execution_end:
+                    return Response('getExecutionColumn. Execution is not ended yet.', status=HTTP_400_BAD_REQUEST)
+
+                df = supportGetExecutionColumn(execution)
+
+                response_file = df.to_csv(index=False)
             else:
                 Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
                          status=HTTP_400_BAD_REQUEST)

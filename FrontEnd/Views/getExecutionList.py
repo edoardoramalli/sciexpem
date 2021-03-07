@@ -13,11 +13,11 @@ import json
 
 class getExecutionList(View.FrontEndBaseView):
     viewName = 'getExecutionList'
-    paramsType = {'fields': tuple, 'exp_id': int}
+    paramsType = {'fields': tuple, 'experiment_id': int}
     required_groups = {'POST': ['READ']}
 
     def view_post(self):
-        queryset = Models.Execution.objects.filter(experiment__id=self.exp_id)
+        queryset = Models.Execution.objects.filter(experiment__id=self.experiment_id)
         results = []
         for element in queryset:
             results.append(Serializers.ExecutionSerializer(element, fields=self.fields).data)

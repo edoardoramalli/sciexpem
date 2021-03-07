@@ -34,6 +34,9 @@ class deleteElement(View.ExperimentManagerBaseView):
         if self.model_name == 'Experiment' and model.objects.get(pk=self.element_id).status == 'verified':
             if not (request.user.is_superuser or request.user.groups.filter(name="DELETE").exists()):
                 return Response(self.viewName + ": User does not have permission.", status=HTTP_403_FORBIDDEN)
+        elif self.model_name == 'Execution' and model.objects.get(pk=self.element_id).execution_end:
+            if not (request.user.is_superuser or request.user.groups.filter(name="DELETE").exists()):
+                return Response(self.viewName + ": User does not have permission.", status=HTTP_403_FORBIDDEN)
         elif self.model_name != 'Experiment':
             if not (request.user.is_superuser or request.user.groups.filter(name="DELETE").exists()):
                 return Response(self.viewName + ": User does not have permission.", status=HTTP_403_FORBIDDEN)

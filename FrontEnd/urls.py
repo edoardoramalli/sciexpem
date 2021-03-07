@@ -19,6 +19,8 @@ urlpatterns = [
 
 
     # NEW NEW
+    path('API/getExecutionColumn', Views.getExecutionColumn.as_view(), name="getExecutionColumn"),
+    path('API/addExecution', Views.addExecution.as_view(), name="addExecution"),
     path('API/getFile', Views.downloadFile.as_view(), name="downloadFile"),
     path('API/getExperimentList', Views.getExperimentList.as_view(), name="getExperimentList"),
     path('API/getPropertyList', Views.getPropertyList.as_view(), name="getPropertyList"),

@@ -171,7 +171,7 @@ class FrontEndBaseView(APIView):
     def view_post(self):
         pass
 
-    def view_get(self):
+    def view_get(self, request):
         pass
 
     def get(self, request):
@@ -184,7 +184,7 @@ class FrontEndBaseView(APIView):
                 return Response(status=HTTP_400_BAD_REQUEST,
                                 data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
 
-            return self.view_get()
+            return self.view_get(request)
 
         except Exception:
             err_type, value, traceback = sys.exc_info()

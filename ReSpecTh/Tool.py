@@ -1,6 +1,7 @@
 import math
 import ExperimentManager.Models as Models
 import ReSpecTh.units as Unit
+from FrontEnd.exceptions import ExecutionColumnError
 
 
 def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:  # TODO  cosa succede se x è 0?
@@ -182,7 +183,12 @@ def pairExecutionExperiment(execution, mapping, consistency):
                           'file_type': file,
                           x_sim_location: x_sim_name}
 
-    x_execution_column = Models.ExecutionColumn.objects.get(**execution_filter_x)
+    x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
+
+    if not x_execution_column.exists():
+        raise ExecutionColumnError
+    else:
+        x_execution_column = x_execution_column[0]
 
     x_sim = applyTransformation(Unit.convert_list(my_list=list(x_execution_column.data),
                                                   unit=x_execution_column.units,
@@ -196,7 +202,12 @@ def pairExecutionExperiment(execution, mapping, consistency):
                           'file_type': file,
                           y_sim_location: y_sim_name}
 
-    y_execution_column = Models.ExecutionColumn.objects.get(**execution_filter_y)
+    y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
+
+    if not y_execution_column.exists():
+        raise ExecutionColumnError
+    else:
+        y_execution_column = y_execution_column[0]
 
     y_sim = applyTransformation(Unit.convert_list(my_list=list(y_execution_column.data),
                                                   unit=y_execution_column.units,

@@ -6,6 +6,7 @@ from ExperimentManager.Models import *
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 
 import json
 
@@ -27,15 +28,16 @@ class updateElement(View.ExperimentManagerBaseView):
                             data="updateElement: NameError. Model '{}' not exist.".format(self.model_name))
 
         try:
-            element = model.objects.get(pk=self.element_id)
-            for prop in self.property_dict:
-                if prop in element.__dict__:
-                    setattr(element, prop, self.property_dict[prop])
-                else:
-                    return Response(status=HTTP_400_BAD_REQUEST,
-                                    data="updateElement: Attribute '{}' not exist in model '{}'".format(prop,
-                                                                                                        self.model_name))
-            element.save()
+            with transaction.atomic():
+                element = model.objects.get(pk=self.element_id)
+                for prop in self.property_dict:
+                    if prop in element.__dict__:
+                        setattr(element, prop, self.property_dict[prop])
+                    else:
+                        return Response(status=HTTP_400_BAD_REQUEST,
+                                        data="updateElement: Attribute '{}' not exist in model '{}'".format(prop,
+                                                                                                            self.model_name))
+                element.save()
         except ObjectDoesNotExist:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="updateElement: ID Error. Element ID '{}' in Model '{}' not exist."

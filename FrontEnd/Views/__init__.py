@@ -8,3 +8,5 @@ from .getPropertyList import getPropertyList
 from .getExperimentList import getExperimentList
 from .downloadFile import downloadFile
 from .getHeatMapExecution import getHeatMapExecution
+from .addExecution import addExecution
+from .getExecutionColumn import getExecutionColumn
