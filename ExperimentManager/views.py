@@ -41,9 +41,9 @@ class ExperimentManagerBaseView(APIView):
     #         try:
     #             for par in self.paramsType:
     #                 self.__setattr__(par, self.paramsType[par](params[par][0]))
-    #         except KeyError:
+    #         except KeyError as e:
     #             return Response(status=HTTP_400_BAD_REQUEST,
-    #                             data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+    #                             data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
     #
     #         return self.view_get()
     #
@@ -57,13 +57,13 @@ class ExperimentManagerBaseView(APIView):
 
     def post(self, request):
         try:
-            params = request.data
+            params = dict(request.data)
             try:
                 for par in self.paramsType:
                     self.__setattr__(par, self.paramsType[par](params[par]))
-            except KeyError:
+            except KeyError as e:
                 return Response(status=HTTP_400_BAD_REQUEST,
-                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
 
             return self.view_post(request=request)
 

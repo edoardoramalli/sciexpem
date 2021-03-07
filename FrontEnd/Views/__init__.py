@@ -6,4 +6,5 @@ from .getPlotExperiment import getPlotExperiment
 from .getFilePaper import getFilePaper
 from .getPropertyList import getPropertyList
 from .getExperimentList import getExperimentList
-from .downloadExperimentFile import downloadExperimentFile
+from .downloadFile import downloadFile
+from .getHeatMapExecution import getHeatMapExecution

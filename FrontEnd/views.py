@@ -180,9 +180,9 @@ class FrontEndBaseView(APIView):
             try:
                 for par in self.paramsType:
                     self.__setattr__(par, self.paramsType[par](params[par][0]))
-            except KeyError:
+            except KeyError as e:
                 return Response(status=HTTP_400_BAD_REQUEST,
-                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
 
             return self.view_get()
 
@@ -194,23 +194,23 @@ class FrontEndBaseView(APIView):
             close_old_connections()
 
     def post(self, request):
-        try:
+        # try:
             params = dict(request.data)
             try:
                 for par in self.paramsType:
                     self.__setattr__(par, self.paramsType[par](params[par]))
-            except KeyError:
+            except KeyError as e:
                 return Response(status=HTTP_400_BAD_REQUEST,
-                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter.")
+                                data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
 
             return self.view_post()
 
-        except Exception:
-            err_type, value, traceback = sys.exc_info()
-            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                            data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
-        finally:
-            close_old_connections()
+        # except Exception:
+        #     err_type, value, traceback = sys.exc_info()
+        #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+        #                     data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+        # finally:
+        #     close_old_connections()
 
 
 class prova(FrontEndBaseView):
@@ -221,3 +221,5 @@ class prova(FrontEndBaseView):
     def view_post(self):
         print("here")
         return Response(HTTP_200_OK)
+
+

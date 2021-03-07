@@ -14,7 +14,7 @@ class filterDataBase(View.ExperimentManagerBaseView):
     """
     Scope  -> API to query all the models in the database. Used by BE.
     Param  -> model_name = a string with the name of the model to interrogate
-    Param  -> query = a serialize django object Q
+    Param  -> query = a serialize django object Q. By default we use distinct() !
     Method -> POST
     Access -> READ Group
     """
@@ -34,7 +34,7 @@ class filterDataBase(View.ExperimentManagerBaseView):
 
         try:
             result = []
-            query_set = model.objects.filter(query_obj)
+            query_set = model.objects.filter(query_obj).distinct()
 
             serializer = eval('Serializers.' + self.model_name + 'Serializer')
             for query_result in query_set:

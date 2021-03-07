@@ -19,7 +19,7 @@ urlpatterns = [
 
 
     # NEW NEW
-    path('API/getExperimentFile', Views.downloadExperimentFile.as_view(), name="downloadExperimentFile"),
+    path('API/getFile', Views.downloadFile.as_view(), name="downloadFile"),
     path('API/getExperimentList', Views.getExperimentList.as_view(), name="getExperimentList"),
     path('API/getPropertyList', Views.getPropertyList.as_view(), name="getPropertyList"),
     path('API/getFilePaper', Views.getFilePaper.as_view(), name="getFilePaper"),
@@ -28,6 +28,7 @@ urlpatterns = [
     path('API/getPlotExecution', Views.getPlotExecution.as_view(), name="getPlotExecution"),
     path('API/getAllPlotExecution', Views.getAllPlotExecution.as_view(), name="getAllPlotExecution"),
     path('API/getModelList', Views.getModelList.as_view(), name="getModelList"),
+    path('API/getHeatMapExecution', Views.getHeatMapExecution.as_view(), name="getHeatMapExecution"),
 
 
     path('API/prova', views.prova.as_view(), name="prova"),

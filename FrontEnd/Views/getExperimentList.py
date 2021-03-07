@@ -13,11 +13,11 @@ import json
 
 class getExperimentList(View.FrontEndBaseView):
     viewName = 'getExperimentList'
-    paramsType = {'fields': tuple}
+    paramsType = {'fields': tuple, 'args': dict}
     required_groups = {'POST': ['READ']}
 
     def view_post(self):
-        queryset = Models.Experiment.objects.all()
+        queryset = Models.Experiment.objects.filter(**self.args).distinct()
         results = []
         for element in queryset:
             results.append(Serializers.ExperimentSerializer(element, fields=self.fields).data)
