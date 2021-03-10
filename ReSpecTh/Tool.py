@@ -4,7 +4,7 @@ import ReSpecTh.units as Unit
 from FrontEnd.exceptions import ExecutionColumnError
 
 
-def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:  # TODO  cosa succede se x è 0?
+def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:
     if plotscale == 'lin':
         list_a = [float(x) for x in my_list]
     elif plotscale == 'log' or plotscale == 'log10':
@@ -16,7 +16,9 @@ def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> 
     else:
         list_a = []
 
-    if not all(n > 0 for n in list_a):
+    # If a y-value is not positive then shift everything until threshold by the same quantity
+    # TODO error both shift
+    if not all(n >= 0 for n in list_a):
         delta = threshold - min(list_a)
         list_a = [x + delta for x in list_a]
 
@@ -38,10 +40,15 @@ def visualizeExperiment(experiment) -> dict:
         x_exp_name = mapping.x_exp_name
         x_exp_location = mapping.x_exp_location
         x_transformation = mapping.x_transformation
+        x_sim_name = mapping.x_sim_name
 
         y_exp_name = mapping.y_exp_name
         y_exp_location = mapping.y_exp_location
         y_transformation = mapping.y_transformation
+        y_sim_name = mapping.y_sim_name
+
+        if x_sim_name == 'None' or y_sim_name == 'None':
+            continue
 
         filter_x = {'experiment': experiment, x_exp_location: x_exp_name}
 
@@ -105,12 +112,13 @@ class Consistency:
                 self.result[y_name][x_name] = []
         self.result[y_name][x_name].append(result)  # TODO no duplicate
 
-    def add_experimental(self, x_name: str, y_name: str, result: dict):
+    def add_experimental(self, x_name: str, y_name: str, result: dict, key: str):
         if y_name not in self.experimental:
-            self.experimental[y_name] = {x_name: result}
+            self.experimental[y_name] = {x_name: {key: {}}}
         else:
             if x_name not in self.experimental[y_name]:
-                self.experimental[y_name][x_name] = result
+                self.experimental[y_name][x_name] = {key: {}}
+        self.experimental[y_name][x_name][key] = result
 
     def add_unit(self, x_name: str, y_name: str, x_unit: str, y_unit: str):
         if y_name not in self.unit:
@@ -134,6 +142,10 @@ def pairExecutionExperiment(execution, mapping, consistency):
     """
     Return the experiment and execution curve pair, with the same unit and same transformation
     """
+
+    threshold = 1
+    valid = True
+
     x_exp_name = mapping.x_exp_name
     x_exp_location = mapping.x_exp_location
     x_sim_name = mapping.x_sim_name
@@ -147,6 +159,9 @@ def pairExecutionExperiment(execution, mapping, consistency):
     y_sim_location = mapping.y_sim_location
 
     file = mapping.file
+
+    if x_sim_name == 'None' or y_sim_name == 'None':
+        return {'valid': False}
 
     # X EXP
 
@@ -167,16 +182,21 @@ def pairExecutionExperiment(execution, mapping, consistency):
                          y_unit=y_dataColumn.units)
 
     # It is not necessary to convert the experimental data. They impose the unit !
-    x_exp = applyTransformation(Unit.convert_list(my_list=list(x_dataColumn.data),
-                                                  unit=x_dataColumn.units,
-                                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                                    y_name=y_dataColumn.name)[0])
-                                , x_transformation)
-    y_exp = applyTransformation(Unit.convert_list(my_list=list(y_dataColumn.data),
-                                                  unit=y_dataColumn.units,
-                                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                                    y_name=y_dataColumn.name)[1])
-                                , y_transformation)
+    # But we need to apply the transformation, and to keep consistency we do anyway
+    x_exp = applyTransformation(
+        my_list=Unit.convert_list(my_list=list(x_dataColumn.data),
+                                  unit=x_dataColumn.units,
+                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                    y_name=y_dataColumn.name)[0]),
+        plotscale=x_transformation,
+        threshold=threshold)
+    y_exp = applyTransformation(
+        my_list=Unit.convert_list(my_list=list(y_dataColumn.data),
+                                  unit=y_dataColumn.units,
+                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                    y_name=y_dataColumn.name)[1]),
+        plotscale=y_transformation,
+        threshold=threshold)
 
     # X SIM
     execution_filter_x = {'execution': execution,
@@ -190,11 +210,13 @@ def pairExecutionExperiment(execution, mapping, consistency):
     else:
         x_execution_column = x_execution_column[0]
 
-    x_sim = applyTransformation(Unit.convert_list(my_list=list(x_execution_column.data),
-                                                  unit=x_execution_column.units,
-                                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                                    y_name=y_dataColumn.name)[0]),
-                                x_transformation)
+    x_sim = applyTransformation(
+        my_list=Unit.convert_list(my_list=list(x_execution_column.data),
+                                  unit=x_execution_column.units,
+                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                    y_name=y_dataColumn.name)[0]),
+        plotscale=x_transformation,
+        threshold=threshold)
 
     # Y SIM
 
@@ -209,13 +231,27 @@ def pairExecutionExperiment(execution, mapping, consistency):
     else:
         y_execution_column = y_execution_column[0]
 
-    y_sim = applyTransformation(Unit.convert_list(my_list=list(y_execution_column.data),
-                                                  unit=y_execution_column.units,
-                                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                                    y_name=y_dataColumn.name)[1]),
-                                y_transformation)
+    y_sim = applyTransformation(
+        my_list=Unit.convert_list(my_list=list(y_execution_column.data),
+                                  unit=y_execution_column.units,
+                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                    y_name=y_dataColumn.name)[1]),
+        plotscale=y_transformation,
+        threshold=threshold)
 
-    return x_exp, y_exp, x_sim, y_sim, x_dataColumn, y_dataColumn
+    result = {
+        'valid': valid,
+        'x_exp': x_exp,
+        'y_exp': y_exp,
+        'x_sim': x_sim,
+        'y_sim': y_sim,
+        'x_dataColumn': x_dataColumn,
+        'y_dataColumn': y_dataColumn,
+        'x_execution_column': x_execution_column,
+        'y_execution_column': y_execution_column
+    }
+
+    return result
 
 
 def visualizeExecution(execution, consist=None) -> dict:
@@ -228,8 +264,19 @@ def visualizeExecution(execution, consist=None) -> dict:
     consistency = Consistency() if consist is None else consist
 
     for mapping in mapping_list:
-        x_exp, y_exp, x_sim, y_sim, x_dataColumn, y_dataColumn = pairExecutionExperiment(execution, mapping,
-                                                                                         consistency)
+        result = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
+
+        if not result['valid']:
+            continue
+            
+        x_exp = result['x_exp']
+        y_exp = result['y_exp']
+        x_sim = result['x_sim']
+        y_sim = result['y_sim']
+        x_dataColumn = result['x_dataColumn']
+        y_dataColumn = result['y_dataColumn']
+        x_execution_column = result['x_execution_column']
+        y_execution_column = result['y_execution_column']
 
         x_unit_name = x_dataColumn.units if mapping.x_transformation != 'inv' else '1000/' + x_dataColumn.units
         x_name = ' [{}] ({})'.format(x_unit_name, mapping.x_transformation)
@@ -244,18 +291,23 @@ def visualizeExecution(execution, consist=None) -> dict:
 
         # ADD EXP
 
+        exp_name = execution.experiment.fileDOI if y_dataColumn.name != 'composition' else execution.experiment.fileDOI + ' ' + y_dataColumn.label
+
         consistency.add_experimental(x_name=x_dataColumn.name,
                                      y_name=y_dataColumn.name,
+                                     key=exp_name,
                                      result={'x': x_exp, 'y': y_exp,
                                              'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                                             'name': execution.experiment.fileDOI})
+                                             'name': exp_name})
+
+        sim_name = execution.chemModel.name if y_dataColumn.name != 'composition' else execution.chemModel.name + ' ' + y_dataColumn.label
 
         # ADD SIM
         consistency.add_result(x_name=x_dataColumn.name,
                                y_name=y_dataColumn.name,
                                result={'x': x_sim, 'y': y_sim,
                                        'type': 'scatter', 'mode': 'lines+markers', 'marker': {'size': 10},
-                                       'name': execution.chemModel.name})
+                                       'name': sim_name})
 
     return consistency
 
@@ -276,6 +328,5 @@ def visualizeAllExecution(experiment):
 def resultExecutionVisualization(consistency):
     for y_key in consistency.result:
         for x_key in consistency.result[y_key]:
-            consistency.result[y_key][x_key].append(consistency.experimental[y_key][x_key])
-
+            consistency.result[y_key][x_key] += consistency.experimental[y_key][x_key].values()
     return {'info': consistency.info, 'data': consistency.result}

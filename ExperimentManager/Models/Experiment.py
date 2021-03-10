@@ -26,6 +26,8 @@ class Experiment(models.Model):
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, default=None, null=True, related_name="children")
+
     comment = models.CharField(max_length=280, blank=True, null=True)
 
     # Meta Data

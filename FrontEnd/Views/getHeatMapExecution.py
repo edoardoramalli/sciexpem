@@ -29,8 +29,6 @@ class getHeatMapExecution(View.FrontEndBaseView):
         if self.chemModel_list:
             query['execution_column__execution__chemModel__id__in'] = self.chemModel_list
 
-        # cm_results = Models.CurveMatchingResult.objects.filter(**query).distinct()
-
         cm_results = CurveMatching.getCurveMatching(query)
 
         record = {}
@@ -52,6 +50,7 @@ class getHeatMapExecution(View.FrontEndBaseView):
             data.append(tmp)
 
         df = pd.DataFrame.from_records(data, index=record.keys())
+        df = df.where(pd.notnull(df), None)  # Transform NaN in None
         x = list(df.index)
         y = list(df.columns)
         z = [list(df[model]) for model in df.columns]

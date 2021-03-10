@@ -52,8 +52,7 @@ class addExecution(View.FrontEndBaseView):
                 experiment=experiment,
                 chemModel=chemModel,
                 execution_start=timezone.localtime(),
-                # username=request.user.username,
-                username='pippo'
+                username=request.user.username,
             )
 
             new_exec.save()

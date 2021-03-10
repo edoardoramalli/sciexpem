@@ -14,12 +14,12 @@ import json
 
 class getAllPlotExecution(View.FrontEndBaseView):
     viewName = 'getAllPlotExecution'
-    paramsType = {'execution_id': int}
+    paramsType = {'element_id': int}
     required_groups = {'POST': ['READ']}
 
     def view_post(self):
         try:
-            experiment = Models.Experiment.objects.get(id=self.execution_id)
+            experiment = Models.Experiment.objects.get(id=self.element_id)
             consistency = visualizeAllExecution(experiment)
             results = resultExecutionVisualization(consistency)
             return Response(json.dumps(results), status=HTTP_200_OK)
