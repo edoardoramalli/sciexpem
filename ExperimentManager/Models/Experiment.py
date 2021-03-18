@@ -46,6 +46,8 @@ class Experiment(models.Model):
 
     username = models.CharField(max_length=75, blank=True, null=True)
 
+
+
     def check_fields(self):
         experiment_type = self.experiment_type
         fuels = list(self.fuels) if self.fuels is not None else []
@@ -171,16 +173,6 @@ class Experiment(models.Model):
 
         return params
 
-    def run_type(self):
-        return EType.retrieve_type(self)
-
-    @property
-    def run_type_str(self):
-        e_type = self.run_type()
-        if e_type is not None:
-            return e_type.value
-        else:
-            return None
 
     def run_experiment_interpreter(self):
         # Rispettare le regole

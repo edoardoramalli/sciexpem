@@ -31,6 +31,18 @@ class DataColumn(models.Model):
     plotscale = models.CharField(max_length=50, default='lin')  # is checked
     ignore = models.BooleanField(default=False)
 
+    # Profile - pressure-time history, volume-time history or temperature-time history
+    # data_group_profile = models.CharField(max_length=10, null=True, blank=True)
+    # profile_t_init = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
+    # profile_c_init = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
+    # profile_t_compression_exp = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
+    #
+    # # Uncertainty
+    # uncertainty_reference = models.CharField(max_length=10, null=True, blank=True)
+    # uncertainty_kind = models.CharField(max_length=10, null=True, blank=True)
+    # uncertainty_bound = models.CharField(max_length=10, null=True, blank=True)
+
+
     # Foreign Key
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="data_columns")
 

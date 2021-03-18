@@ -27,6 +27,13 @@ class ReSpecThParser:
 
     @property
     def fileDOI(self):
+        e = self.root.find("./comment")
+        if e is None:
+            return None
+        return e.text
+
+    @property
+    def comment(self):
         e = self.root.find("./fileDOI")
         if e is None:
             return None
@@ -99,12 +106,6 @@ class ReSpecThParser:
 
         return pd.DataFrame.from_records(columns_data, columns=columns)
 
-    # # DEPRECATED
-    # def extract_initial_composition(self):
-    #     initial_composition = dict()
-    #     for component in self.get_common_property("initial composition"):
-    #         initial_composition[component.find('speciesLink').attrib['preferredKey']] = component.find('amount').text
-    #     return initial_composition
 
     def initial_composition(self):
         initial_composition = self.get_common_property("initial composition")
@@ -137,7 +138,7 @@ class ReSpecThParser:
         props = []
         for prop in common_properties:  # IMPROVABLE IN XML TO DISCARD initial comp. directly
             name = prop.attrib.get("name")
-            if not name or name == 'initial composition':
+            if not name or name == 'initial composition' or name == 'evaluated standard deviation':
                 continue
             units = prop.attrib.get("units")
             value = prop.find("value").text
@@ -145,25 +146,6 @@ class ReSpecThParser:
             # props.append({"name": name, "units": units, "value": value, "sourcetype": sourcetype})
             props.append({"name": name, "units": units, "value": value})
         return props
-
-    # # deprecated
-    # def extract_columns(self):
-    #     columns = []
-    #     dataGroup = self.root.find("dataGroup")
-    #     for prop in dataGroup.findall("property"):
-    #         name = prop.attrib.get('name')
-    #         units = prop.attrib.get('units')
-    #         label = prop.attrib.get('label')
-    #
-    #         species = None
-    #         xml_species = prop.findall('speciesLink')
-    #         if xml_species:
-    #             species = [specie.attrib['preferredKey'] for specie in xml_species]
-    #
-    #         data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
-    #         columns.append({'name': name, "units": units, "label": label, "species": species, "data": data})
-    #
-    #     return columns
 
     def extract_columns_multi_dg(self):
         dataGroups = self.root.findall("dataGroup")
@@ -221,10 +203,6 @@ class ReSpecThParser:
                 {'reference': reference, "units": units, "label": label, "bound": bound, "kind": kind, "data": data})
 
         return columns
-
-    # # DEPRECATED
-    # def extract_data_groups(self):
-    #     return [xmltodict.parse(ET.tostring(dg), attr_prefix="") for dg in self.root.findall("./dataGroup")]
 
     @classmethod
     def from_file(cls, path):

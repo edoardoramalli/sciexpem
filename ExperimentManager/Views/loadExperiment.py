@@ -19,6 +19,7 @@ def respecth_text_to_experiment(username, file):
         reactor = respecth_obj.apparatus
         experiment_type = respecth_obj.experiment_type
         fileDOI = respecth_obj.fileDOI
+        # comment = respecth_obj.comment
 
         if not reactor:
             raise MandatoryFieldExperimentError("Reactor")
