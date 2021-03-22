@@ -6,7 +6,7 @@ import ExperimentManager.Serializers.Tool as Tool
 class InitialSpecieSerializer(serializers.ModelSerializer):
     class Meta:
         model = InitialSpecie
-        fields = ['id', 'name', 'units', 'value']
+        fields = ['id', 'name', 'units', 'value', 'source_type']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

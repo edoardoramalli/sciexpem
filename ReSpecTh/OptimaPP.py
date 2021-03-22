@@ -1,6 +1,7 @@
 import tempfile
 import subprocess
 import os
+import collections
 from django.conf import settings
 
 
@@ -81,7 +82,7 @@ class TranslatorOptimaPP:
             txt += TranslatorOptimaPP.create_lines(Reference__DOI=file_paper.reference_doi)
 
         txt += TranslatorOptimaPP.create_lines(File__author="Politecnico di Milano, Italy",
-                                               Specification__version=2.2,
+                                               Specification__version=2.3,
                                                File__DOI=experiment.fileDOI,  # M
                                                Experiment__type=experiment.experiment_type,  # M
                                                Apparatus=experiment.reactor)  # M
@@ -92,65 +93,94 @@ class TranslatorOptimaPP:
         txt = "Common experimental conditions:\n"
         for prop in common_properties:
             txt += TranslatorOptimaPP.create_inline(Name=prop.name,
-                                                    Source_type="reported",
+                                                    Source_type=prop.source_type,
                                                     Unit=prop.units,
                                                     Value=prop.value) + "\n"
         for specie in initial_species:
             txt += TranslatorOptimaPP.create_inline(Name="composition",
                                                     Species=specie.name,
-                                                    Source_type="calculated",
+                                                    Source_type=specie.source_type,
                                                     Unit=specie.units,
                                                     Value=specie.value) + "\n"
         return txt
 
     @staticmethod
-    def create_varied_experimental_conditions_and_measured_results(data_group):
-        txt = "Varied experimental conditions and measured results:\n"
-        txt += TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id) + "\n"
-        ids = set([])
-        for index, data in enumerate(data_group):
-            id_x = "x" + str(index)
-            ids.add(id_x)
-            txt += TranslatorOptimaPP.create_inline(Name=data.name,
-                                                    Label=data.label,
-                                                    Species=data.species[0] if data.species else None,
-                                                    Unit=data.units,
-                                                    ID=id_x,
-                                                    Source_type="reported")
+    def create_varied_experimental_conditions_and_measured_results(data_group, offset):
+        txt = TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id, dataGroupLabel=data_group[0].dg_label) + "\n"
+
+
+        tmp = []
+        # To be sure that the uncertainty are at the end and I can refer them...
+        for column in data_group:
+            if not column.uncertainty_kind:
+                tmp.insert(0, column)
+            else:
+                tmp.append(column)
+
+        id_association = {}
+        ids = []
+        for index, data in enumerate(tmp):
+            id_x = "x" + str(index + offset)
+            ids.append(id_x)
+            id_association[data] = id_x
+            if not data.uncertainty_kind:
+                txt += TranslatorOptimaPP.create_inline(Name=data.name,
+                                                        Label=data.label,
+                                                        Species=data.species[0] if data.species else None,
+                                                        Unit=data.units,
+                                                        ID=id_x,
+                                                        Source_type=data.source_type)
+            else:
+                txt += TranslatorOptimaPP.create_inline(Name=data.name,
+                                                        Label=data.label,
+                                                        Species=data.species[0] if data.species else None,
+                                                        Unit=data.units,
+                                                        ID=id_x,
+                                                        Source_type=data.source_type,
+                                                        Reference=id_association[data.uncertainty],
+                                                        Kind=data.uncertainty_kind,
+                                                        Bound=data.uncertainty_bound)
             txt += "\n"
+
         txt += "\n"
         txt += "Varied values:\n"
         for id in ids:
             txt += str(id) + "\t"
         txt += "\n"
-        for index in range(0, len(data_group[0].data)):
-            for column in data_group:
+        for index in range(0, len(tmp[0].data)):
+            for column in tmp:
                 txt += str(column.data[index]) + "\t"
             txt += "\n"
         txt += "\n"
         return txt
 
     @staticmethod
-    def create_volume_time_profile(data_group, offset_dg2):
+    def create_profile(data_group, offset):
         txt = "Volume-time profile:\n"
-        txt += TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id) + "\n"
-        ids = set([])
-        for index, data in enumerate(data_group):
-            id_x = "x" + str(offset_dg2 + index)
-            ids.add(id_x)
+        txt += TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id,
+                                                dataGroupLabel=data_group[0].dg_label,
+                                                dataPointLink=';'.join(data_group[0].data_group_profile)) + "\n"
+
+        tmp = data_group
+
+        ids = []
+        for index, data in enumerate(tmp):
+            id_x = "x" + str(index + offset)
+            ids.append(id_x)
             txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                     Label=data.label,
                                                     Unit=data.units,
                                                     ID=id_x,
-                                                    Source_type="calculated")
+                                                    Source_type=data.source_type)
+
             txt += "\n"
         txt += "\n"
         txt += "Profile:\n"
         for id in ids:
             txt += str(id) + "\t"
         txt += "\n"
-        for index in range(0, len(data_group[0].data)):
-            for column in data_group:
+        for index in range(0, len(tmp[0].data)):
+            for column in tmp:
                 txt += str(column.data[index]) + "\t"
             txt += "\n"
         txt += "\n"
@@ -160,7 +190,7 @@ class TranslatorOptimaPP:
     def create_ignition_definition(experiment):
         if experiment.ignition_type is not None:
             split = experiment.ignition_type.split("-")
-            txt = "Ignition definition:\n MeasuredQuantity: %s  Type: %s" % (split[0], split[1])
+            txt = "Ignition definition:\nMeasuredQuantity: %s  Type: %s" % (split[0], split[1])
             return txt
         else:
             return ""
@@ -170,17 +200,36 @@ class TranslatorOptimaPP:
         txt = ""
         txt += TranslatorOptimaPP.create_header(experiment, file_paper)
         txt += TranslatorOptimaPP.create_common_experimental_conditions(initial_species, common_properties)
-        dg1 = []
-        dg2 = []
+
+        data_groups_dict = {}
+        data_groups_dict_profile = {}
         for column in data_groups:
-            if column.dg_id == "dg1":
-                dg1.append(column)
-            elif column.dg_id == "dg2":
-                dg2.append(column)
-        offset_dg2 = len(dg1)
-        txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(dg1)
-        if dg2:
-            txt += TranslatorOptimaPP.create_volume_time_profile(dg2, offset_dg2)
+            if not (column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history']):
+                if column.dg_id not in data_groups_dict:
+                    data_groups_dict[column.dg_id] = [column]
+                else:
+                    data_groups_dict[column.dg_id].append(column)
+            else:
+                if column.dg_id not in data_groups_dict_profile:
+                    data_groups_dict_profile[column.dg_id] = [column]
+                else:
+                    data_groups_dict_profile[column.dg_id].append(column)
+
+        data_groups_dict = dict(sorted(data_groups_dict.items()))
+        data_groups_dict_profile = dict(sorted(data_groups_dict_profile.items()))
+
+        txt += "Varied experimental conditions and measured results:\n"
+
+        offset_id = 1
+        for dg in data_groups_dict:
+            txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(data_groups_dict[dg], offset_id)
+            offset_id += len(data_groups_dict[dg])
+
+        for dg in data_groups_dict_profile:
+            txt += TranslatorOptimaPP.create_profile(data_groups_dict_profile[dg], offset_id)
+            offset_id += len(data_groups_dict_profile[dg])
+
         if experiment.experiment_type == "ignition delay measurement":
             txt += TranslatorOptimaPP.create_ignition_definition(experiment)
+
         return txt

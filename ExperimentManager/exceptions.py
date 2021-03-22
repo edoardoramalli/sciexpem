@@ -26,3 +26,8 @@ class OptimaPPError(Exception):
 class MandatoryFieldError(Exception):
     def __init__(self, message):
         super().__init__("Mandatory Field Error. Missing '{}'".format(message))
+
+
+class ExperimentConsistencyError(Exception):
+    def __init__(self, message):
+        super().__init__("Experiment Consistency Error. " + message)

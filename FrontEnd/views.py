@@ -38,20 +38,27 @@ def get_username(request):
     return JsonResponse({"username": username})
 
 
+def create_header(column):
+    text = ''
+    if not column.species:
+        if column.name != 'uncertainty':
+            text = column.name + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
+        else:
+            text = column.name + " [" + column.units + "]" + " --> " + str(column.uncertainty.name) + " (" + str(
+                column.source_type) + ", " + str(column.uncertainty_kind) + ", " + str(
+                column.uncertainty_bound) + ")"
+    else:
+        text = column.label + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
+    return text
+
+
 @api_view(['POST'])
 def get_experiment_data_columns(request, pk):
     try:
         data_group = request.data['params']['type']
         data_columns = DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
         if data_columns.exists():
-            header = [column.name + " [" + column.units + "]" +
-                      " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
-                      " - Plot Scale: " + column.plotscale + ""
-                      if not column.species
-                      else column.label + " [" + column.units + "]" +
-                           " - Ignore: " + str(column.ignore) + " Nominal: " + str(column.nominal) +
-                           " - Plot Scale: " + column.plotscale + ""
-                      for column in data_columns]
+            header = [create_header(column) for column in data_columns]
 
             data = [list(map(lambda x: float(x), column.data)) for column in data_columns]
 
@@ -110,9 +117,11 @@ class DataExcelUploadView(APIView):
         data_group = params['data_group'][0]
 
         excel_file_bytes = io.BytesIO(excel_file.read())
+        print(excel_file_bytes)
 
+        return Response("Errors checking the file", status.HTTP_200_OK)
         try:
-            data_frame = pd.read_excel(excel_file_bytes)
+            a = open(excel_file, 'r').read()
         except Exception as error:
             return Response("Errors checking the file" + str(error), status.HTTP_400_BAD_REQUEST)
 
@@ -121,46 +130,67 @@ class DataExcelUploadView(APIView):
         if not check:
             return Response("Errors checking the file", status.HTTP_400_BAD_REQUEST)
 
-        columns = list(data_frame.columns)
-        content = data_frame.to_dict(orient="records")
 
-        list_dataColumn = []
 
-        for cols in columns:
-            split_col = cols.rsplit('[', maxsplit=1)
-            name = split_col[0].strip()
-            unit = split_col[1].strip().replace(']', '')
-            # Check prop
-            if not validatorProperty.isValid(unit=unit, name=name):
-                # Se non è una prop normale magari è una specie
-                new_name = name.replace('[', '').replace(']', '')
-                if validatorSpecie.isValid(new_name):
-                    list_dataColumn.append(DataColumn(name='composition',
-                                                      units='mole fraction',
-                                                      data=list(data_frame[cols]),
-                                                      label='[' + new_name + ']',
-                                                      species=[new_name],
-                                                      plotscale='lin',
-                                                      ignore=False,
-                                                      dg_id=data_group))
-                else:
-                    return Response("DataExcelUploadView. Name column '{}' is not valid with unit '{}'."
-                                    .format(name, unit), status=status.HTTP_400_BAD_REQUEST)
-            else:
-                list_dataColumn.append(DataColumn(name=name,
-                                                  units=unit,
-                                                  data=list(data_frame[cols]),
-                                                  label=validatorProperty.getSymbol(name),
-                                                  species=None,
-                                                  plotscale='lin',
-                                                  ignore=False,
-                                                  dg_id=data_group))
+        return Response('ok', status=status.HTTP_200_OK)
 
-        new_list = [serialize_DC(x) for x in list_dataColumn]
-
-        response = {'names': columns, 'data': content, 'serialized': new_list}
-
-        return Response(response, status=status.HTTP_200_OK)
+    # def post(self, request):  # autenticazione? TODO
+    #     params = dict(request.data)
+    #     excel_file = params['file'][0]
+    #     data_group = params['data_group'][0]
+    #
+    #     excel_file_bytes = io.BytesIO(excel_file.read())
+    #
+    #     try:
+    #         data_frame = pd.read_excel(excel_file_bytes)
+    #     except Exception as error:
+    #         return Response("Errors checking the file" + str(error), status.HTTP_400_BAD_REQUEST)
+    #
+    #     check = utils.check_data_excel(data_frame)  # null ed ha struttura qualcosa [unità]
+    #
+    #     if not check:
+    #         return Response("Errors checking the file", status.HTTP_400_BAD_REQUEST)
+    #
+    #     columns = list(data_frame.columns)
+    #     content = data_frame.to_dict(orient="records")
+    #
+    #     list_dataColumn = []
+    #
+    #     for cols in columns:
+    #         split_col = cols.rsplit('[', maxsplit=1)
+    #         name = split_col[0].strip()
+    #         unit = split_col[1].strip().replace(']', '')
+    #         # Check prop
+    #         if not validatorProperty.isValid(unit=unit, name=name):
+    #             # Se non è una prop normale magari è una specie
+    #             new_name = name.replace('[', '').replace(']', '')
+    #             if validatorSpecie.isValid(new_name):
+    #                 list_dataColumn.append(DataColumn(name='composition',
+    #                                                   units='mole fraction',
+    #                                                   data=list(data_frame[cols]),
+    #                                                   label='[' + new_name + ']',
+    #                                                   species=[new_name],
+    #                                                   plotscale='lin',
+    #                                                   ignore=False,
+    #                                                   dg_id=data_group))
+    #             else:
+    #                 return Response("DataExcelUploadView. Name column '{}' is not valid with unit '{}'."
+    #                                 .format(name, unit), status=status.HTTP_400_BAD_REQUEST)
+    #         else:
+    #             list_dataColumn.append(DataColumn(name=name,
+    #                                               units=unit,
+    #                                               data=list(data_frame[cols]),
+    #                                               label=validatorProperty.getSymbol(name),
+    #                                               species=None,
+    #                                               plotscale='lin',
+    #                                               ignore=False,
+    #                                               dg_id=data_group))
+    #
+    #     new_list = [serialize_DC(x) for x in list_dataColumn]
+    #
+    #     response = {'names': columns, 'data': content, 'serialized': new_list}
+    #
+    #     return Response(response, status=status.HTTP_200_OK)
 
 
 class FrontEndBaseView(APIView):
@@ -221,5 +251,3 @@ class prova(FrontEndBaseView):
     def view_post(self):
         print("here")
         return Response(HTTP_200_OK)
-
-

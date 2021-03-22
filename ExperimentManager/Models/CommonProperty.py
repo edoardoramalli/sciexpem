@@ -15,6 +15,8 @@ class CommonProperty(models.Model):
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
 
+    source_type = models.CharField(max_length=15)
+
     # Foreign Key
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="common_properties")
 
@@ -25,6 +27,11 @@ class CommonProperty(models.Model):
         name = self.name
         unit = self.units
         value = self.value
+        source_type = self.source_type
+
+        if source_type not in ['reported', 'digitized', 'calculated', 'estimated']:
+            raise ConstraintFieldExperimentError(
+                "Name '%s' is not valid for source type in Common Properties!" % source_type)
 
         if float(value) < 0:
             raise ConstraintFieldExperimentError("Value common property '%s' must be positive!" % value)
@@ -40,8 +47,9 @@ class CommonProperty(models.Model):
         name = text_dict['name']
         units = text_dict['units']
         value = text_dict['value']
+        source_type = text_dict['source_type']
 
-        return CommonProperty(name=name, units=units, value=value, experiment=experiment)
+        return CommonProperty(name=name, units=units, value=value, experiment=experiment, source_type=source_type)
 
     def save(self, *args, **kwargs):
         self.check_fields()

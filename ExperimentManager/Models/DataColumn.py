@@ -7,7 +7,6 @@ from ExperimentManager.exceptions import *
 from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
 from ReSpecTh.FuelValid import ValidFuel
 
-
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
@@ -21,27 +20,23 @@ class DataColumn(models.Model):
     units = models.CharField(max_length=50)
     data = ArrayField(models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES))
     dg_id = models.CharField(max_length=10, null=False)
+    dg_label = models.CharField(max_length=20, default='experimental_data')
+    source_type = models.CharField(max_length=15)
 
     # Optional - Checked
     label = models.CharField(max_length=100, null=True, blank=True)
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
-    nominal = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
 
-    # Mandatory with default
-    plotscale = models.CharField(max_length=50, default='lin')  # is checked
-    ignore = models.BooleanField(default=False)
+    # Mandatory
 
     # Profile - pressure-time history, volume-time history or temperature-time history
-    # data_group_profile = models.CharField(max_length=10, null=True, blank=True)
-    # profile_t_init = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
-    # profile_c_init = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
-    # profile_t_compression_exp = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES, null=True, blank=True)
-    #
-    # # Uncertainty
-    # uncertainty_reference = models.CharField(max_length=10, null=True, blank=True)
-    # uncertainty_kind = models.CharField(max_length=10, null=True, blank=True)
-    # uncertainty_bound = models.CharField(max_length=10, null=True, blank=True)
+    data_group_profile = ArrayField(models.CharField(max_length=25), null=True, blank=True)  # TODO
 
+    # Uncertainty
+    uncertainty_reference = models.OneToOneField('self', on_delete=models.CASCADE, related_name="uncertainty",
+                                              null=True, blank=True)
+    uncertainty_kind = models.CharField(max_length=10, null=True, blank=True)
+    uncertainty_bound = models.CharField(max_length=10, null=True, blank=True)
 
     # Foreign Key
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="data_columns")
@@ -56,15 +51,29 @@ class DataColumn(models.Model):
         units = text_dict['units']
         data = text_dict['data']
         dg_id = text_dict['dg_id']
-        plotscale = text_dict['plotscale']
-        ignore = text_dict['ignore']
+        source_type = text_dict['source_type']
+
         # Optional
         label = text_dict.get('label')
+        dg_label = text_dict.get('dg_label')
         species = text_dict.get('species')
-        nominal = text_dict.get('nominal')
+        data_group_profile = text_dict.get('data_group_profile')
+        uncertainty_kind = text_dict.get('uncertainty_kind')
+        uncertainty_bound = text_dict.get('uncertainty_bound')
+        uncertainty_reference = text_dict.get('uncertainty_reference')
 
-        return DataColumn(name=name, units=units, data=data, dg_id=dg_id, label=label, species=species,
-                          plotscale=plotscale, ignore=ignore, nominal=nominal, experiment=experiment)
+        uncertainty = None
+        if uncertainty_reference:
+            uncertainty_reference['experiment'] = experiment
+            uncertainty = DataColumn(**uncertainty_reference)
+
+        current = DataColumn(name=name, units=units, data=data, dg_id=dg_id, label=label, species=species,
+                             source_type=source_type, dg_label=dg_label, data_group_profile=data_group_profile,
+                             uncertainty_reference=uncertainty, uncertainty_kind=uncertainty_kind,
+                             uncertainty_bound=uncertainty_bound,
+                             experiment=experiment)
+
+        return [uncertainty, current] if uncertainty else [current]
 
     def __str__(self):
         return "%s %s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data, self.dg_id)
@@ -74,15 +83,35 @@ class DataColumn(models.Model):
         label = self.label
         unit = self.units
         species = list(self.species) if self.species is not None else None
-        nominal = self.nominal
-        ignore = self.ignore
-        plotscale = self.plotscale
         dg_id = self.dg_id
         data = self.data
+        source_type = self.source_type
+        if hasattr(self, 'uncertainty'):
+            uncertainty = self.uncertainty
+        else:
+            uncertainty = None
+        uncertainty_kind = self.uncertainty_kind
+        uncertainty_bound = self.uncertainty_bound
+        dg_label = self.dg_label  # For sure is not empty
 
-        if not (dg_id == 'dg1' or dg_id == 'dg2'):
+        if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'experimental_data', 'initial_condition']:
+            raise ConstraintFieldExperimentError("Data Group Label not valid")
+        if uncertainty:
+            if bool(uncertainty_kind) != bool(uncertainty_bound):
+                raise ConstraintFieldExperimentError("Missing uncertainty argument!")
+
+        if uncertainty and uncertainty_kind and uncertainty_kind not in ['absolute', 'relative']:
+            raise ConstraintFieldExperimentError("Uncertainty {} argument is not valid!".format(uncertainty_kind))
+
+        if uncertainty and uncertainty_bound and uncertainty_bound not in ['plusminus', 'plus', 'minus']:
+            raise ConstraintFieldExperimentError("Uncertainty {} argument is not valid!".format(uncertainty_bound))
+
+        if source_type not in ['reported', 'digitized', 'calculated', 'estimated']:
             raise ConstraintFieldExperimentError(
-                "Name '%s' is not valid for data group in data column!" % dg_id)
+                "Name '%s' is not valid for source type in data column!" % source_type)
+
+        # TODO dg_id deve avere un formato prestability dgx. Ex dg1 dg2 dg3 ...
+
         if not validatorProperty.isValid(unit=unit, name=name):
             raise ConstraintFieldExperimentError(
                 "Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
@@ -95,21 +124,11 @@ class DataColumn(models.Model):
         if species and not validatorSpecie.isValid(species):
             raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
         # Without next if data could be negative
-        if not all(x >= 0 for x in data):
+        if not all(float(x) >= 0 for x in data):
             raise ConstraintFieldExperimentError("Amount data column '%s' must be positive!" % str(data))
-
-        if ignore and nominal is None:
-            raise ConstraintFieldExperimentError('Data column is ignored but nominal is not set.')
-
-        if ignore and nominal < 0:
-            raise ConstraintFieldExperimentError('Data column nominal must be positive.')
-
-        # Hard-coded since very limited future expansion
-        if plotscale not in ['lin', 'log', 'inv', 'log10', 'ln'] and plotscale is not None:
-            raise ConstraintFieldExperimentError("Plot scale field value '{}' is not valid.".format(plotscale))
 
     def save(self, *args, **kwargs):
         self.check_fields()
         super().save(*args, **kwargs)
 
-    # TODO Override DELETE and UPDATE
+        # TODO Override DELETE and UPDATE

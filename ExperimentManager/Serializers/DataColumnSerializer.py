@@ -6,7 +6,7 @@ import ExperimentManager.Serializers.Tool as Tool
 class DataColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataColumn
-        fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'nominal', 'plotscale', 'ignore']
+        fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):
@@ -26,8 +26,8 @@ class DataColumnSerializer(serializers.ModelSerializer):
         instance.dg_id = validated_data.get('dg_id', instance.dg_id)
         instance.label = validated_data.get('label', instance.label)
         instance.species = validated_data.get('species', instance.species)
-        instance.nominal = validated_data.get('nominal', instance.nominal)
-        instance.plotscale = validated_data.get('plotscale', instance.plotscale)
-        instance.ignore = validated_data.get('ignore', instance.ignore)
+        # instance.nominal = validated_data.get('nominal', instance.nominal)
+        # instance.plotscale = validated_data.get('plotscale', instance.plotscale)
+        # instance.ignore = validated_data.get('ignore', instance.ignore)
         instance.save()
         return instance

@@ -58,38 +58,48 @@ def visualizeExperiment(experiment) -> dict:
 
         filter_y = {'experiment': experiment, y_exp_location: y_exp_name}
 
-        y_dataColumn = Models.DataColumn.objects.get(**filter_y)
+        y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
-        if y_dataColumn.name not in result:
-            result[y_dataColumn.name] = []
+        for y_element in y_dataColumn:
 
-        if y_dataColumn.name not in info:
-            info[y_dataColumn.name] = {}
+            if y_element.name not in result:
+                result[y_element.name] = []
 
-        y = applyTransformation(list(y_dataColumn.data), y_transformation)
+            if y_element.name not in info:
+                info[y_element.name] = {}
 
-        x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
-        x_name = ' [{}] ({})'.format(x_unit_name, x_transformation)
-        info[y_dataColumn.name]['xaxis'] = {
-            'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name}
+            y = applyTransformation(list(y_element.data), y_transformation)
 
-        y_unit_name = y_dataColumn.units if y_transformation != 'inv' else '1000/' + y_dataColumn.units
-        y_name = ' [{}] ({})'.format(y_unit_name, y_transformation)
-        info[y_dataColumn.name]['yaxis'] = {
-            'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name}
+            x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
+            x_name = ' [{}] ({})'.format(x_unit_name, x_transformation)
+            info[y_element.name]['xaxis'] = {
+                'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name,
+                'linecolor': 'lightgrey',
+                'linewidth': 2,
+                'mirror': True
+            }
 
-        if y_dataColumn.name == 'composition':
-            name = y_dataColumn.label
-        elif y_dataColumn.name:
-            name = y_dataColumn.name
-        elif not y_dataColumn.name and y_dataColumn.label:
-            name = y_dataColumn.name
-        else:
-            name = 'No Name'
+            y_unit_name = y_element.units if y_transformation != 'inv' else '1000/' + y_element.units
+            y_name = ' [{}] ({})'.format(y_unit_name, y_transformation)
+            info[y_element.name]['yaxis'] = {
+                'title': (y_element.name if y_element.name else y_element.label) + y_name,
+                'linecolor': 'lightgrey',
+                'linewidth': 2,
+                'mirror': True
+            }
 
-        result[y_dataColumn.name].append({'x': x, 'y': y,
-                                          'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                                          'name': name})
+            if y_element.name == 'composition':
+                name = y_element.label
+            elif y_element.name:
+                name = y_element.name
+            elif not y_element.name and y_element.label:
+                name = y_element.name
+            else:
+                name = 'No Name'
+
+            result[y_element.name].append({'x': x, 'y': y,
+                                           'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
+                                           'name': name})
 
         # TODO devono avere stessa unita
 
@@ -268,7 +278,7 @@ def visualizeExecution(execution, consist=None) -> dict:
 
         if not result['valid']:
             continue
-            
+
         x_exp = result['x_exp']
         y_exp = result['y_exp']
         x_sim = result['x_sim']

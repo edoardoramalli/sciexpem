@@ -6,7 +6,7 @@ import ExperimentManager.Serializers.Tool as Tool
 class CommonPropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = CommonProperty
-        fields = ['id', 'name', 'units', 'value']
+        fields = ['id', 'name', 'units', 'value', 'source_type']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

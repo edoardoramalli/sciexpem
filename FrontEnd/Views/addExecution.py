@@ -18,7 +18,7 @@ from io import BytesIO
 class addExecution(View.FrontEndBaseView):
     viewName = 'addExecution'
     paramsType = {'experiment_id': int, 'chemModel_id': int}
-    required_groups = {'GET': ['READ']}
+    required_groups = {'GET': ['WRITE']}
 
     def view_get(self, request):
 

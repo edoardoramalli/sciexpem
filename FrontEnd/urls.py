@@ -19,6 +19,7 @@ urlpatterns = [
 
 
     # NEW NEW
+    path('API/getProfile', Views.getProfile.as_view(), name="getProfile"),
     path('API/addExecutionFiles', Views.addExecutionFiles.as_view(), name="addExecutionFiles"),
     path('API/getExecutionFileList', Views.getExecutionFileList.as_view(), name="getExecutionFileList"),
     path('API/getExecutionColumn', Views.getExecutionColumn.as_view(), name="getExecutionColumn"),

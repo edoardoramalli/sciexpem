@@ -9,6 +9,9 @@ from OpenSmoke.OpenSmoke import OpenSmokeParser
 import ExperimentManager.Models.Tool as Tool
 
 from enum import Enum
+import functools
+import operator
+from itertools import chain
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -45,8 +48,6 @@ class Experiment(models.Model):
     p_sup = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
 
     username = models.CharField(max_length=75, blank=True, null=True)
-
-
 
     def check_fields(self):
         experiment_type = self.experiment_type
@@ -94,12 +95,12 @@ class Experiment(models.Model):
         if not self.experiment_interpreter:
             raise ConstraintFieldExperimentError("Experiment is not managed yet.")
 
-    def check_os_file(self):  # TODO in realta non fa il check ma genera solo il file template
+    def check_and_generate_os_file(self):
         if self.os_input_file:
             self.os_input_file = OpenSmokeParser.parse_input_string(self.os_input_file)
 
     def save(self, *args, **kwargs):
-        self.check_os_file()
+        self.check_and_generate_os_file()
         self.check_fields()
         if self.status == 'verified':
             self.check_verify()
@@ -136,7 +137,7 @@ class Experiment(models.Model):
                          comment=comment)
 
         data_columns = text_dict['data_columns']
-        tmp1 = [Model.DataColumn.createDataColumn(column, exp) for column in data_columns]
+        tmp1 = functools.reduce(operator.iconcat, [Model.DataColumn.createDataColumn(column, exp) for column in data_columns], [])
 
         common_properties = text_dict['common_properties']
         tmp2 = [Model.CommonProperty.createCommonProperty(prop, exp) for prop in common_properties]
@@ -173,50 +174,30 @@ class Experiment(models.Model):
 
         return params
 
-
     def run_experiment_interpreter(self):
         # Rispettare le regole
-        types = Model.ExperimentInterpreter.objects.all()
+        types_list = Model.ExperimentInterpreter.objects.all()
+        names_data_columns = set([column.name for column in self.data_columns.all()])
 
         result = None
-
-        for t in types:
-            test_rule = True
-            for r in Model.RuleInterpreter.objects.filter(experiment_interpreter=t):
-                property_name = r.property_name
-                property_value = r.property_value
+        for exp_type in types_list:
+            for rule in Model.RuleInterpreter.objects.filter(experiment_interpreter=exp_type):
+                property_name = rule.property_name
+                property_value = rule.property_value
                 if not getattr(self, property_name) == property_value:
-                    test_rule = False
                     break
-            if test_rule is False:
-                continue
-            # Se arrivo qui ho rispettato tutte le rules. Adesso controllo i campi
-            # TODO il problema è che experiment non deve avere altri campi !
-            test_mapping = True
-            # Controllo che esista un mapping
-            mapping_set = set([])
-            for m in Model.MappingInterpreter.objects.filter(experiment_interpreter=t):
-                x_exp_name = m.x_exp_name
-                x_exp_location = m.x_exp_location
-                mapping_set.add(x_exp_name)
-                diz_x = {'experiment': self, x_exp_location: x_exp_name}
-                if not Model.DataColumn.objects.filter(**diz_x).exists():
-                    test_mapping = False
-                    break
-                y_exp_name = m.y_exp_name
-                y_exp_location = m.y_exp_location
-                mapping_set.add(y_exp_name if not y_exp_name.startswith('[') else 'composition')
-                diz_y = {'experiment': self, y_exp_location: y_exp_name}
-                if not Model.DataColumn.objects.filter(**diz_y).exists():
-                    test_mapping = False
-                    break
-            experiment_set = set([])
-            for DC in Model.DataColumn.objects.filter(experiment=self):
-                experiment_set.add(DC.name)
-            if mapping_set != experiment_set:
-                test_mapping = False
-            if test_mapping:
-                result = t.name
+            else:
+                mapping_fields = Model.MappingInterpreter.objects.filter(experiment_interpreter=exp_type).values('x_exp_name', 'y_exp_name')
+                mapping_fields_list = []
+                for diz in list(mapping_fields):
+                    mapping_fields_list += list(diz.values())
+
+                mapping_set = set(mapping_fields_list)
+
+                if names_data_columns != mapping_set:
+                    continue
+                else:
+                    result = exp_type.name
 
         return result
 
