@@ -66,6 +66,7 @@ def get_experiment_data_columns(request, pk):
 
             columns = list(df.columns)
             content = df.to_dict(orient="records")
+            print(columns, content)
         else:
             columns = None
             content = None

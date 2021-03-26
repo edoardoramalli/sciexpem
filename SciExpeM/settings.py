@@ -37,7 +37,7 @@ SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile
 SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 COMPRESS_ENABLED = True
 
 ALLOWED_HOSTS = ['*']
@@ -213,3 +213,4 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Local
 OPTIMAPP_PATH = SettingsReader.settings['OPTIMAPP_PATH']
+ZENODO_ACCESS_TOKEN = SettingsReader.settings['ZENODO_ACCESS_TOKEN']

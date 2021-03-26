@@ -25,17 +25,9 @@ def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> 
     return list_a
 
 
-def visualizeExperiment(experiment) -> dict:
-    #  experiment status is assumed to be managed
-
-    experiment_interpreter = Models.ExperimentInterpreter.objects.get(name=experiment.experiment_interpreter)
-
-    mapping_list = Models.MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
-
-    result = {}
-
+def visualizeSingleDataGroup(data_group, mapping_list, experiment):
+    result = []
     info = {}
-
     for mapping in mapping_list:
         x_exp_name = mapping.x_exp_name
         x_exp_location = mapping.x_exp_location
@@ -50,29 +42,23 @@ def visualizeExperiment(experiment) -> dict:
         if x_sim_name == 'None' or y_sim_name == 'None':
             continue
 
-        filter_x = {'experiment': experiment, x_exp_location: x_exp_name}
+        filter_x = {'experiment': experiment, x_exp_location: x_exp_name, 'dg_id': data_group}
 
         x_dataColumn = Models.DataColumn.objects.get(**filter_x)
 
         x = applyTransformation(list(x_dataColumn.data), x_transformation)
 
-        filter_y = {'experiment': experiment, y_exp_location: y_exp_name}
+        filter_y = {'experiment': experiment, y_exp_location: y_exp_name, 'dg_id': data_group}
 
         y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
         for y_element in y_dataColumn:
 
-            if y_element.name not in result:
-                result[y_element.name] = []
-
-            if y_element.name not in info:
-                info[y_element.name] = {}
-
             y = applyTransformation(list(y_element.data), y_transformation)
 
             x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
             x_name = ' [{}] ({})'.format(x_unit_name, x_transformation)
-            info[y_element.name]['xaxis'] = {
+            info['xaxis'] = {
                 'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name,
                 'linecolor': 'lightgrey',
                 'linewidth': 2,
@@ -81,7 +67,7 @@ def visualizeExperiment(experiment) -> dict:
 
             y_unit_name = y_element.units if y_transformation != 'inv' else '1000/' + y_element.units
             y_name = ' [{}] ({})'.format(y_unit_name, y_transformation)
-            info[y_element.name]['yaxis'] = {
+            info['yaxis'] = {
                 'title': (y_element.name if y_element.name else y_element.label) + y_name,
                 'linecolor': 'lightgrey',
                 'linewidth': 2,
@@ -97,13 +83,35 @@ def visualizeExperiment(experiment) -> dict:
             else:
                 name = 'No Name'
 
-            result[y_element.name].append({'x': x, 'y': y,
-                                           'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                                           'name': name})
+            result.append({'x': x, 'y': y,
+                           'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
+                           'name': name})
 
         # TODO devono avere stessa unita
 
-    return {'info': info, 'data': result}
+    return info, result
+
+
+def visualizeExperiment(experiment) -> dict:
+    #  experiment status is assumed to be managed
+    experiment_interpreter = Models.ExperimentInterpreter.objects.get(name=experiment.experiment_interpreter)
+
+    mapping_list = Models.MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
+
+    result_dg = {}
+
+    info_dg = {}
+
+    columns_list = Models.DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data")
+
+    columns_list_dg = {column.dg_id for column in columns_list}
+
+    for dg in columns_list_dg:
+        info_dg['Data Group ({})'.format(dg)], result_dg['Data Group ({})'.format(dg)] = visualizeSingleDataGroup(dg,
+                                                                                                                  mapping_list,
+                                                                                                                  experiment)
+
+    return {'data': result_dg, 'info': info_dg}
 
 
 class Consistency:
