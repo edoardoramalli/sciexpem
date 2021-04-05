@@ -7,6 +7,7 @@ from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, 
 from ReSpecTh.FuelValid import ValidFuel
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 import ExperimentManager.Models.Tool as Tool
+from ExperimentManager.Models import ExperimentInterpreter
 
 from enum import Enum
 import functools
@@ -29,8 +30,6 @@ class Experiment(models.Model):
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, default=None, null=True, related_name="children")
-
     comment = models.CharField(max_length=280, blank=True, null=True)
 
     # Meta Data
@@ -48,6 +47,8 @@ class Experiment(models.Model):
     p_sup = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=3, null=True, blank=True)  # is checked
 
     username = models.CharField(max_length=75, blank=True, null=True)
+
+    experiment_interpreter = models.ForeignKey(ExperimentInterpreter, on_delete=models.SET_NULL, default=None, null=True)
 
     def check_fields(self):
         experiment_type = self.experiment_type
@@ -197,10 +198,51 @@ class Experiment(models.Model):
                 if names_data_columns != mapping_set:
                     continue
                 else:
-                    result = exp_type.name
+                    result = exp_type
 
         return result
 
     @property
-    def experiment_interpreter(self):
-        return self.run_experiment_interpreter()
+    def interpreter(self):
+        if self.experiment_interpreter is None:
+            self.experiment_interpreter = self.run_experiment_interpreter()
+            self.save()
+            return self.experiment_interpreter
+        else:
+            return self.experiment_interpreter
+
+    @property
+    def interpreter_name(self):
+        if self.interpreter is None:
+            return None
+        else:
+            return self.interpreter.name
+
+    def compare_equality(self, other, prop) -> bool:
+        if prop == 'InitialSpecie':
+            list_element_other = other.initial_species.all()
+            list_element = self.initial_species.all()
+        elif prop == 'CommonProperty':
+            list_element_other = other.common_properties.all()
+            list_element = self.common_properties.all()
+        else:
+            raise Exception
+
+        dict_element_other = [{'name': element.name, 'units': element.units, 'value': element.value} for element in list_element_other]
+        dict_element = [{'name': element.name, 'units': element.units, 'value': element.value} for element in list_element]
+
+        unique = []
+        if len(dict_element_other) == len(dict_element):
+            for element in dict_element:
+                if element in dict_element_other:
+                    unique.append(True)
+                    continue
+                else:
+                    unique.append(False)
+                    break
+
+        return all(unique)
+
+
+
+

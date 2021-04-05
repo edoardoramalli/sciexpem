@@ -1,12 +1,11 @@
 from django.db import models
-import ExperimentManager.Models as Model
-
+from ExperimentManager.Models import ExperimentInterpreter
 
 class RuleInterpreter(models.Model):
     model_name = models.CharField(max_length=100)
     property_name = models.CharField(max_length=100)
     property_value = models.CharField(max_length=100)
-    experiment_interpreter = models.ForeignKey(Model.ExperimentInterpreter, on_delete=models.CASCADE,
+    experiment_interpreter = models.ForeignKey('ExperimentInterpreter', on_delete=models.CASCADE,
                                                related_name="rules")
 
     def save(self, *args, **kwargs):

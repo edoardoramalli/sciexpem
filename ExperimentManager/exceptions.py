@@ -31,3 +31,8 @@ class MandatoryFieldError(Exception):
 class ExperimentConsistencyError(Exception):
     def __init__(self, message):
         super().__init__("Experiment Consistency Error. " + message)
+
+
+class ChemModelError(Exception):
+    def __init__(self, message):
+        super().__init__("ChemModel Error. " + message)

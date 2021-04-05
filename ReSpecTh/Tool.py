@@ -94,9 +94,9 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
 
 def visualizeExperiment(experiment) -> dict:
     #  experiment status is assumed to be managed
-    experiment_interpreter = Models.ExperimentInterpreter.objects.get(name=experiment.experiment_interpreter)
+    experiment_interpreter = experiment.interpreter
 
-    mapping_list = Models.MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
+    mapping_list = experiment_interpreter.mappings.all()
 
     result_dg = {}
 

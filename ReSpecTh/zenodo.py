@@ -27,6 +27,7 @@ def reserved_doi():
 
     return bucket, publish, prereserve_doi, deposition_id
 
+
 def upload_respecth(file_string, doi, bucket_url):
     try:
         filename = doi + '.xml'
@@ -34,6 +35,7 @@ def upload_respecth(file_string, doi, bucket_url):
         r = requests.put("%s/%s" % (bucket_url, filename), data=file_like, params=params, )
     except Exception:
         raise ZenodoError('Error uplaoding file.')
+
 
 def update_description(title, description, deposition_id):
     try:

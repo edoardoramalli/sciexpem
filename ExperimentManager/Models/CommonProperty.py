@@ -54,3 +54,4 @@ class CommonProperty(models.Model):
     def save(self, *args, **kwargs):
         self.check_fields()
         super().save(*args, **kwargs)
+

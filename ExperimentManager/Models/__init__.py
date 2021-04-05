@@ -1,4 +1,8 @@
 from .FilePaper import FilePaper
+
+from .ExperimentInterpreter import ExperimentInterpreter
+from .RuleInterpreter import RuleInterpreter
+from .MappingInterpreter import MappingInterpreter
 from .Experiment import Experiment
 from .DataColumn import DataColumn
 from .CommonProperty import CommonProperty
@@ -7,6 +11,4 @@ from .ChemModel import ChemModel
 from .Execution import Execution
 from .ExecutionColumn import ExecutionColumn
 from .CurveMatchingResult import CurveMatchingResult
-from .ExperimentInterpreter import ExperimentInterpreter
-from .RuleInterpreter import RuleInterpreter
-from .MappingInterpreter import MappingInterpreter
+

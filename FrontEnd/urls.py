@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"),
     path('api/opensmoke/fuels_names', views.fuels_names, name="fuels-names"),
     path('api/get_experiment_type_list', views.get_experiment_type_list, name="get_experiment_type_list"),
+    path('api/get_chemModel_version_list', views.get_chemModel_version_list, name='get_chemModel_version_list'),
     path('api/get_username', views.get_username, name="get_username"),
 
     path('api/get_experiment_data_columns/<int:pk>', views.get_experiment_data_columns, name="get_experiment_data_columns"),

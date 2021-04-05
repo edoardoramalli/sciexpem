@@ -1,4 +1,4 @@
-from ExperimentManager.Models import *
+import ExperimentManager.Models as Model
 from SciExpeM.checkPermissionGroup import HasGroupPermission
 from FrontEnd import utils
 from rest_framework import generics, status
@@ -56,7 +56,7 @@ def create_header(column):
 def get_experiment_data_columns(request, pk):
     try:
         data_group = request.data['params']['type']
-        data_columns = DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
+        data_columns = Model.DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
         if data_columns.exists():
             header = [create_header(column) for column in data_columns]
 
@@ -86,6 +86,15 @@ def get_experiment_type_list(request):
 def get_reactor_type_list(request):
     reactor_type_list = ReSpecThValidReactorType().reactor_type
     return JsonResponse({"reactor_type_list": reactor_type_list})
+
+
+@api_view(['GET'])
+def get_chemModel_version_list(request):
+    versions = []
+    with open(os.path.join(settings.BASE_DIR, "Files/model_version"), "r") as file:
+        for line in file:
+            versions.append(line.strip())
+    return JsonResponse({"chemModel_version": versions})
 
 
 @api_view(['GET'])
