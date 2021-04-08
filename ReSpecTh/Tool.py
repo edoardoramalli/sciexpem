@@ -275,13 +275,9 @@ def pairExecutionExperiment(execution, mapping, consistency):
 def visualizeExecution(execution, consist=None) -> dict:
     #  experiment status is assumed to be managed
 
-    experiment_interpreter = Models.ExperimentInterpreter.objects.get(name=execution.experiment.experiment_interpreter)
-
-    mapping_list = Models.MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
-
     consistency = Consistency() if consist is None else consist
 
-    for mapping in mapping_list:
+    for mapping in execution.experiment.experiment_interpreter.mappings.all():
         result = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
 
         if not result['valid']:

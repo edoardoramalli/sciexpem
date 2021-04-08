@@ -12,5 +12,6 @@ urlpatterns = [
     path('API/getCurveMatching', Views.getCurveMatching.as_view(), name="getExecution"),
     path('API/insertElement', Views.insertElement.as_view(), name="insertElement"),
     path('API/prova', Views.prova.as_view(), name="prova"),
+    path('API/getSimulation', Views.getSimulation.as_view(), name="getSimulation"),
 ]
 

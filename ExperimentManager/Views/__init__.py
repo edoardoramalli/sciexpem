@@ -8,3 +8,4 @@ from .verifyExperiment import verifyExperiment
 from .getCurveMatching import getCurveMatching
 from .insertElement import insertElement
 from .prova import prova
+from .getSimulation import getSimulation

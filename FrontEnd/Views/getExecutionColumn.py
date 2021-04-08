@@ -13,15 +13,10 @@ import json
 import pandas as pd
 
 def supportGetExecutionColumn(execution):
-    experiment = execution.experiment
-
-    experiment_interpreter = experiment.experiment_interpreter
-
-    mappings = Models.MappingInterpreter.objects.filter(experiment_interpreter__name=experiment_interpreter)
 
     result = {}
 
-    for mapping in mappings:
+    for mapping in execution.experiment.experiment_interpreter.mappings.all():
         file = mapping.file
         y_sim_name = mapping.y_sim_name
         y_sim_location = mapping.y_sim_location

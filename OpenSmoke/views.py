@@ -70,10 +70,9 @@ def startSimulation(request):
                                      username=username)
                 new_exec.save()
 
-                solver = ExperimentInterpreter.objects.get(name=exp.experiment_interpreter).solver
+                solver = exp.experiment_interpreter.solver
 
-                mapping_files = list(set([mapping.file for mapping in MappingInterpreter.objects.filter(
-                    experiment_interpreter__name=exp.experiment_interpreter)]))
+                mapping_files = list(set([mapping.file for mapping in exp.experiment_interpreter.mappings.all()]))
 
                 Thread(target=OpenSmokeExecutor.execute,
                        args=(experiment_id, model_id, new_exec.id, solver, mapping_files)).start()

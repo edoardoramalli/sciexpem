@@ -16,6 +16,26 @@ __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
+def getColumnNameSimulator(experiment):
+    interpreter = experiment.interpreter
+    mappings = interpreter.mappings.all()
+    mappings_name = set([])
+    for mapping in mappings:
+        y_name = mapping.y_sim_name
+        if y_name == 'composition_x':
+            columns = experiment.data_columns.all()
+            composition = [column.label[column.label.find("[") + 1:column.label.find("]")] + '_x' for column in columns if
+                   column.name == 'composition']
+            for comp in composition:
+                mappings_name.add(comp)
+        else:
+            mappings_name.add(y_name)
+        x_name = mapping.x_sim_name
+        mappings_name.add(x_name)
+
+    print(mappings_name)
+
+
 class OpenSmokeParser:
     def __init__(self):
         pass
@@ -87,7 +107,13 @@ class OpenSmokeExecutor:
     @staticmethod
     def createExecutionColumn(dataframe, units, file_name, execution):
         list_header = list(dataframe)
-        for header in list_header:
+        list_allowed = set([])
+        for mapping in execution.experiment.experiment_interpreter.mappings.all():
+            list_allowed.add(mapping.x_sim_name)
+            list_allowed.add(mapping.y_sim_name)
+        list_allowed = list(list_allowed)
+        # TODO if list_allowed is not in list_header
+        for header in list_allowed:
             data = Model.ExecutionColumn(label=header,
                                          units=units[header],
                                          data=list(dataframe[header]),
@@ -155,7 +181,6 @@ class OpenSmokeExecutor:
 
                 process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
                 output, error = process.communicate()
-
 
                 if not error:
                     execution = Model.Execution.objects.get(id=execution_id)

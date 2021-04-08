@@ -2,6 +2,7 @@
 import sys
 import pathlib
 import os
+from statistics import mean
 
 # Third parties Packages
 from ctypes import c_int, c_double, c_int16, c_void_p, c_char_p, byref, cdll
@@ -127,7 +128,7 @@ class CurveMatching:
         try:
             c_library = cdll.LoadLibrary(library_path)
         except OSError:
-            raise OSError("Unable to load the system C library.")
+            raise OSError("Unable to load the system C library")
 
         c_library.curveMatching.argtypes = [c_int,
                                             c_int,
@@ -145,7 +146,7 @@ class CurveMatching:
                                             c_int16,
                                             c_int,
                                             c_int16,
-                                            # c_void_p,
+                                            c_void_p,
                                             c_void_p,
                                             c_void_p,
                                             c_void_p,
@@ -185,13 +186,14 @@ class CurveMatching:
         if len(set(y_sim)) == 1:
             return -3, 0
 
-        # return_array_indexes = (c_double * (self.numberOfBootstrapVariations * n_models * n_indexes))()
+        return_array_indexes = (c_double * (parameters.numberOfBootstrapVariations * n_models * n_indexes))()
         return_array_scores = (c_double * n_models)()
         return_array_errors = (c_double * n_models)()
 
         experiment_diz = CurveMatching.my_zip(x_list=x_exp, y_list=y_exp)
         experiment_error_diz = CurveMatching.my_zip(x_list=x_exp,
-                                                    y_list=[parameters.defaultRelativeError] * len(x_exp) if uncertainty == [] else uncertainty)
+                                                    y_list=[parameters.defaultRelativeError] * len(
+                                                        x_exp) if uncertainty == [] else uncertainty)
 
         sim_diz = CurveMatching.my_zip(x_list=x_sim, y_list=y_sim)
 
@@ -220,7 +222,7 @@ class CurveMatching:
             c_int16(parameters.useSumOfIndexesForAlignment),
             c_int(parameters.numberOfTrapezoids),
             c_int16(calculate_shift),
-            # ctypes.byref(return_array_indexes),
+            byref(return_array_indexes),
             byref(return_array_scores),
             byref(return_array_errors),
             x_experiment,
@@ -231,11 +233,26 @@ class CurveMatching:
             c_int(len(sim_diz.keys())),
             relative_error)
 
-        # indexes = [x for x in return_array_indexes]
+        indexes = [x for x in return_array_indexes]
         score = return_array_scores[0]
         error = return_array_errors[0]
 
-        if verbose:
-            print("Curve Matching - Score: ", score, " - Error: ", error)
+        indexes = \
+            {'score': score,
+             'error': error,
+             'd0L2': mean(indexes[0: parameters.numberOfBootstrapVariations]),
+             'd1L2': mean(indexes[
+                          1 * parameters.numberOfBootstrapVariations: 2 * parameters.numberOfBootstrapVariations]),
+             'd0Pe': mean(indexes[
+                          2 * parameters.numberOfBootstrapVariations: 3 * parameters.numberOfBootstrapVariations]),
+             'd1Pe': mean(indexes[
+                          3 * parameters.numberOfBootstrapVariations: 4 * parameters.numberOfBootstrapVariations]),
+             'shift': mean(indexes[
+                           4 * parameters.numberOfBootstrapVariations: 5 * parameters.numberOfBootstrapVariations])}
 
-        return score, error
+        if verbose:
+            print('Curve Matching:')
+            for key, value in indexes.items():
+                print('\t\t\t\t{}: {}'.format(key, value))
+
+        return indexes

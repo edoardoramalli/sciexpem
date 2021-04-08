@@ -1,6 +1,7 @@
 from django.db import models
 from ExperimentManager.Models import ExperimentInterpreter
 
+
 class RuleInterpreter(models.Model):
     model_name = models.CharField(max_length=100)
     property_name = models.CharField(max_length=100)
