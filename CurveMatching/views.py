@@ -17,6 +17,7 @@ from CurveMatching.CurveMatching import executeCurveMatching as ExeCM
 
 # Logging
 import logging
+
 logger = logging.getLogger("CurveMatching")
 logger.addHandler(CurveMatching.apps.logger_handler)
 logger.setLevel(logging.INFO)
@@ -32,15 +33,16 @@ def executeCurveMatching(request):
         y_sim = params['y_sim']
         x_exp = params['x_exp']
         y_exp = params['y_exp']
-        uncertainty = json.loads(params['uncertainty'][0])
-        configuration = json.loads(params['configuration'][0])
 
-        score, error = ExeCM(x_exp=x_exp, y_exp=y_exp,
-                             x_sim=x_sim, y_sim=y_sim,
-                             uncertainty=uncertainty, **configuration)
+        uncertainty = json.loads(params['uncertainty'])
+        configuration = json.loads(params['configuration'])
+
+        result = ExeCM(x_exp=x_exp, y_exp=y_exp,
+                       x_sim=x_sim, y_sim=y_sim,
+                       uncertainty=uncertainty, **configuration)
 
         logger.info(f'{username} - Simulation Start')
-        return Response(json.dumps({'score': score, 'error': error}), status=HTTP_200_OK)
+        return Response(json.dumps(result), status=HTTP_200_OK)
 
     except FileNotFoundError as e:
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="executeCurveMatching: " + str(e))

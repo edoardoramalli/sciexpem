@@ -205,8 +205,10 @@ class Experiment(models.Model):
     @property
     def interpreter(self):
         if self.experiment_interpreter is None:
-            self.experiment_interpreter = self.run_experiment_interpreter()
-            self.save()
+            new_type = self.run_experiment_interpreter()
+            if new_type:
+                self.experiment_interpreter = new_type
+                self.save()
             return self.experiment_interpreter
         else:
             return self.experiment_interpreter

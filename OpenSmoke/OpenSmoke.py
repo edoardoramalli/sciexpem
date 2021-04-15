@@ -85,18 +85,22 @@ class OpenSmokeParser:
         """
         output_string = ""
         kinetics = False
-        reaction_names = False
+        output = False
+        string = string.strip()
         for line in string.split("\n"):
-            if "@KineticsFolder" in line:
+            if "@KineticsFolder" in line.split():
                 kinetics = True
                 output_string += "\t\t@KineticsFolder\t\t\t $PATHKINETICFOLDER$;" + "\n"
-            elif "@OutputFolder" in line:
-                reaction_names = True
+            elif "@OutputFolder" in line.split():
+                output = True
                 output_string += "\t\t@OutputFolder\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
+            elif "@Output" in line.split():
+                output = True
+                output_string += "\t\t@Output\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
             else:
                 output_string += line + "\n"
 
-        if not (kinetics and reaction_names):
+        if not (kinetics and output):
             raise OpenSmokeWrongInputFile
 
         return output_string

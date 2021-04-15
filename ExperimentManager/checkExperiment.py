@@ -14,7 +14,7 @@ def checkIDT(experiment):
 
 def checkInitialSpecies(experiment):
     initial_species = experiment.initial_species.all()
-    if len(initial_species) == 0:
+    if len(initial_species) == 0 and experiment.experiment_type != 'laminar burning velocity measurement':
         raise ExperimentConsistencyError('No initial species.')
 
     units_initial_species = set([])
