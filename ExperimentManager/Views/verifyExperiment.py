@@ -20,12 +20,12 @@ class verifyExperiment(View.ExperimentManagerBaseView):
         zenodo = False
         try:
             with transaction.atomic():
-                exp = Experiment.objects.get(pk=self.exp_id)
+                exp = Experiment.objects.select_for_update().get(pk=self.exp_id)
                 exp.status = self.status
 
                 # Update the DOI
                 if self.status == 'verified' and (exp.fileDOI is None or exp.fileDOI.startswith('tmp') or not exp.xml_file):
-                    # TODO da unificare
+                    # TODO da unificare reserv con description
                     bucket_url, publish_url, doi, deposition_id = reserved_doi()
                     zenodo = True
                     update_description(title=doi,

@@ -31,7 +31,7 @@ def checkInitialSpecies(experiment):
 
 def checkProfiles(experiment, profile_list, dg_dict):
     # Only for specific reactor or combination of reactor and experiment type you can have a profile
-    if profile_list and experiment.reactor not in ['rapid compression machine']:
+    if profile_list and experiment.reactor not in ['rapid compression machine', 'shock tube', 'flow reactor']:
         raise ExperimentConsistencyError(
             'Profile data groups is not defined for {} reactor.'.format(experiment.reactor))
 
@@ -41,7 +41,7 @@ def checkProfiles(experiment, profile_list, dg_dict):
         raise ExperimentConsistencyError('Too many data groups for an experiment with a profile.')
 
     if not profile_list and 'initial_condition' in dg_label:
-        raise ExperimentConsistencyError('Too many data groups for an experiment with a profile.')
+        raise ExperimentConsistencyError('Missing profile for experiment with a initial condition measured data.')
 
     # If there are two profile then 1 can be an initial_condition
     if profile_list and len(dg_label) == 2 and not set(dg_label) == {'experimental_data', 'initial_condition'}:
@@ -52,6 +52,45 @@ def checkProfiles(experiment, profile_list, dg_dict):
 
     if len(set(profile_type)) > 1:
         raise ExperimentConsistencyError('Profile data groups have different types.')
+
+    profile_coverage = {}
+    # I profili dello stesso dg devono avere la stessa coverage
+    # Nella coverage di un profilo non ci devono essere elementi duplicati
+    for profile in profile_list:
+        if profile.dg_id not in profile_coverage:
+            coverage = profile.data_group_profile
+            if len(set(coverage)) != len(coverage):
+                raise ExperimentConsistencyError('Profiles coverage with duplicates points')
+            profile_coverage[profile.dg_id] = coverage
+        else:
+            if len(profile_coverage[profile.dg_id]) != len(profile.data_group_profile):
+                raise ExperimentConsistencyError('Profiles belonging to the same data group have different data length')
+            if set(profile_coverage[profile.dg_id]) != set(profile.data_group_profile):
+                raise ExperimentConsistencyError('Profiles belonging to the same data group with different coverage')
+
+    # Se ho un profilo, tutti i data group devono avere la stessa lunghezza e
+    if profile_list:
+        dg_length = []
+        for dg in dg_dict:
+            for column in dg_dict[dg]:
+                dg_length.append(len(column.data))
+
+        if len(set(dg_length)) != 1:
+            raise ExperimentConsistencyError(
+                'All the data group when there is a profile should have the same data length')
+
+        # Non ci devono essere interesezioni tra i profili
+
+        profile_coverage_frequency = set([])
+        for profile in profile_coverage:
+            if profile_coverage_frequency.intersection(set(profile_coverage[profile])):
+                raise ExperimentConsistencyError('A data point has multiple profiles.')
+            else:
+                profile_coverage_frequency = profile_coverage_frequency.union(set(profile_coverage[profile]))
+
+        if set([str(x) for x in range(1, dg_length[0] + 1)]) != profile_coverage_frequency:
+            raise ExperimentConsistencyError(
+                'A data point has not a profile or there is more coverage than data point.')
 
 
 def checkUnique(experiment):

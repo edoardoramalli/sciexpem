@@ -29,7 +29,7 @@ class updateElement(View.ExperimentManagerBaseView):
 
         try:
             with transaction.atomic():
-                element = model.objects.get(pk=self.element_id)
+                element = model.objects.select_for_update().get(pk=self.element_id)
                 for prop in self.property_dict:
                     if prop in element.__dict__:
                         setattr(element, prop, self.property_dict[prop])

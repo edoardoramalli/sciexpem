@@ -58,6 +58,14 @@ class DataColumn(models.Model):
         dg_label = text_dict.get('dg_label')
         species = text_dict.get('species')
         data_group_profile = text_dict.get('data_group_profile')
+        if data_group_profile:
+            tmp = []
+            for e in data_group_profile:
+                if e.isdigit():
+                    tmp.append(str(int(e)))
+                else:
+                    raise ValueError('Data type in profile not supported yet.')
+            data_group_profile = tmp
         uncertainty_kind = text_dict.get('uncertainty_kind')
         uncertainty_bound = text_dict.get('uncertainty_bound')
         uncertainty_reference = text_dict.get('uncertainty_reference')
