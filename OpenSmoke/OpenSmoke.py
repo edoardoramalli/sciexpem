@@ -24,8 +24,9 @@ def getColumnNameSimulator(experiment):
         y_name = mapping.y_sim_name
         if y_name == 'composition_x':
             columns = experiment.data_columns.all()
-            composition = [column.label[column.label.find("[") + 1:column.label.find("]")] + '_x' for column in columns if
-                   column.name == 'composition']
+            composition = [column.label[column.label.find("[") + 1:column.label.find("]")] + '_x' for column in columns
+                           if
+                           column.name == 'composition']
             for comp in composition:
                 mappings_name.add(comp)
         else:
@@ -76,6 +77,27 @@ class OpenSmokeParser:
         return df, prop
 
     @staticmethod
+    def check_input_string(string: str) -> dict:
+        string = string.strip()
+        KineticsFolder, OutputFolder, Output, ListOfProfiles, Profile = False, False, False, False, False
+        if "@KineticsFolder" in string:
+            KineticsFolder = True
+        if "@OutputFolder" in string:
+            OutputFolder = True
+        if "@Output" in string:
+            Output = True
+        if "@ListOfProfiles" in string:
+            ListOfProfiles = True
+        if "@Profile" in string:
+            Profile = True
+
+        return {'KineticsFolder': KineticsFolder,
+                'OutputFolder': OutputFolder,
+                'Output': Output,
+                'ListOfProfiles': ListOfProfiles,
+                'Profile': Profile}
+
+    @staticmethod
     def parse_input_string(string: str) -> str:
         """
         Given a generic input OS file generate the template usable for every model changing
@@ -97,11 +119,16 @@ class OpenSmokeParser:
             elif "@Output" in line.split():
                 output = True
                 output_string += "\t\t@Output\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
+            elif "@ListOfProfiles" in line.split():
+                output_string += "\t\t@ListOfProfiles\t\t\t $LISTPROFILE$;" + "\n"
+            elif "@Profile" in line.split():
+                output_string += "\t\t@Profile\t\t\t $PROFILE$;" + "\n"
             else:
                 output_string += line + "\n"
 
         if not (kinetics and output):
-            raise OpenSmokeWrongInputFile
+            raise OpenSmokeWrongInputFile(
+                'Missing @KineticsFolder keyword' if not kinetics else 'Missing @Output keyword')
 
         return output_string
 

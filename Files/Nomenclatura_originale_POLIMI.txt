@@ -485,4 +485,11 @@ C19H35O6           qperoxy_radical_methyl_oleate                               Z
 C19H37O2           Methyl-stearate_radicals                                    RSTEAX            
 C19H37O4           MSTEA_peroxy_radicals                                       RMSTEAOOX         
 C19H37O4           MSTEA_alkylhydroperoxy_radicals                             QMSTEAOOH         
-C19H37O6           MSTEA_peroxyalkylhydroperoxy_radicals                       ZMSTEAOOH         
+C19H37O6           MSTEA_peroxyalkylhydroperoxy_radicals                       ZMSTEAOOH
+H2S1               tmp_1                                                       H2S
+S1O2               tmp_2                                                       SO2
+C1H2O2             tmp_3                                                       HOCHO
+C1H2O3             tmp_4                                                       HO2CHO
+C1H2O3             tmp_5                                                       HOCOOH
+C1S2               tmp_6                                                       CS2
+S2                 tmp_7                                                       S2

@@ -1,5 +1,6 @@
 from ExperimentManager.exceptions import *
 import ExperimentManager.Models as Models
+from OpenSmoke.OpenSmoke import OpenSmokeParser
 
 
 def checkIDT(experiment):
@@ -104,9 +105,31 @@ def checkUnique(experiment):
         for possible in possible_equal:
             initial_equal = experiment.compare_equality(other=possible, prop='InitialSpecie')
             common_equal = experiment.compare_equality(other=possible, prop='CommonProperty')
+            print('EDO', initial_equal, common_equal)
             if initial_equal and common_equal:
                 raise ExperimentConsistencyError(
                     'Duplicate Experiment (ID: {}, DOI: {})'.format(possible.id, possible.fileDOI))
+
+
+def check_OS_input_file(experiment, profile_list):
+    os_file_string = experiment.os_input_file
+
+    if not os_file_string:
+        raise ExperimentConsistencyError('OpenSmoke input file is empty.')
+
+    check_result = OpenSmokeParser.check_input_string(experiment.os_input_file)
+
+    KineticsFolder = check_result['KineticsFolder']
+    OutputFolder = check_result['OutputFolder']
+    Output = check_result['Output']
+    ListOfProfiles = check_result['ListOfProfiles']
+    Profile = check_result['Profile']
+
+    if not (KineticsFolder and (OutputFolder or Output)):
+        raise ExperimentConsistencyError('OpenSmoke input missing @KineticsFolder or @Output keyword.')
+
+    if bool(len(profile_list)) != (ListOfProfiles or Profile):
+        raise ExperimentConsistencyError('Inconsistency between the profile data and OS input profile keyword.')
 
 
 def checkExperiment(experiment):
@@ -149,6 +172,7 @@ def checkExperiment(experiment):
                 dg_dict[column.dg_id].append(column)
 
     checkProfiles(experiment=experiment, profile_list=profile_list, dg_dict=dg_dict)
+    check_OS_input_file(experiment=experiment, profile_list=profile_list)
 
     # Uncertainty length and units must be the same of the referred property. If relative 0 <= x <= 1.
     for uncertainty in uncertainty_list:

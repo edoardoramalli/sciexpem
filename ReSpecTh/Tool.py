@@ -54,6 +54,21 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
 
         for y_element in y_dataColumn:
 
+            uncertainty = y_element.uncertainty_reference
+
+            uncertainty_dict = {}
+
+            if uncertainty:
+                uncertainty_dict['visible'] = True
+                if uncertainty.uncertainty_kind == 'relative':
+                    uncertainty_dict['type'] = 'percent'
+                    uncertainty_dict['array'] = [float(x) * 100 for x in uncertainty.data]
+                else:
+                    # C'è da applicare le transformation
+                    pass
+
+
+
             y = applyTransformation(list(y_element.data), y_transformation)
 
             x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
@@ -83,9 +98,10 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
             else:
                 name = 'No Name'
 
-            result.append({'x': x, 'y': y,
-                           'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                           'name': name})
+            tmp = {'x': x, 'y': y, 'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10}, 'name': name}
+            if uncertainty:
+                tmp['error_y'] = uncertainty_dict
+            result.append(tmp)
 
         # TODO devono avere stessa unita
 

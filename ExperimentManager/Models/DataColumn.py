@@ -24,6 +24,7 @@ class DataColumn(models.Model):
     source_type = models.CharField(max_length=15)
 
     # Optional - Checked
+    # TODO aggiungere controllo che label e species siano uguali
     label = models.CharField(max_length=100, null=True, blank=True)
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
 
@@ -123,6 +124,10 @@ class DataColumn(models.Model):
         if not validatorProperty.isValid(unit=unit, name=name):
             raise ConstraintFieldExperimentError(
                 "Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
+        if (label == 'composition' or label == 'concentration') and species is None:
+            raise ConstraintFieldExperimentError(
+                "The label is composition or concentration but no specie is specified!")
+        # TODO Accordance between species array and label
         if label \
                 and name != 'composition' \
                 and name != 'concentration' \

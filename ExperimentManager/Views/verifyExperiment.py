@@ -26,6 +26,7 @@ class verifyExperiment(View.ExperimentManagerBaseView):
                 # Update the DOI
                 if self.status == 'verified' and (exp.fileDOI is None or exp.fileDOI.startswith('tmp') or not exp.xml_file):
                     # TODO da unificare reserv con description
+                    # TODO inserire un nuovo controllo dell'experimento
                     bucket_url, publish_url, doi, deposition_id = reserved_doi()
                     zenodo = True
                     update_description(title=doi,

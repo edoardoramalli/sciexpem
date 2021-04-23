@@ -140,8 +140,11 @@ class Experiment(models.Model):
         data_columns = text_dict['data_columns']
         tmp1 = functools.reduce(operator.iconcat, [Model.DataColumn.createDataColumn(column, exp) for column in data_columns], [])
 
-        common_properties = text_dict['common_properties']
-        tmp2 = [Model.CommonProperty.createCommonProperty(prop, exp) for prop in common_properties]
+        common_properties = text_dict.get('common_properties')
+        if common_properties:
+            tmp2 = [Model.CommonProperty.createCommonProperty(prop, exp) for prop in common_properties]
+        else:
+            tmp2 = []
 
         initial_species = text_dict['initial_species']
         tmp3 = [Model.InitialSpecie.createInitialSpecie(init, exp) for init in initial_species]
@@ -179,6 +182,7 @@ class Experiment(models.Model):
         # Rispettare le regole
         types_list = Model.ExperimentInterpreter.objects.all()
         names_data_columns = set([column.name for column in self.data_columns.all()])
+        names_data_columns.discard('uncertainty')
 
         result = None
         for exp_type in types_list:
@@ -242,8 +246,11 @@ class Experiment(models.Model):
                 else:
                     unique.append(False)
                     break
+            return all(unique)
+        else:
+            return False
 
-        return all(unique)
+
 
 
 

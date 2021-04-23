@@ -16,7 +16,10 @@ def create_header(column):
         if column.name != 'uncertainty':
             text = column.name + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
         else:
-            text = column.name + " [" + column.units + "]" + " --> " + str(column.uncertainty.name) + " (" + str(
+            name = str(column.uncertainty.name)
+            if name == 'composition':
+                name = column.uncertainty.label
+            text = column.name + " [" + column.units + "]" + " --> " + name + " (" + str(
                 column.source_type) + ", " + str(column.uncertainty_kind) + ", " + str(
                 column.uncertainty_bound) + ")"
     else:
@@ -88,4 +91,3 @@ class getRawData(View.FrontEndBaseView):
         # return Response({"header": columns, "data": content}, status=HTTP_200_OK)
 
         return Response(result_dg, status=HTTP_200_OK)
-
