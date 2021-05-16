@@ -23,7 +23,7 @@ class insertElement(View.ExperimentManagerBaseView):
     def view_post(self, request):
         username = request.user.username
 
-        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment']
+        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment', 'Specie']
 
         self.property_dict = json.loads(self.property_dict)
 

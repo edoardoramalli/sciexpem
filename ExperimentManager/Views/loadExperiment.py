@@ -93,7 +93,7 @@ def respecth_text_to_experiment(username, file):
                 ip = InitialSpecie(experiment=e, **i)
                 ip.save()
 
-            checkExperiment(e)
+            checkExperiment(e, opensmoke=False)
 
 
 class loadExperiment(View.ExperimentManagerBaseView):

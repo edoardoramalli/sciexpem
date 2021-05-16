@@ -13,5 +13,7 @@ urlpatterns = [
     path('API/insertElement', Views.insertElement.as_view(), name="insertElement"),
     path('API/prova', Views.prova.as_view(), name="prova"),
     path('API/getSimulation', Views.getSimulation.as_view(), name="getSimulation"),
+    path('API/getReportSimulation', Views.getReportSimulation.as_view(), name="getReportSimulation"),
+
 ]
 

@@ -12,3 +12,5 @@ from .Execution import Execution
 from .ExecutionColumn import ExecutionColumn
 from .CurveMatchingResult import CurveMatchingResult
 
+from .Specie import Specie
+

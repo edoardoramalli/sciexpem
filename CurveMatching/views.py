@@ -14,6 +14,8 @@ import json
 import CurveMatching
 from SciExpeM.checkPermissionGroup import user_in_group
 from CurveMatching.CurveMatching import executeCurveMatching as ExeCM
+from CurveMatching.CurveMatching import curveMatchingExecution
+import ExperimentManager.Models as Models
 
 # Logging
 import logging
@@ -59,4 +61,37 @@ def executeCurveMatching(request):
 
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                         data="executeCurveMatching: Generic error. "
+                             + str(err_type.__name__) + " : " + str(value))
+
+
+@api_view(['POST'])
+@user_in_group("EXECUTE")
+def createUpdateExecutionCurveMatching(request):
+    params = dict(request.data)
+    try:
+        execution_id = int(params['execution_id'])
+
+        exec = Models.Execution.objects.get(id=execution_id)
+
+        if exec:
+            curveMatchingExecution(current_execution=exec)
+            return Response(status=HTTP_200_OK)
+        else:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="createUpdateExecutionCurveMatching: Execution not found.")
+
+    except FileNotFoundError as e:
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="createUpdateExecutionCurveMatching: " + str(e))
+
+    except OSError as e:
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR, data="createUpdateExecutionCurveMatching: " + str(e))
+
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="createUpdateExecutionCurveMatching: KeyError in HTTP parameters. Missing parameter.")
+    except Exception as e:
+        err_type, value, traceback = sys.exc_info()
+
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="createUpdateExecutionCurveMatching: Generic error. "
                              + str(err_type.__name__) + " : " + str(value))

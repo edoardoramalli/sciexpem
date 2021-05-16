@@ -18,12 +18,12 @@ def create_header(column):
         else:
             name = str(column.uncertainty.name)
             if name == 'composition':
-                name = column.uncertainty.label
+                name = ','.join(column.uncertainty.species)
             text = column.name + " [" + column.units + "]" + " --> " + name + " (" + str(
                 column.source_type) + ", " + str(column.uncertainty_kind) + ", " + str(
                 column.uncertainty_bound) + ")"
     else:
-        text = column.label + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
+        text = ','.join(column.species) + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
     return text
 
 

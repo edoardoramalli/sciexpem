@@ -103,7 +103,7 @@ class DataColumn(models.Model):
         uncertainty_bound = self.uncertainty_bound
         dg_label = self.dg_label  # For sure is not empty
 
-        if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'experimental_data', 'initial_condition']:
+        if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'T-l history', 'experimental_data', 'initial_condition']:
             raise ConstraintFieldExperimentError("Data Group Label not valid")
         if uncertainty:
             if bool(uncertainty_kind) != bool(uncertainty_bound):
@@ -128,6 +128,9 @@ class DataColumn(models.Model):
             raise ConstraintFieldExperimentError(
                 "The label is composition or concentration but no specie is specified!")
         # TODO Accordance between species array and label
+        if name == 'composition' or name == 'concentration':
+            self.label = '[' + ','.join(species) + ']'
+
         if label \
                 and name != 'composition' \
                 and name != 'concentration' \

@@ -36,3 +36,8 @@ class ExperimentConsistencyError(Exception):
 class ChemModelError(Exception):
     def __init__(self, message):
         super().__init__("ChemModel Error. " + message)
+
+
+class SpecieConsistencyError(Exception):
+    def __init__(self, message):
+        super().__init__("Specie Consistency Error. " + message)

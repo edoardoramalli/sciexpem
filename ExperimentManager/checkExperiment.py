@@ -105,7 +105,6 @@ def checkUnique(experiment):
         for possible in possible_equal:
             initial_equal = experiment.compare_equality(other=possible, prop='InitialSpecie')
             common_equal = experiment.compare_equality(other=possible, prop='CommonProperty')
-            print('EDO', initial_equal, common_equal)
             if initial_equal and common_equal:
                 raise ExperimentConsistencyError(
                     'Duplicate Experiment (ID: {}, DOI: {})'.format(possible.id, possible.fileDOI))
@@ -132,7 +131,7 @@ def check_OS_input_file(experiment, profile_list):
         raise ExperimentConsistencyError('Inconsistency between the profile data and OS input profile keyword.')
 
 
-def checkExperiment(experiment):
+def checkExperiment(experiment, opensmoke=True):
     # ---> Unique: if different experiment_type, reactor, or paper doi. Then check initial species and common property
     checkUnique(experiment=experiment)
 
@@ -163,7 +162,7 @@ def checkExperiment(experiment):
     for column in data_columns:
         if column.uncertainty_kind:
             uncertainty_list.append(column)
-        elif column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history']:
+        elif column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history', 'T-l history']:
             profile_list.append(column)
         else:
             if column.dg_id not in dg_dict:
@@ -172,7 +171,9 @@ def checkExperiment(experiment):
                 dg_dict[column.dg_id].append(column)
 
     checkProfiles(experiment=experiment, profile_list=profile_list, dg_dict=dg_dict)
-    check_OS_input_file(experiment=experiment, profile_list=profile_list)
+
+    if opensmoke:
+        check_OS_input_file(experiment=experiment, profile_list=profile_list)
 
     # Uncertainty length and units must be the same of the referred property. If relative 0 <= x <= 1.
     for uncertainty in uncertainty_list:

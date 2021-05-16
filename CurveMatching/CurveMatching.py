@@ -40,34 +40,45 @@ def curveMatchingExecution(current_execution):
 
     for mapping in mappings_list:
 
-        result = pairExecutionExperiment(execution=current_execution, mapping=mapping, consistency=consistency)
+        results = pairExecutionExperiment(execution=current_execution, mapping=mapping, consistency=consistency)
 
-        if not result['valid']:
-            continue
+        for result in results:
+            if not result['valid']:
+                continue
 
-        x_exp = result['x_exp']
-        y_exp = result['y_exp']
-        x_sim = result['x_sim']
-        y_sim = result['y_sim']
-        x_dataColumn = result['x_dataColumn']
-        y_dataColumn = result['y_dataColumn']
-        x_execution_column = result['x_execution_column']
-        y_execution_column = result['y_execution_column']
+            x_exp = result['x_exp']
+            y_exp = result['y_exp']
+            x_sim = result['x_sim']
+            y_sim = result['y_sim']
+            x_dataColumn = result['x_dataColumn']
+            y_dataColumn = result['y_dataColumn']
+            x_execution_column = result['x_execution_column']
+            y_execution_column = result['y_execution_column']
 
-        # TODO non controlliamo se c'è incertezza
+            if y_dataColumn.uncertainty_reference:
+                uncertainty_data = y_dataColumn.uncertainty_reference.data
+                if y_dataColumn.uncertainty_kind == 'absolute':
+                    uncertainty_data = [float(e) / float(y_exp[index]) for index, e in enumerate(uncertainty_data)]
+            else:
+                uncertainty_data = []
 
-        indexes = executeCurveMatching(x_exp=x_exp, y_exp=y_exp, x_sim=x_sim, y_sim=y_sim)
+            indexes = executeCurveMatching(x_exp=x_exp, y_exp=y_exp,
+                                           x_sim=x_sim, y_sim=y_sim,
+                                           uncertainty=uncertainty_data,
+                                           numberOfBootstrapVariations=100)
 
-        cm_result = Model.CurveMatchingResult(execution_column=y_execution_column,
-                                              score=indexes['score'],
-                                              error=indexes['error'],
-                                              d0L2=indexes['d0L2'],
-                                              d1L2=indexes['d1L2'],
-                                              d0Pe=indexes['d0Pe'],
-                                              d1Pe=indexes['d1Pe'],
-                                              shift=indexes['shift'])
+            cm = Model.CurveMatchingResult.objects.filter(execution_column=y_execution_column)
 
-        cm_result.save()
+            values = {'score': indexes['score'],
+                      'error': indexes['error'],
+                      'd0L2': indexes['d0L2'],
+                      'd1L2': indexes['d1L2'],
+                      'd0Pe': indexes['d0Pe'],
+                      'd1Pe': indexes['d1Pe'],
+                      'shift': indexes['shift']}
+
+            cm_result, created = Model.CurveMatchingResult.objects.update_or_create(defaults=values,
+                                                                                    execution_column=y_execution_column)
 
 
 def getCurveMatching(query: dict) -> list:

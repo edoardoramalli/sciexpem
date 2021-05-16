@@ -15,36 +15,73 @@ from pint import UndefinedUnitError, DimensionalityError
 # Local Packages
 import ReSpecTh
 from SciExpeM.checkPermissionGroup import user_in_group
-from ReSpecTh.OptimaPP import OptimaPP
-from ExperimentManager import models
+import ExperimentManager.Models as Models
 from ReSpecTh.units import convert_list
 from ReSpecTh.GetReactor import GetReactor
 
 # Logging
 import logging
+from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 logger = logging.getLogger("ReSpecTh")
 logger.addHandler(ReSpecTh.apps.logger_handler)
 logger.setLevel(logging.INFO)
 
-
 @api_view(['POST'])
-@permission_required('ReSpecTh.execute_optimapp', raise_exception=True)
-def executeOptimaPP(request):
-    user = request.user.username
-
-
+def executeOptimaPPExperiment(request):
     params = request.data
 
-    file = params['file']
+    try:
+        id = int(params['exp_id'])
 
-    result, error = OptimaPP.txt_to_xml(file)
+        exp = Models.Experiment.objects.get(id=id)
+
+        txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment=exp,
+                                                     data_groups=exp.data_columns.all(),
+                                                     initial_species=exp.initial_species.all(),
+                                                     common_properties=exp.common_properties.all(),
+                                                     file_paper=exp.file_paper)
+
+        result, error = OptimaPP.txt_to_xml(txt)
+
+        if result:
+            return Response(data=result, status=HTTP_200_OK)
+        else:
+            return Response(data=error, status=HTTP_400_BAD_REQUEST)
+
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="convertList: KeyError in HTTP parameters. Missing parameter.")
 
 
-    print(error)
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="convertList: Generic error converting list. " + str(err_type.__name__) + " : " + str(value))
 
 
+@api_view(['POST'])
+def executeOptimaPP(request):
+    params = request.data
 
-    return Response(result, HTTP_200_OK)
+    try:
+        text = params['text']
+        result, error = OptimaPP.txt_to_xml(text)
+
+        if result:
+            return Response(data=result, status=HTTP_200_OK)
+        else:
+            return Response(data=error, status=HTTP_400_BAD_REQUEST)
+
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="convertList: KeyError in HTTP parameters. Missing parameter.")
+
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="convertList: Generic error converting list. " + str(err_type.__name__) + " : " + str(value))
+
 
 
 @api_view(['POST'])

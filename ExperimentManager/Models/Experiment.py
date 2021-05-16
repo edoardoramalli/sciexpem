@@ -181,7 +181,7 @@ class Experiment(models.Model):
     def run_experiment_interpreter(self):
         # Rispettare le regole
         types_list = Model.ExperimentInterpreter.objects.all()
-        names_data_columns = set([column.name for column in self.data_columns.all()])
+        names_data_columns = set([column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
         names_data_columns.discard('uncertainty')
 
         result = None

@@ -493,3 +493,7 @@ C1H2O3             tmp_4                                                       H
 C1H2O3             tmp_5                                                       HOCOOH
 C1S2               tmp_6                                                       CS2
 S2                 tmp_7                                                       S2
+C7H6               tmp_8                                                       C7H6
+C10H6              tmp_10                                                      C10H6
+C18H14             tmp_11                                                      C18H14
+C18H12             tmp_12                                                      C18H12

@@ -34,7 +34,6 @@ def getColumnNameSimulator(experiment):
         x_name = mapping.x_sim_name
         mappings_name.add(x_name)
 
-    print(mappings_name)
 
 
 class OpenSmokeParser:
@@ -141,7 +140,15 @@ class OpenSmokeExecutor:
         list_allowed = set([])
         for mapping in execution.experiment.experiment_interpreter.mappings.all():
             list_allowed.add(mapping.x_sim_name)
-            list_allowed.add(mapping.y_sim_name)
+            y_sim_name = mapping.y_sim_name
+            if y_sim_name == 'composition_x':
+                compositions = Model.DataColumn.objects.filter(experiment=execution.experiment, name='composition')
+                for comp in compositions:
+                    list_species = comp.species
+                    for species in list_species:
+                        list_allowed.add(species + '_x')
+            else:
+                list_allowed.add(mapping.y_sim_name)
         list_allowed = list(list_allowed)
         # TODO if list_allowed is not in list_header
         for header in list_allowed:

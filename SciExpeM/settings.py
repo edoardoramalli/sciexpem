@@ -37,8 +37,10 @@ SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile
 SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 COMPRESS_ENABLED = True
+
+SENDFILE_BACKEND = 'sendfile.backends.development'
 
 ALLOWED_HOSTS = ['*']
 
@@ -61,6 +63,7 @@ INSTALLED_APPS = [
     'OpenSmoke.apps.OpensmokeConfig',
     'CurveMatching.apps.CurvematchingConfig',
     'ReSpecTh.apps.RespecthConfig',
+    'CrowdSourcing.apps.CrowdsourcingConfig',
     'dbbackup',
     'django_cron'
 ]

@@ -69,7 +69,11 @@ class TranslatorOptimaPP:
             c_key = key.replace("__", " ")
             if kwargs[key] is None:
                 continue
-            txt += c_key + ":" + delimiter + str(kwargs[key]) + delimiter
+            if key == 'Species':
+                for specie in kwargs[key]:
+                    txt += "Species:" + delimiter + str(specie) + delimiter
+            else:
+                txt += c_key + ":" + delimiter + str(kwargs[key]) + delimiter
 
         return txt
 
@@ -126,14 +130,14 @@ class TranslatorOptimaPP:
             if not data.uncertainty_kind:
                 txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                         Label=data.label,
-                                                        Species=data.species[0] if data.species else None,
+                                                        Species=data.species,
                                                         Unit=data.units,
                                                         ID=id_x,
                                                         Source_type=data.source_type)
             else:
                 txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                         Label=data.label,
-                                                        Species=data.species[0] if data.species else None,
+                                                        Species=data.species,
                                                         Unit=data.units,
                                                         ID=id_x,
                                                         Source_type=data.source_type,

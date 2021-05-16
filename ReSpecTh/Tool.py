@@ -67,9 +67,10 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                     # C'è da applicare le transformation
                     pass
 
-
-
-            y = applyTransformation(list(y_element.data), y_transformation)
+            if experiment.experiment_type != 'ignition delay measurement':
+                y = applyTransformation(list(y_element.data), y_transformation)
+            else:
+                y = applyTransformation(list(y_element.data), 'lin')
 
             x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
             x_name = ' [{}] ({})'.format(x_unit_name, x_transformation)
@@ -88,9 +89,13 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 'linewidth': 2,
                 'mirror': True
             }
+            if experiment.experiment_type == 'ignition delay measurement':
+                info['yaxis']['type'] = 'log'
+
+            print(info)
 
             if y_element.name == 'composition':
-                name = y_element.label
+                name = ','.join(y_element.species)
             elif y_element.name:
                 name = y_element.name
             elif not y_element.name and y_element.label:
@@ -207,83 +212,94 @@ def pairExecutionExperiment(execution, mapping, consistency):
 
     filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name}
 
-    y_dataColumn = Models.DataColumn.objects.get(**filter_y)
 
-    # For each experimental data in the same config add the units of the axis
-    consistency.add_unit(x_name=x_dataColumn.name,
-                         y_name=y_dataColumn.name,
-                         x_unit=x_dataColumn.units,
-                         y_unit=y_dataColumn.units)
+    y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
-    # It is not necessary to convert the experimental data. They impose the unit !
-    # But we need to apply the transformation, and to keep consistency we do anyway
-    x_exp = applyTransformation(
-        my_list=Unit.convert_list(my_list=list(x_dataColumn.data),
-                                  unit=x_dataColumn.units,
-                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                    y_name=y_dataColumn.name)[0]),
-        plotscale=x_transformation,
-        threshold=threshold)
-    y_exp = applyTransformation(
-        my_list=Unit.convert_list(my_list=list(y_dataColumn.data),
-                                  unit=y_dataColumn.units,
-                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                    y_name=y_dataColumn.name)[1]),
-        plotscale=y_transformation,
-        threshold=threshold)
+    result = []
 
-    # X SIM
-    execution_filter_x = {'execution': execution,
-                          'file_type': file,
-                          x_sim_location: x_sim_name}
+    for current_y in y_dataColumn:
 
-    x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
+        # For each experimental data in the same config add the units of the axis
+        consistency.add_unit(x_name=x_dataColumn.name,
+                             y_name=current_y.name,
+                             x_unit=x_dataColumn.units,
+                             y_unit=current_y.units)
 
-    if not x_execution_column.exists():
-        raise ExecutionColumnError
-    else:
-        x_execution_column = x_execution_column[0]
+        # It is not necessary to convert the experimental data. They impose the unit !
+        # But we need to apply the transformation, and to keep consistency we do anyway
+        x_exp = applyTransformation(
+            my_list=Unit.convert_list(my_list=list(x_dataColumn.data),
+                                      unit=x_dataColumn.units,
+                                      desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                        y_name=current_y.name)[0]),
+            plotscale=x_transformation,
+            threshold=threshold)
+        y_exp = applyTransformation(
+            my_list=Unit.convert_list(my_list=list(current_y.data),
+                                      unit=current_y.units,
+                                      desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                        y_name=current_y.name)[1]),
+            plotscale=y_transformation,
+            threshold=threshold)
 
-    x_sim = applyTransformation(
-        my_list=Unit.convert_list(my_list=list(x_execution_column.data),
-                                  unit=x_execution_column.units,
-                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                    y_name=y_dataColumn.name)[0]),
-        plotscale=x_transformation,
-        threshold=threshold)
+        # X SIM
+        execution_filter_x = {'execution': execution,
+                              'file_type': file,
+                              x_sim_location: x_sim_name}
 
-    # Y SIM
+        x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
 
-    execution_filter_y = {'execution': execution,
-                          'file_type': file,
-                          y_sim_location: y_sim_name}
+        if not x_execution_column.exists():
+            raise ExecutionColumnError
+        else:
+            x_execution_column = x_execution_column[0]
 
-    y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
+        x_sim = applyTransformation(
+            my_list=Unit.convert_list(my_list=list(x_execution_column.data),
+                                      unit=x_execution_column.units,
+                                      desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                        y_name=current_y.name)[0]),
+            plotscale=x_transformation,
+            threshold=threshold)
 
-    if not y_execution_column.exists():
-        raise ExecutionColumnError
-    else:
-        y_execution_column = y_execution_column[0]
+        # Y SIM
+        if current_y.name != 'composition':
+            execution_filter_y = {'execution': execution,
+                                  'file_type': file,
+                                  y_sim_location: y_sim_name}
+        else:
+            specie = [s for s in current_y.species][0]  # TODO non va bene quando sommo le speciee
+            execution_filter_y = {'execution': execution,
+                                  'file_type': file,
+                                  y_sim_location: specie + '_x'}
 
-    y_sim = applyTransformation(
-        my_list=Unit.convert_list(my_list=list(y_execution_column.data),
-                                  unit=y_execution_column.units,
-                                  desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                    y_name=y_dataColumn.name)[1]),
-        plotscale=y_transformation,
-        threshold=threshold)
 
-    result = {
-        'valid': valid,
-        'x_exp': x_exp,
-        'y_exp': y_exp,
-        'x_sim': x_sim,
-        'y_sim': y_sim,
-        'x_dataColumn': x_dataColumn,
-        'y_dataColumn': y_dataColumn,
-        'x_execution_column': x_execution_column,
-        'y_execution_column': y_execution_column
-    }
+        y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
+
+        if not y_execution_column.exists():
+            raise ExecutionColumnError
+        else:
+            y_execution_column = y_execution_column[0]
+
+        y_sim = applyTransformation(
+            my_list=Unit.convert_list(my_list=list(y_execution_column.data),
+                                      unit=y_execution_column.units,
+                                      desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                        y_name=current_y.name)[1]),
+            plotscale=y_transformation,
+            threshold=threshold)
+
+        result.append({
+            'valid': valid,
+            'x_exp': x_exp,
+            'y_exp': y_exp,
+            'x_sim': x_sim,
+            'y_sim': y_sim,
+            'x_dataColumn': x_dataColumn,
+            'y_dataColumn': current_y,
+            'x_execution_column': x_execution_column,
+            'y_execution_column': y_execution_column
+        })
 
     return result
 
@@ -294,50 +310,54 @@ def visualizeExecution(execution, consist=None) -> dict:
     consistency = Consistency() if consist is None else consist
 
     for mapping in execution.experiment.experiment_interpreter.mappings.all():
-        result = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
+        results = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
 
-        if not result['valid']:
-            continue
+        for result in results:
+            if not result['valid']:
+                continue
 
-        x_exp = result['x_exp']
-        y_exp = result['y_exp']
-        x_sim = result['x_sim']
-        y_sim = result['y_sim']
-        x_dataColumn = result['x_dataColumn']
-        y_dataColumn = result['y_dataColumn']
-        x_execution_column = result['x_execution_column']
-        y_execution_column = result['y_execution_column']
+            x_exp = result['x_exp']
+            y_exp = result['y_exp']
+            x_sim = result['x_sim']
+            y_sim = result['y_sim']
+            x_dataColumn = result['x_dataColumn']
+            y_dataColumn = result['y_dataColumn']
+            x_execution_column = result['x_execution_column']
+            y_execution_column = result['y_execution_column']
 
-        x_unit_name = x_dataColumn.units if mapping.x_transformation != 'inv' else '1000/' + x_dataColumn.units
-        x_name = ' [{}] ({})'.format(x_unit_name, mapping.x_transformation)
-        y_unit_name = y_dataColumn.units if mapping.y_transformation != 'inv' else '1000/' + y_dataColumn.units
-        y_name = ' [{}] ({})'.format(y_unit_name, mapping.y_transformation)
-        consistency.add_info(x_name=x_dataColumn.name,
-                             y_name=y_dataColumn.name,
-                             x_axis={
-                                 'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name},
-                             y_axis={
-                                 'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name})
+            x_unit_name = x_dataColumn.units if mapping.x_transformation != 'inv' else '1000/' + x_dataColumn.units
+            x_name = ' [{}] ({})'.format(x_unit_name, mapping.x_transformation)
+            y_unit_name = y_dataColumn.units if mapping.y_transformation != 'inv' else '1000/' + y_dataColumn.units
+            y_name = ' [{}] ({})'.format(y_unit_name, mapping.y_transformation)
+            consistency.add_info(x_name=x_dataColumn.name,
+                                 y_name=y_dataColumn.name,
+                                 x_axis={
+                                     'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name},
+                                 y_axis={
+                                     'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name,
+                                        'type': 'lin' if execution.experiment.experiment_type != 'ignition delay measurement' else 'log'})
 
-        # ADD EXP
+            # ADD EXP
 
-        exp_name = execution.experiment.fileDOI if y_dataColumn.name != 'composition' else execution.experiment.fileDOI + ' ' + y_dataColumn.label
+            exp_name = execution.experiment.fileDOI if y_dataColumn.name != 'composition' else execution.experiment.fileDOI + ' ' + y_dataColumn.label
 
-        consistency.add_experimental(x_name=x_dataColumn.name,
-                                     y_name=y_dataColumn.name,
-                                     key=exp_name,
-                                     result={'x': x_exp, 'y': y_exp,
-                                             'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
-                                             'name': exp_name})
+            consistency.add_experimental(x_name=x_dataColumn.name,
+                                         y_name=y_dataColumn.name,
+                                         key=exp_name,
+                                         result={'x': x_exp,
+                                                 'y': y_exp if execution.experiment.experiment_type != 'ignition delay measurement' else [10**e for e in y_exp],
+                                                 'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
+                                                 'name': exp_name})
 
-        sim_name = execution.chemModel.name if y_dataColumn.name != 'composition' else execution.chemModel.name + ' ' + y_dataColumn.label
+            sim_name = execution.chemModel.name if y_dataColumn.name != 'composition' else execution.chemModel.name + ' ' + y_dataColumn.label
 
-        # ADD SIM
-        consistency.add_result(x_name=x_dataColumn.name,
-                               y_name=y_dataColumn.name,
-                               result={'x': x_sim, 'y': y_sim,
-                                       'type': 'scatter', 'mode': 'lines+markers', 'marker': {'size': 10},
-                                       'name': sim_name})
+            # ADD SIM
+            consistency.add_result(x_name=x_dataColumn.name,
+                                   y_name=y_dataColumn.name,
+                                   result={'x': x_sim,
+                                           'y': y_sim if execution.experiment.experiment_type != 'ignition delay measurement' else [10**e for e in y_sim],
+                                           'type': 'scatter', 'mode': 'lines+markers', 'marker': {'size': 10},
+                                           'name': sim_name})
 
     return consistency
 

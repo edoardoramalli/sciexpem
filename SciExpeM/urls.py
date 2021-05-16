@@ -129,6 +129,7 @@ urlpatterns = [
     path('CurveMatching/', include('CurveMatching.urls')),
     path('OpenSmoke/', include('OpenSmoke.urls')),
     path('ReSpecTh/', include('ReSpecTh.urls')),
+    path('CrowdSourcing/', include('CrowdSourcing.urls')),
     path('getInfoUser', CustomAuthToken.as_view(), name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]# + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

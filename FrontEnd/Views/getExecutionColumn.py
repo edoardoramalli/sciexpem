@@ -32,15 +32,19 @@ def supportGetExecutionColumn(execution):
         x_sim_label = x_execution_column.label
 
         # Y SIM
-        execution_filter_y = {'execution': execution, 'file_type': file, y_sim_location: y_sim_name}
-        y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)[0]
+        if y_sim_name != 'composition_x':
+            execution_filter_y = {'execution': execution, 'file_type': file, y_sim_location: y_sim_name}
+        else:
+            execution_filter_y = {'execution': execution, 'file_type': file, y_sim_location + '__contains': '_x'}
+        y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
 
-        y_sim_data = [float(y) for y in y_execution_column.data]
-        y_sim_units = y_execution_column.units
-        y_sim_label = y_execution_column.label
+        for y in y_execution_column:
+            y_sim_data = [float(y) for y in y.data]
+            y_sim_units = y.units
+            y_sim_label = y.label
+            result[y_sim_label + '[' + y_sim_units + ']'] = y_sim_data
 
         result[x_sim_label + '[' + x_sim_units + ']'] = x_sim_data
-        result[y_sim_label + '[' + y_sim_units + ']'] = y_sim_data
 
     return pd.DataFrame.from_dict(result)
 

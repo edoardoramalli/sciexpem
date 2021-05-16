@@ -36,7 +36,7 @@ urlpatterns = [
     path('API/getAllPlotExecution', Views.getAllPlotExecution.as_view(), name="getAllPlotExecution"),
     path('API/getModelList', Views.getModelList.as_view(), name="getModelList"),
     path('API/getHeatMapExecution', Views.getHeatMapExecution.as_view(), name="getHeatMapExecution"),
-
+    path('API/getSpecieList', Views.getSpecieList.as_view(), name="getSpecieList"),
 
     path('API/prova', views.prova.as_view(), name="prova"),
 
