@@ -39,11 +39,18 @@ class addExecution(View.FrontEndBaseView):
 
             open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, './kinetics', '.')
 
+            run_bat = '"%OPENSMOKEPP_EXE_FOLDER%\OpenSMOKEpp_{}.exe" --input input.dic\n\npause'.format(
+                experiment.experiment_interpreter.solver)
+
+            run_unix = 'OpenSMOKEpp_{} --input input.dic'.format(experiment.experiment_interpreter.solver)
+
             s = BytesIO()
             zf = zipfile.ZipFile(s, "w")
             zf.writestr(zinfo_or_arcname='/kinetics/kinetics.xml', data=xml_file_kinetics)
             zf.writestr(zinfo_or_arcname='/kinetics/reaction_names.xml', data=xml_file_reaction_names)
             zf.writestr(zinfo_or_arcname='input.dic', data=open_smoke_input_text)
+            zf.writestr(zinfo_or_arcname='RunWindow.bat', data=run_bat)
+            zf.writestr(zinfo_or_arcname='RunUnix.sh', data=run_unix)
             zf.close()
 
             response_file = s.getvalue()
@@ -53,6 +60,8 @@ class addExecution(View.FrontEndBaseView):
                 chemModel=chemModel,
                 execution_start=timezone.localtime(),
                 username=request.user.username,
+                # username='edo',
+
             )
 
             new_exec.save()
@@ -60,5 +69,3 @@ class addExecution(View.FrontEndBaseView):
             response = HttpResponse(response_file)
             response['Content-Disposition'] = 'attachment; filename= {}'.format(self.experiment_id)
             return response
-
-

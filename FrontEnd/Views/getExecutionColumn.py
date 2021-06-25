@@ -12,8 +12,8 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 import json
 import pandas as pd
 
-def supportGetExecutionColumn(execution):
 
+def supportGetExecutionColumn(execution):
     result = {}
 
     for mapping in execution.experiment.experiment_interpreter.mappings.all():
@@ -62,8 +62,14 @@ class getExecutionColumn(View.FrontEndBaseView):
 
         df = supportGetExecutionColumn(execution)
 
+        cols = df.columns.tolist()
+
+        if 'T0[K]' in cols:
+            cols.remove('T0[K]')
+            cols = ['T0[K]'] + cols
+
+        df = df[cols]
+
+        df = df.where(pd.notnull(df), None)
+
         return Response(df.to_dict(orient="records"), HTTP_200_OK)
-
-
-
-

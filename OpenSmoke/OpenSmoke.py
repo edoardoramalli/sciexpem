@@ -35,7 +35,6 @@ def getColumnNameSimulator(experiment):
         mappings_name.add(x_name)
 
 
-
 class OpenSmokeParser:
     def __init__(self):
         pass
@@ -136,6 +135,13 @@ class OpenSmokeExecutor:
 
     @staticmethod
     def createExecutionColumn(dataframe, units, file_name, execution):
+        if dataframe.isnull().values.any():
+            dataframe = dataframe.dropna()
+            if execution.execution_error:
+                execution.execution_error += '\nNaN values dropped.\n'
+            else:
+                execution.execution_error = '\nNaN values dropped.\n'
+            execution.save()
         list_header = list(dataframe)
         list_allowed = set([])
         for mapping in execution.experiment.experiment_interpreter.mappings.all():
@@ -150,7 +156,14 @@ class OpenSmokeExecutor:
             else:
                 list_allowed.add(mapping.y_sim_name)
         list_allowed = list(list_allowed)
-        # TODO if list_allowed is not in list_header
+
+        a = set(list_allowed)
+        b = set(list_header)
+        missing = list(a - b)
+
+        if missing:
+            raise MissingColumnExecution(', '.join(missing))
+
         for header in list_allowed:
             data = Model.ExecutionColumn(label=header,
                                          units=units[header],
@@ -220,19 +233,27 @@ class OpenSmokeExecutor:
                 process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
                 output, error = process.communicate()
 
-                if not error:
+                output = output.decode('ascii')
+
+
+                if 'Fatal error' in output:
+                    output = output[output.find('Fatal error:'):]
+                    msg_error = output[12: output.find('\n')].strip()
+                    execution = Model.Execution.objects.get(id=execution_id)
+                    execution.execution_error = msg_error
+                    execution.save()
+                else:
                     execution = Model.Execution.objects.get(id=execution_id)
                     execution.execution_end = timezone.localtime()
                     execution.save()
                     for file in files:
                         OpenSmokeExecutor.read_output_OS_from_path(folder=sandbox, file_name=file, execution=execution)
                     curveMatchingExecution(current_execution=execution)
-                else:
-                    Model.Execution.objects.get(id=execution_id).delete()
+
         except Exception as e:
-            # logger stampa errori
-            print(e)
-            Model.Execution.objects.get(id=execution_id).delete()
+            execution = Model.Execution.objects.get(id=execution_id)
+            execution.execution_error = e
+            execution.save()
 
         finally:
             db.close_old_connections()

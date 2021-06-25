@@ -215,7 +215,7 @@ class FrontEndBaseView(APIView):
         pass
 
     def get(self, request):
-        try:
+        # try:
             params = dict(request.query_params)
             try:
                 for par in self.paramsType:
@@ -226,15 +226,15 @@ class FrontEndBaseView(APIView):
 
             return self.view_get(request)
 
-        except Exception:
-            err_type, value, traceback = sys.exc_info()
-            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                            data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
-        finally:
-            close_old_connections()
+        # except Exception:
+        #     err_type, value, traceback = sys.exc_info()
+        #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+        #                     data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+        # finally:
+        #     close_old_connections()
 
     def post(self, request):
-        try:
+        # try:
             params = dict(request.data)
             try:
                 for par in self.paramsType:
@@ -245,12 +245,12 @@ class FrontEndBaseView(APIView):
 
             return self.view_post()
 
-        except Exception:
-            err_type, value, traceback = sys.exc_info()
-            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                            data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
-        finally:
-            close_old_connections()
+        # except Exception:
+        #     err_type, value, traceback = sys.exc_info()
+        #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+        #                     data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+        # finally:
+        #     close_old_connections()
 
 
 class prova(FrontEndBaseView):

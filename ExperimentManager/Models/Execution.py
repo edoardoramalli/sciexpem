@@ -9,6 +9,7 @@ class Execution(models.Model):
     execution_start = models.DateTimeField(null=True, blank=True)
     execution_end = models.DateTimeField(null=True, blank=True)
     username = models.CharField(max_length=75, blank=True, null=True)
+    execution_error = models.TextField(null=True, blank=True)
 
     class Meta:
         unique_together = ('chemModel', 'experiment',)

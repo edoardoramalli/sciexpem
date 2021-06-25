@@ -22,6 +22,10 @@ import os
 
 import pandas as pd
 
+def create_report(exp_list, chemModel_list=[]):
+    pass
+
+
 
 class getReportSimulation(View.ExperimentManagerBaseView):
     viewName = 'getReportSimulation'
@@ -42,9 +46,6 @@ class getReportSimulation(View.ExperimentManagerBaseView):
             query['chemModel__id__in'] = self.chemModel_list
 
         execution_list = list(Execution.objects.filter(**query).distinct().values_list('id', flat=True))
-
-
-        # a = [140, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160]
 
         models = {}
 
@@ -86,7 +87,7 @@ class getReportSimulation(View.ExperimentManagerBaseView):
                             'Chem Model ID': model_id,
                             'Experiment Type': exp_type,
                             'Reactor': reactor,
-                            'Object': c.label,
+                            'Target': c.label,
                             'Fuels': fuels,
                             'Phi': phi,
                             'Pressure (Bar)': pressure,

@@ -41,7 +41,15 @@ def respecth_text_to_experiment(username, file):
             if reference_doi is not None and FilePaper.objects.filter(reference_doi=reference_doi).exists():
                 paper = FilePaper.objects.get(reference_doi=reference_doi)
             else:
-                paper = FilePaper(references=respecth_obj.getBiblio(), reference_doi=respecth_obj.getBiblioDOI())
+                paper = FilePaper(description=respecth_obj.getBiblio(),
+                                  reference_doi=respecth_obj.getBiblioDOI(),
+                                  author=respecth_obj.getBiblioAuthor(),
+                                  title=respecth_obj.getBiblioTitle(),
+                                  journal=respecth_obj.getBiblioJournal(),
+                                  page=respecth_obj.getBiblioPage(),
+                                  year=respecth_obj.getBiblioYear(),
+                                  volume=respecth_obj.getBiblioVolume(),
+                                  )
                 paper.save()
 
             e = Experiment(reactor=reactor,

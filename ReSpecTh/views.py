@@ -60,6 +60,36 @@ def executeOptimaPPExperiment(request):
 
 
 @api_view(['POST'])
+def createTxtOptimaPP(request):
+    params = request.data
+
+    try:
+        exp_id = int(params['exp_id'])
+
+        exp = Models.Experiment.objects.get(id=exp_id)
+
+        txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment=exp,
+                                                     data_groups=exp.data_columns.all(),
+                                                     initial_species=exp.initial_species.all(),
+                                                     common_properties=exp.common_properties.all(),
+                                                     file_paper=exp.file_paper)
+
+        return Response(data=txt, status=HTTP_200_OK)
+
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="createTxtOptimaPP: KeyError in HTTP parameters. Missing parameter.")
+
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="createTxtOptimaPP: Generic error. " + str(err_type.__name__) + " : " + str(value))
+
+
+
+
+@api_view(['POST'])
 def executeOptimaPP(request):
     params = request.data
 

@@ -67,8 +67,6 @@ def curveMatchingExecution(current_execution):
                                            uncertainty=uncertainty_data,
                                            numberOfBootstrapVariations=100)
 
-            cm = Model.CurveMatchingResult.objects.filter(execution_column=y_execution_column)
-
             values = {'score': indexes['score'],
                       'error': indexes['error'],
                       'd0L2': indexes['d0L2'],
@@ -97,10 +95,10 @@ def getCurveMatching(query: dict) -> list:
         model_name = result.execution_column.execution.chemModel.name
         execution_column_name = result.execution_column.label
         if exp_doi not in exp_cm:
-            exp_cm[exp_doi] = {model_name: []}
-        elif model_name not in exp_cm[exp_doi]:
-            exp_cm[exp_doi][model_name] = []
-        exp_cm[exp_doi][model_name].append(
+            exp_cm[exp_doi] = {'id': result.execution_column.execution.experiment.id, 'models': {model_name: []}}
+        elif model_name not in exp_cm[exp_doi]['models']:
+            exp_cm[exp_doi]['models'][model_name] = []
+        exp_cm[exp_doi]['models'][model_name].append(
             {'execution_column_name': execution_column_name,
              'score': result.score,
              'error': result.error,
@@ -115,14 +113,14 @@ def getCurveMatching(query: dict) -> list:
 
     for exp in exp_cm:
         tmp = []
-        for model_name in exp_cm[exp]:
-            avg_score = mean([diz['score'] for diz in exp_cm[exp][model_name]])
-            avg_score_error = mean([diz['error'] for diz in exp_cm[exp][model_name]])
-            avg_score_d0L2 = mean([diz['d0L2'] for diz in exp_cm[exp][model_name]])
-            avg_score_d1L2 = mean([diz['d1L2'] for diz in exp_cm[exp][model_name]])
-            avg_score_d0Pe = mean([diz['d0Pe'] for diz in exp_cm[exp][model_name]])
-            avg_score_d1Pe = mean([diz['d1Pe'] for diz in exp_cm[exp][model_name]])
-            avg_score_shift = mean([diz['shift'] for diz in exp_cm[exp][model_name]])
+        for model_name in exp_cm[exp]['models']:
+            avg_score = mean([diz['score'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_error = mean([diz['error'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_d0L2 = mean([diz['d0L2'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_d1L2 = mean([diz['d1L2'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_d0Pe = mean([diz['d0Pe'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_d1Pe = mean([diz['d1Pe'] for diz in exp_cm[exp]['models'][model_name]])
+            avg_score_shift = mean([diz['shift'] for diz in exp_cm[exp]['models'][model_name]])
             tmp.append({
                 'name': model_name,
                 'score': float(avg_score),
@@ -132,8 +130,8 @@ def getCurveMatching(query: dict) -> list:
                 'd0Pe': float(avg_score_d0Pe),
                 'd1Pe': float(avg_score_d1Pe),
                 'shift': float(avg_score_shift),
-                'details': exp_cm[exp][model_name]
+                'details': exp_cm[exp]['models'][model_name]
             })
-        result.append({'fileDOI': exp, 'models': tmp})
+        result.append({'id': exp_cm[exp]['id'], 'fileDOI': exp, 'models': tmp})
 
     return result

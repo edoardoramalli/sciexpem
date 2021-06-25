@@ -17,7 +17,7 @@ class getExecutionFileList(View.FrontEndBaseView):
 
     def view_post(self):
         experiment_interpreter = Models.Execution.objects.get(id=self.execution_id).experiment.experiment_interpreter
-        mappings = Models.MappingInterpreter.objects.filter(experiment_interpreter__name=experiment_interpreter)
+        mappings = Models.MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
         files = list(set([mapping.file for mapping in mappings]))
         return Response(files, status=HTTP_200_OK)
 

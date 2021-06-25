@@ -497,3 +497,4 @@ C7H6               tmp_8                                                       C
 C10H6              tmp_10                                                      C10H6
 C18H14             tmp_11                                                      C18H14
 C18H12             tmp_12                                                      C18H12
+C6H6               tmp_13                                                      C5H4CH2

@@ -92,8 +92,6 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
             if experiment.experiment_type == 'ignition delay measurement':
                 info['yaxis']['type'] = 'log'
 
-            print(info)
-
             if y_element.name == 'composition':
                 name = ','.join(y_element.species)
             elif y_element.name:
@@ -202,22 +200,21 @@ def pairExecutionExperiment(execution, mapping, consistency):
     if x_sim_name == 'None' or y_sim_name == 'None':
         return {'valid': False}
 
-    # X EXP
-
-    filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name}
-
-    x_dataColumn = Models.DataColumn.objects.get(**filter_x)
-
     # Y EXP
 
     filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name}
-
 
     y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
     result = []
 
     for current_y in y_dataColumn:
+
+        # X EXP
+
+        filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id}
+
+        x_dataColumn = Models.DataColumn.objects.get(**filter_x)
 
         # For each experimental data in the same config add the units of the axis
         consistency.add_unit(x_name=x_dataColumn.name,
@@ -272,7 +269,6 @@ def pairExecutionExperiment(execution, mapping, consistency):
             execution_filter_y = {'execution': execution,
                                   'file_type': file,
                                   y_sim_location: specie + '_x'}
-
 
         y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
 

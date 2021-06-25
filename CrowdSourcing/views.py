@@ -43,7 +43,7 @@ class CrowdSourcingBaseView(APIView):
     #         close_old_connections()
 
     def post(self, request):
-        try:
+        # try:
             params = request.data
             try:
                 for par in self.paramsType:
@@ -54,10 +54,10 @@ class CrowdSourcingBaseView(APIView):
 
             return self.view_post(request=request)
 
-        except Exception:
-            err_type, value, traceback = sys.exc_info()
-            return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                            data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
-        finally:
-            close_old_connections()
+        # except Exception:
+        #     err_type, value, traceback = sys.exc_info()
+        #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+        #                     data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
+        # finally:
+        #     close_old_connections()
 

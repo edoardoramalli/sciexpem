@@ -4,8 +4,10 @@ from django.contrib.postgres.fields import ArrayField
 import ExperimentManager.Models.Tool as Tool
 import ExperimentManager.Models as Model
 from ExperimentManager.exceptions import *
-from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType
+from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, ReSpecThValidExperimentType, \
+    ReSpecThAtomSpecie
 from ReSpecTh.FuelValid import ValidFuel
+from ReSpecTh.phi_to_mol_frac import GetMoleFractionsFromEquivalenceRatio
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -35,7 +37,7 @@ class DataColumn(models.Model):
 
     # Uncertainty
     uncertainty_reference = models.OneToOneField('self', on_delete=models.CASCADE, related_name="uncertainty",
-                                              null=True, blank=True)
+                                                 null=True, blank=True)
     uncertainty_kind = models.CharField(max_length=10, null=True, blank=True)
     uncertainty_bound = models.CharField(max_length=10, null=True, blank=True)
 
@@ -59,6 +61,55 @@ class DataColumn(models.Model):
         dg_label = text_dict.get('dg_label')
         species = text_dict.get('species')
         data_group_profile = text_dict.get('data_group_profile')
+
+        fuel_oxidizer = text_dict.get('fuel_oxidizer')
+
+        others = []
+
+        if fuel_oxidizer:
+            oxidizers = []
+            fuels = []
+            for f_o in fuel_oxidizer:
+                if f_o['type'] == 'Oxidizer':
+                    oxidizers.append(f_o)
+                elif f_o['type'] == 'Fuel':
+                    fuels.append(f_o)
+
+            values_oxi = [oxi['value'] for oxi in oxidizers]
+            values_fuels = [f['value'] for f in fuels]
+
+            if sum(values_oxi) != 1:
+                raise ConstraintFieldExperimentError('The sum of oxidizers percentage must be 1')
+            elif sum(values_fuels) != 1:
+                raise ConstraintFieldExperimentError('The sum of fuels percentage must be 1')
+
+            atoms = ReSpecThAtomSpecie()
+
+            oxis_dict = {atoms.to_atoms[oxi['specie'].upper()]: oxi['value'] for oxi in oxidizers}
+            fuels_dict = {atoms.to_atoms[f['specie'].upper()]: f['value'] for f in fuels}
+
+            results = []
+
+            for phi in data:
+                results.append(
+                    GetMoleFractionsFromEquivalenceRatio(equivalence_ratio=phi, fuels=fuels_dict, oxidizers=oxis_dict))
+
+            species_division = {}
+
+            for r in results:
+                for specie in r:
+                    species_division[atoms.to_species[specie.upper()]] = species_division.get(
+                        atoms.to_species[specie.upper()], []) + [r[specie]]
+
+            for division in species_division:
+                others.append(DataColumn(name='composition', units='mole fraction',
+                                         data=species_division[division],
+                                         dg_id=dg_id,
+                                         species=[division],
+                                         source_type='calculated',
+                                         dg_label=dg_label,
+                                         experiment=experiment))
+
         if data_group_profile:
             tmp = []
             for e in data_group_profile:
@@ -82,7 +133,7 @@ class DataColumn(models.Model):
                              uncertainty_bound=uncertainty_bound,
                              experiment=experiment)
 
-        return [uncertainty, current] if uncertainty else [current]
+        return [uncertainty, current] + others if uncertainty else [current] + others
 
     def __str__(self):
         return "%s %s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data, self.dg_id)
@@ -103,7 +154,8 @@ class DataColumn(models.Model):
         uncertainty_bound = self.uncertainty_bound
         dg_label = self.dg_label  # For sure is not empty
 
-        if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'T-l history', 'experimental_data', 'initial_condition']:
+        if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'T-l history', 'experimental_data',
+                            'initial_condition']:
             raise ConstraintFieldExperimentError("Data Group Label not valid")
         if uncertainty:
             if bool(uncertainty_kind) != bool(uncertainty_bound):

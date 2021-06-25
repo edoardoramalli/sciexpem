@@ -59,6 +59,7 @@ class insertElement(View.ExperimentManagerBaseView):
                 if current_exp is not None:
                     checkExperiment(current_exp)
 
+
         except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError) as e:
             return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
         except DatabaseError as e:

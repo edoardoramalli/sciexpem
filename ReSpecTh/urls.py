@@ -4,6 +4,7 @@ from ReSpecTh import views
 urlpatterns = [
     path('API/executeOptimaPP', views.executeOptimaPP, name="executeOptimaPP"),
     path('API/executeOptimaPPExperiment', views.executeOptimaPPExperiment, name="executeOptimaPP"),
+    path('API/createTxtOptimaPP', views.createTxtOptimaPP, name='createTxtOptimaPP'),
     # NEW
     path('API/convertList', views.convertList, name="covertList"),
     # TODO questa può essere harcodata nell' UI

@@ -6,7 +6,6 @@ from django.conf import settings
 
 
 class OptimaPP:
-
     path = settings.OPTIMAPP_PATH
 
     @staticmethod
@@ -70,8 +69,11 @@ class TranslatorOptimaPP:
             if kwargs[key] is None:
                 continue
             if key == 'Species':
-                for specie in kwargs[key]:
-                    txt += "Species:" + delimiter + str(specie) + delimiter
+                if type(kwargs[key]) == list:
+                    for specie in kwargs[key]:
+                        txt += "Species:" + delimiter + str(specie) + delimiter
+                else:
+                    txt += "Species:" + delimiter + str(kwargs[key]) + delimiter
             else:
                 txt += c_key + ":" + delimiter + str(kwargs[key]) + delimiter
 
@@ -80,10 +82,22 @@ class TranslatorOptimaPP:
     @staticmethod
     def create_header(experiment, file_paper):
         txt = ""
-        if file_paper.references:
-            txt += TranslatorOptimaPP.create_lines(Reference__description=file_paper.references)
+        if file_paper.description:
+            txt += TranslatorOptimaPP.create_lines(Reference__description=file_paper.description)
         if file_paper.reference_doi:
             txt += TranslatorOptimaPP.create_lines(Reference__DOI=file_paper.reference_doi)
+        if file_paper.author:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__author=file_paper.author)
+        if file_paper.page:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__pages=file_paper.page)
+        if file_paper.journal:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__journal=file_paper.journal)
+        if file_paper.title:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__title=file_paper.title)
+        if file_paper.volume:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__volume=file_paper.volume)
+        if file_paper.year:
+            txt += TranslatorOptimaPP.create_lines(Reference__document__year=file_paper.year)
 
         txt += TranslatorOptimaPP.create_lines(File__author="Politecnico di Milano, Italy",
                                                Specification__version=2.3,
@@ -110,8 +124,8 @@ class TranslatorOptimaPP:
 
     @staticmethod
     def create_varied_experimental_conditions_and_measured_results(data_group, offset):
-        txt = TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id, dataGroupLabel=data_group[0].dg_label) + "\n"
-
+        txt = TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id,
+                                               dataGroupLabel=data_group[0].dg_label) + "\n"
 
         tmp = []
         # To be sure that the uncertainty are at the end and I can refer them...
@@ -226,7 +240,8 @@ class TranslatorOptimaPP:
 
         offset_id = 1
         for dg in data_groups_dict:
-            txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(data_groups_dict[dg], offset_id)
+            txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(data_groups_dict[dg],
+                                                                                                 offset_id)
             offset_id += len(data_groups_dict[dg])
 
         for dg in data_groups_dict_profile:

@@ -56,6 +56,42 @@ class ReSpecThParser:
             return None
         return e.text
 
+    def getBiblioAuthor(self):
+        e = self.root.find("./bibliographyLink/details/author")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioTitle(self):
+        e = self.root.find("./bibliographyLink/details/title")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioJournal(self):
+        e = self.root.find("./bibliographyLink/details/journal")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioVolume(self):
+        e = self.root.find("./bibliographyLink/details/volume")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioPage(self):
+        e = self.root.find("./bibliographyLink/details/pages")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioYear(self):
+        e = self.root.find("./bibliographyLink/details/year")
+        if e is None:
+            return None
+        return e.text
+
     def get_common_property(self, s):
         return self.root.find("./commonProperties/property/[@name='%s']" % s)
 
@@ -340,6 +376,20 @@ class ReSpecThValidSpecie:
             return reduce(lambda x, y: x and (y.upper() in self.species), name, True)
         else:
             return name.upper() in self.species
+
+
+class ReSpecThAtomSpecie:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/Nomenclatura_originale_POLIMI.txt")):
+        self.to_atoms = {}  # Species name list in UPPERCASE only
+        self.to_species = {}
+        with open(file, "r") as file:
+            file.readline()
+            file.readline()
+            for line in file:
+                line_split = line.strip().split()
+                self.to_atoms[line_split[2].upper()] = line_split[0].upper()
+                self.to_species[line_split[0].upper()] = line_split[2].upper()
 
 
 class ReSpecThValidExperimentType:
