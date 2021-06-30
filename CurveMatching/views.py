@@ -8,6 +8,7 @@ from rest_framework.status import *
 # Build-in Packages
 import sys
 import os
+from threading import Thread
 import json
 
 # Local Packages
@@ -74,7 +75,7 @@ def createUpdateExecutionCurveMatching(request):
         exec = Models.Execution.objects.get(id=execution_id)
 
         if exec:
-            curveMatchingExecution(current_execution=exec)
+            Thread(target=curveMatchingExecution, args=(exec,)).start()
             return Response(status=HTTP_200_OK)
         else:
             return Response(status=HTTP_400_BAD_REQUEST,

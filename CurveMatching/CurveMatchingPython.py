@@ -180,11 +180,23 @@ class CurveMatching:
                 return dist, 0  # TODO Adjust error
             else:
                 # Case mismatch length simulation and experiment
-                return -2, 0
+                return {'score': -2,
+                        'error': -2,
+                        'd0L2': -2,
+                        'd1L2': -2,
+                        'd0Pe': -2,
+                        'd1Pe': -2,
+                        'shift': -2}
 
         # Check if all elements of simulation are the same --> Model limitation
-        if len(set(y_sim)) == 1:
-            return -3, 0
+        # if len(set(y_sim)) == 1:
+        #     return {'score': -3,
+        #             'error': -3,
+        #             'd0L2': -3,
+        #             'd1L2': -3,
+        #             'd0Pe': -3,
+        #             'd1Pe': -3,
+        #             'shift': -3}
 
         return_array_indexes = (c_double * (parameters.numberOfBootstrapVariations * n_models * n_indexes))()
         return_array_scores = (c_double * n_models)()

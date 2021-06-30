@@ -1,5 +1,5 @@
 from .FilePaper import FilePaper
-
+from .Specie import Specie
 from .ExperimentInterpreter import ExperimentInterpreter
 from .RuleInterpreter import RuleInterpreter
 from .MappingInterpreter import MappingInterpreter
@@ -12,5 +12,5 @@ from .Execution import Execution
 from .ExecutionColumn import ExecutionColumn
 from .CurveMatchingResult import CurveMatchingResult
 
-from .Specie import Specie
+
 

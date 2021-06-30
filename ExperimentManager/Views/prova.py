@@ -4,6 +4,7 @@ from ExperimentManager.Models import *
 from ExperimentManager.exceptions import *
 from CurveMatching.CurveMatching import curveMatchingExecution
 from OpenSmoke.OpenSmoke import getColumnNameSimulator
+from django.db.models import Q
 
 # Django import
 from rest_framework.response import Response
@@ -97,19 +98,54 @@ class prova(View.ExperimentManagerBaseView):
         #     print(df)
 
 
-        species = set([])
+        # species = set([])
+        #
+        # intial = InitialSpecie.objects.all()
+        # for i in intial:
+        #     species.add(i.name)
+        #
+        # dc = DataColumn.objects.filter(name='composition')
+        # print(len(dc))
+        # for d in dc:
+        #     for s in d.species:
+        #         species.add(s)
+        #
+        # print(species)
+        # print(len(species))
+        r = []
 
-        intial = InitialSpecie.objects.all()
-        for i in intial:
-            species.add(i.name)
+        ended = Execution.objects.filter(~Q(execution_end=None))
 
-        dc = DataColumn.objects.filter(name='composition')
-        print(len(dc))
-        for d in dc:
-            for s in d.species:
-                species.add(s)
 
-        print(species)
-        print(len(species))
+        print(list(set([exec.experiment.id for exec in ended if exec.experiment.status=='verified'])))
+
+        for end in ended:
+            exec_columns = end.execution_columns.all()
+            tmp = True
+            for column in exec_columns:
+                if CurveMatchingResult.objects.filter(execution_column=column).exists():
+                    tmp = False
+                    break
+            if tmp:
+                r.append(end.id)
+
+
+        print(len(ended))
+        print(r)
+
+        # r = {}
+        #
+        #
+        #
+        # executions = Execution.objects.filter(experiment__fuels=['H2'], experiment__status='verified').exclude(execution_end=None)
+        #
+        # for exec in executions:
+        #     exp_id = exec.experiment.id
+        #     r[exp_id] = r.get(exp_id, 0) + 1
+        #
+        #
+        # print([k for k in r if r[k] > 1])
+        #
+        # # Execution.objects.get(id=208).delete()
 
         return Response(status=HTTP_200_OK)

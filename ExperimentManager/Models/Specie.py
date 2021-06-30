@@ -68,7 +68,10 @@ class Specie(models.Model):
         CAS = text_dict.get('CAS')
         SMILES = text_dict.get('SMILES')
         chemName = text_dict.get('chemName')
-        names = [e.strip() for e in text_dict.get('names', [])]
+        if text_dict.get('names', []):
+            names = [e.strip() for e in text_dict.get('names', [])]
+        else:
+            names = None
 
         specie = Specie(InChI=InChI, preferredKey=preferredKey, names=names,
                         CAS=CAS, SMILES=SMILES, chemName=chemName, formula=formula)

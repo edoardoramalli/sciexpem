@@ -13,6 +13,7 @@ validatorSpecie = ReSpecThValidSpecie()
 class InitialSpecie(models.Model):
     # Mandatory - Checked Field
     name = models.CharField(max_length=20)
+    specie = models.ForeignKey(Model.Specie, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
 

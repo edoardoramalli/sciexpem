@@ -29,6 +29,7 @@ class DataColumn(models.Model):
     # TODO aggiungere controllo che label e species siano uguali
     label = models.CharField(max_length=100, null=True, blank=True)
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
+    species_object = models.ManyToManyField(Model.Specie, related_name="species_list", blank=True)
 
     # Mandatory
 

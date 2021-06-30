@@ -93,17 +93,21 @@ def loginUser(request):
         return Response('Username or Password are wrong', status=HTTP_403_FORBIDDEN)
 
 
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def testConnection(request):
+    return Response(status=HTTP_200_OK)
+
 
 
 @api_view(['POST'])
 @permission_classes([])
 def createUser(request):
-    print(request.user.username)
     if request.user.is_staff:
         params = request.data
         groups = params['groups']
         fields = dict(params['fields'])
-        print(groups, fields)
 
         user = User.objects.create_user(**fields)
 
@@ -119,6 +123,7 @@ def createUser(request):
 
 urlpatterns = [
     path('', home, name='home'),
+    path('testConnection', testConnection),
     path('createUser', createUser),
     path('UI', UI, name='UI'),
     path('testAuthentication', testAuthentication),

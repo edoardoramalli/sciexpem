@@ -5,6 +5,7 @@ from CurveMatching.CurveMatchingPython import CurveMatching
 from SciExpeM import settings
 from ReSpecTh.Tool import pairExecutionExperiment, Consistency
 from statistics import mean
+from time import sleep
 
 
 def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
@@ -65,7 +66,7 @@ def curveMatchingExecution(current_execution):
             indexes = executeCurveMatching(x_exp=x_exp, y_exp=y_exp,
                                            x_sim=x_sim, y_sim=y_sim,
                                            uncertainty=uncertainty_data,
-                                           numberOfBootstrapVariations=100)
+                                           numberOfBootstrapVariations=80)
 
             values = {'score': indexes['score'],
                       'error': indexes['error'],
@@ -77,6 +78,8 @@ def curveMatchingExecution(current_execution):
 
             cm_result, created = Model.CurveMatchingResult.objects.update_or_create(defaults=values,
                                                                                     execution_column=y_execution_column)
+
+            sleep(0.5)  # qualche volta da errore in malloc forse perchè è troppo veloce a rilasciare la memoria?
 
 
 def getCurveMatching(query: dict) -> list:
