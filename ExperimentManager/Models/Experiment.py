@@ -48,7 +48,8 @@ class Experiment(models.Model):
 
     username = models.CharField(max_length=75, blank=True, null=True)
 
-    experiment_interpreter = models.ForeignKey(ExperimentInterpreter, on_delete=models.SET_NULL, default=None, null=True)
+    experiment_interpreter = models.ForeignKey(ExperimentInterpreter, on_delete=models.SET_NULL, default=None,
+                                               null=True)
 
     def check_fields(self):
         experiment_type = self.experiment_type
@@ -129,16 +130,22 @@ class Experiment(models.Model):
             fileDOI = text_dict['fileDOI']
             reactor = text_dict['reactor']
             experiment_type = text_dict['experiment_type']
+            username = text_dict['username']
         except KeyError as error:
             raise MandatoryFieldError(error)
 
         exp = Experiment(experiment_type=experiment_type, reactor=reactor, fileDOI=fileDOI, os_input_file=os_input_file,
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
                          phi_sup=phi_sup, phi_inf=phi_inf, fuels=fuels, status='unverified', file_paper=paper,
-                         comment=comment)
+                         comment=comment, username=username)
+
+
+        paper.save()
+        exp.save()
 
         data_columns = text_dict['data_columns']
-        tmp1 = functools.reduce(operator.iconcat, [Model.DataColumn.createDataColumn(column, exp) for column in data_columns], [])
+        tmp1 = functools.reduce(operator.iconcat,
+                                [Model.DataColumn.createDataColumn(column, exp) for column in data_columns], [])
 
         common_properties = text_dict.get('common_properties')
         if common_properties:
@@ -148,6 +155,9 @@ class Experiment(models.Model):
 
         initial_species = text_dict['initial_species']
         tmp3 = [Model.InitialSpecie.createInitialSpecie(init, exp) for init in initial_species]
+
+        for item in tmp1 + tmp2 + tmp3:
+            item.save()
 
         return [paper] + [exp] + tmp1 + tmp2 + tmp3
 
@@ -181,7 +191,8 @@ class Experiment(models.Model):
     def run_experiment_interpreter(self):
         # Rispettare le regole
         types_list = Model.ExperimentInterpreter.objects.all()
-        names_data_columns = set([column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
+        names_data_columns = set(
+            [column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
         names_data_columns.discard('uncertainty')
 
         result = None
@@ -192,7 +203,8 @@ class Experiment(models.Model):
                 if not getattr(self, property_name) == property_value:
                     break
             else:
-                mapping_fields = Model.MappingInterpreter.objects.filter(experiment_interpreter=exp_type).values('x_exp_name', 'y_exp_name')
+                mapping_fields = Model.MappingInterpreter.objects.filter(experiment_interpreter=exp_type).values(
+                    'x_exp_name', 'y_exp_name')
                 mapping_fields_list = []
                 for diz in list(mapping_fields):
                     mapping_fields_list += list(diz.values())
@@ -228,14 +240,19 @@ class Experiment(models.Model):
         if prop == 'InitialSpecie':
             list_element_other = other.initial_species.all()
             list_element = self.initial_species.all()
+            dict_element_other = [{'specie': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+                                  list_element_other]
+            dict_element = [{'name': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+                            list_element]
         elif prop == 'CommonProperty':
             list_element_other = other.common_properties.all()
             list_element = self.common_properties.all()
+            dict_element_other = [{'name': element.name, 'units': element.units, 'value': element.value} for element in
+                                  list_element_other]
+            dict_element = [{'name': element.name, 'units': element.units, 'value': element.value} for element in
+                            list_element]
         else:
             raise Exception
-
-        dict_element_other = [{'name': element.name, 'units': element.units, 'value': element.value} for element in list_element_other]
-        dict_element = [{'name': element.name, 'units': element.units, 'value': element.value} for element in list_element]
 
         unique = []
         if len(dict_element_other) == len(dict_element):
@@ -249,9 +266,3 @@ class Experiment(models.Model):
             return all(unique)
         else:
             return False
-
-
-
-
-
-

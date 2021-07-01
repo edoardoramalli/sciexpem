@@ -10,7 +10,6 @@ class OptimaPP:
 
     @staticmethod
     def txt_to_xml(txt):
-
         # create a temporary directory
         with tempfile.TemporaryDirectory() as sandbox:
             tmp_txt_file_name = "tmp.txt"
@@ -25,7 +24,7 @@ class OptimaPP:
             bashCommand += " -o "
             bashCommand += sandbox
 
-            process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+            process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
             output, error = process.communicate()
             output = str(output)
 
@@ -34,16 +33,29 @@ class OptimaPP:
             if error is None:
                 error = ""
 
-            error += output[output.find(txt_start_warning) + len(txt_start_warning) + 2: output.rfind("Completed")]
+            error += output[output.find(txt_start_warning) + len(txt_start_warning) + 1: output.rfind("Completed")]
+
+            error_split = [x.replace('\t', '').strip() for x in error.split('\n') if x.replace('\t', '').strip()]
+
+            still = []
+            for e in error_split:
+                if 'Type check' in e:
+                    continue
+                elif 'Warning!' in e:
+                    continue
+                else:
+                    still.append(e)
+
+            error = '\n'.join(still)
 
             # print("EDOOOO\n",file=sys.stderr)
-            # print(error, file=sys.stderr)
 
             if not error:
                 xml_result_path = os.path.join(sandbox, "tmp.xml")
                 xml_file_string = ''.join(open(xml_result_path, "r").readlines())
                 return xml_file_string, None
             else:
+                print('errore')
                 return None, error
 
 
@@ -68,12 +80,19 @@ class TranslatorOptimaPP:
             c_key = key.replace("__", " ")
             if kwargs[key] is None:
                 continue
-            if key == 'Species':
-                if type(kwargs[key]) == list:
-                    for specie in kwargs[key]:
-                        txt += "Species:" + delimiter + str(specie) + delimiter
-                else:
-                    txt += "Species:" + delimiter + str(kwargs[key]) + delimiter
+            if key == 'Species_LIST':
+                for specie in kwargs[key]:
+                    if specie.preferredKey:
+                        txt += "Species:" + delimiter + specie.preferredKey + delimiter
+                    if specie.chemName:
+                        txt += "Chemical_name:" + delimiter + specie.chemName + delimiter
+                    if specie.CAS:
+                        txt += "CAS:" + delimiter + specie.CAS + delimiter
+                    if specie.InChI:
+                        txt += "InChI:" + delimiter + specie.InChI + delimiter
+                    if specie.SMILES:
+                        txt += "SMILES:" + delimiter + specie.SMILES + delimiter
+
             else:
                 txt += c_key + ":" + delimiter + str(kwargs[key]) + delimiter
 
@@ -116,7 +135,11 @@ class TranslatorOptimaPP:
                                                     Value=prop.value) + "\n"
         for specie in initial_species:
             txt += TranslatorOptimaPP.create_inline(Name="composition",
-                                                    Species=specie.name,
+                                                    Species=specie.specie.preferredKey,
+                                                    Chemical_name=specie.specie.chemName,
+                                                    CAS=specie.specie.CAS,
+                                                    InChI=specie.specie.InChI,
+                                                    SMILES=specie.specie.SMILES,
                                                     Source_type=specie.source_type,
                                                     Unit=specie.units,
                                                     Value=specie.value) + "\n"
@@ -144,14 +167,14 @@ class TranslatorOptimaPP:
             if not data.uncertainty_kind:
                 txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                         Label=data.label,
-                                                        Species=data.species,
+                                                        Species_LIST=data.species_object.all(),
                                                         Unit=data.units,
                                                         ID=id_x,
                                                         Source_type=data.source_type)
             else:
                 txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                         Label=data.label,
-                                                        Species=data.species,
+                                                        Species_LIST=data.species_object.all(),
                                                         Unit=data.units,
                                                         ID=id_x,
                                                         Source_type=data.source_type,

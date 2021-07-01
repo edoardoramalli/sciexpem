@@ -14,32 +14,32 @@ from tqdm import tqdm
 
 import math
 
-
 print('------- INITIAL SPECIES --------------------------------')
-# for initial in InitialSpecie.objects.all():
-#     possible = []
-#     possible = Specie.objects.filter(preferredKey=initial.name)
-#     if len(possible) == 0:
-#         possible = Specie.objects.filter(names__contains=[initial.name])
-#
-#         if len(possible) == 0:
-#             print('ZERO --> ', initial.id, initial.name)
-#         elif len(possible) > 1:
-#             print('MORE --> ', initial.id)
-#         else:
-#             initial.specie = possible[0]
-#             initial.save()
-#     elif len(possible) > 1:
-#         print('MORE --> ', initial.id)
-#     else:
-#         initial.specie = possible[0]
-#         initial.save()
+for initial in InitialSpecie.objects.all():
+    possible = []
+    possible = Specie.objects.filter(preferredKey=initial.name)
+    if len(possible) == 0:
+        possible = Specie.objects.filter(names__contains=[initial.name])
+
+        if len(possible) == 0:
+            print('ZERO --> ', initial.id, initial.name)
+        elif len(possible) > 1:
+            print('MORE --> ', initial.id)
+        else:
+            initial.specie = possible[0]
+            initial.save()
+    elif len(possible) > 1:
+        print('MORE --> ', initial.id)
+    else:
+        initial.specie = possible[0]
+        initial.save()
 
 
 print('------- DATA COLUMNS --------------------------------')
 
-r  = []
+r = []
 
+exp = set([])
 for dc in DataColumn.objects.all():
     species = dc.species
 
@@ -61,17 +61,20 @@ for dc in DataColumn.objects.all():
                 elif len(possible) > 1:
                     print('MORE --> ', dc.id, species)
                     r += species
+                    exp.add(dc.experiment.id)
                 else:
                     dc.species_object.add(possible[0])
                     dc.save()
             elif len(possible) > 1:
                 print('MORE --> ', dc.id, species)
                 r += species
+                exp.add(dc.experiment.id)
             else:
                 dc.species_object.add(possible[0])
                 dc.save()
 
 print(list(set(r)))
+print(exp)
 
 print('------- EXEC COLUMNS --------------------------------')
 

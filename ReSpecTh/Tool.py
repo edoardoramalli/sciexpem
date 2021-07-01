@@ -93,7 +93,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 info['yaxis']['type'] = 'log'
 
             if y_element.name == 'composition':
-                name = ','.join(y_element.species)
+                name = '+'.join([specie.preferredKey for specie in y_element.species_object.all()])
             elif y_element.name:
                 name = y_element.name
             elif not y_element.name and y_element.label:
@@ -173,6 +173,7 @@ class Consistency:
 
     def get_unit(self, x_name: str, y_name: str, ):
         return self.unit[y_name][x_name]
+
 
 
 def pairExecutionExperiment(execution, mapping, consistency):
@@ -265,7 +266,7 @@ def pairExecutionExperiment(execution, mapping, consistency):
                                   'file_type': file,
                                   y_sim_location: y_sim_name}
         else:
-            specie = [s for s in current_y.species][0]  # TODO non va bene quando sommo le speciee
+            specie = [s.preferredKey for s in current_y.species_object.all()][0]  # TODO non va bene quando sommo le speciee
             execution_filter_y = {'execution': execution,
                                   'file_type': file,
                                   y_sim_location: specie + '_x'}
@@ -275,7 +276,7 @@ def pairExecutionExperiment(execution, mapping, consistency):
         if not y_execution_column.exists():
             raise ExecutionColumnError
         else:
-            y_execution_column = y_execution_column[0]
+            y_execution_column = y_execution_column[0] # TODO non va bene quando sommo le speciee
 
         y_sim = applyTransformation(
             my_list=Unit.convert_list(my_list=list(y_execution_column.data),
@@ -376,3 +377,4 @@ def resultExecutionVisualization(consistency):
         for x_key in consistency.result[y_key]:
             consistency.result[y_key][x_key] += consistency.experimental[y_key][x_key].values()
     return {'info': consistency.info, 'data': consistency.result}
+

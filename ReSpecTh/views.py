@@ -50,13 +50,13 @@ def executeOptimaPPExperiment(request):
 
     except KeyError:
         return Response(status=HTTP_400_BAD_REQUEST,
-                        data="convertList: KeyError in HTTP parameters. Missing parameter.")
+                        data="executeOptimaPPExperiment: KeyError in HTTP parameters. Missing parameter.")
 
 
     except Exception:
         err_type, value, traceback = sys.exc_info()
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                        data="convertList: Generic error converting list. " + str(err_type.__name__) + " : " + str(value))
+                        data="executeOptimaPPExperiment: Generic error. " + str(err_type.__name__) + " : " + str(value))
 
 
 @api_view(['POST'])

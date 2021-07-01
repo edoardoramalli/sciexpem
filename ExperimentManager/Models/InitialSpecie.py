@@ -25,7 +25,7 @@ class InitialSpecie(models.Model):
         return "%s %s %s" % (self.name, self.value, self.units)
 
     def check_fields(self):
-        name = self.name
+        # name = self.name
         unit = self.units
         value = self.value
 
@@ -37,20 +37,21 @@ class InitialSpecie(models.Model):
 
         if float(value) < 0:
             raise ConstraintFieldExperimentError("Value initial specie '%s' must be positive!" % value)
-        if not validatorSpecie.isValid(name):
-            raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
+        # if not validatorSpecie.isValid(name):
+        #     raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name="composition"):
             raise ConstraintFieldExperimentError(
                 "Unit initial specie '%s' is not valid for 'composition' element!" % unit)
 
     @staticmethod
     def createInitialSpecie(text_dict, experiment):
-        name = text_dict['name']
+        specie_id = int(text_dict['specie'])
+        specie = Model.Specie.objects.get(id=specie_id)
         units = text_dict['units']
         value = text_dict['value']
         source_type = text_dict['source_type']
 
-        return InitialSpecie(name=name, units=units, value=value, experiment=experiment, source_type=source_type)
+        return InitialSpecie(specie=specie, units=units, value=value, experiment=experiment, source_type=source_type)
 
     def save(self, *args, **kwargs):
         self.check_fields()
