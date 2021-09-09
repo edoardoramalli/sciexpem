@@ -14,7 +14,7 @@ class getProfile(View.FrontEndBaseView):
     paramsType = {'data': str}
     required_groups = {'POST': ['WRITE']}
 
-    def view_post(self):
+    def view_post(self, request):
         text = self.data.split('\n')
         first_column_name = text[0].strip().split(';')[0]
         first_column_unit = text[0].strip().split(';')[1]

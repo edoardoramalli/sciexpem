@@ -17,7 +17,7 @@ class getAllPlotExecution(View.FrontEndBaseView):
     paramsType = {'element_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         try:
             experiment = Models.Experiment.objects.get(id=self.element_id)
             consistency = visualizeAllExecution(experiment)

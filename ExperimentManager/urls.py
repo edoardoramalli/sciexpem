@@ -14,6 +14,7 @@ urlpatterns = [
     path('API/prova', Views.prova.as_view(), name="prova"),
     path('API/getSimulation', Views.getSimulation.as_view(), name="getSimulation"),
     path('API/getReportSimulation', Views.getReportSimulation.as_view(), name="getReportSimulation"),
+    path('API/getAnalytics', Views.getAnalytics.as_view(), name="getAnalytics"),
 
 ]
 

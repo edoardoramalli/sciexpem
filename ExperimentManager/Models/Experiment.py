@@ -32,6 +32,8 @@ class Experiment(models.Model):
 
     comment = models.CharField(max_length=280, blank=True, null=True)
 
+    notes = models.TextField(blank=True, null=True)
+
     # Meta Data
     fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
 

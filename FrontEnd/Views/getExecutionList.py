@@ -16,7 +16,7 @@ class getExecutionList(View.FrontEndBaseView):
     paramsType = {'fields': tuple, 'experiment_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         queryset = Models.Execution.objects.filter(experiment__id=self.experiment_id)
         results = []
         for element in queryset:

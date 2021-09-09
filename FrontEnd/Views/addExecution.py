@@ -1,7 +1,7 @@
 # Local import
 import FrontEnd.views as View
 import ExperimentManager.Models as Models
-from OpenSmoke.OpenSmoke import OpenSmokeParser
+from OpenSmoke.OpenSmoke import OpenSmokeParser, check_Experiment_Model
 
 # Django import
 from rest_framework.response import Response
@@ -24,6 +24,9 @@ class addExecution(View.FrontEndBaseView):
 
         if Models.Execution.objects.filter(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id).exists():
             return Response('addExecution. Execution already exists!', status=HTTP_400_BAD_REQUEST)
+
+        if not check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id):
+            return Response('addExecution. This ChemModel does not support this experiment!', status=HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
 

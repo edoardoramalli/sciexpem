@@ -2,6 +2,7 @@
 import ExperimentManager.views as View
 from ExperimentManager.Models import *
 from ExperimentManager.exceptions import *
+from ExperimentManager.checkExperiment import checkExperiment
 
 
 # Django import
@@ -42,6 +43,14 @@ class updateElement(View.ExperimentManagerBaseView):
                                         data="updateElement: Attribute '{}' not exist in model '{}'".format(prop,
                                                                                                             self.model_name))
                 element.save()
+                if self.model_name == 'Experiment':
+                    checkExperiment(element)
+                    # Cosi viene ricalcolato se cambio qualche parametro
+                    element.experiment_interpreter = None
+                    # Questa istruzione forza a ricalcolarlo
+                    tmp = element.interpreter
+                    element.save()
+
         except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError, SpecieConsistencyError) as e:
             return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:

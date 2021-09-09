@@ -16,7 +16,7 @@ class getPropertyList(View.FrontEndBaseView):
     paramsType = {'fields': tuple, 'name': str, 'exp_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         model = eval(self.name)
         queryset = model.objects.filter(experiment__id=self.exp_id)
         results = []

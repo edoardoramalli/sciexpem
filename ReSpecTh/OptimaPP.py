@@ -55,7 +55,6 @@ class OptimaPP:
                 xml_file_string = ''.join(open(xml_result_path, "r").readlines())
                 return xml_file_string, None
             else:
-                print('errore')
                 return None, error
 
 
@@ -81,9 +80,13 @@ class TranslatorOptimaPP:
             if kwargs[key] is None:
                 continue
             if key == 'Species_LIST':
-                for specie in kwargs[key]:
+                for index, specie in enumerate(kwargs[key]):
+                    # TODO da rivedere come fare....
                     if specie.preferredKey:
-                        txt += "Species:" + delimiter + specie.preferredKey + delimiter
+                        if index == 0:
+                            txt += "Species:" + delimiter + specie.preferredKey + delimiter
+                        else:
+                            txt += "Species:" + delimiter + specie.preferredKey + "_" + str(index) + delimiter
                     if specie.chemName:
                         txt += "Chemical_name:" + delimiter + specie.chemName + delimiter
                     if specie.CAS:

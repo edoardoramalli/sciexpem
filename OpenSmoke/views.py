@@ -18,7 +18,7 @@ from threading import Thread
 # Local Packages
 from SciExpeM import settings
 import OpenSmoke
-from .OpenSmoke import OpenSmokeParser, OpenSmokeExecutor
+from .OpenSmoke import OpenSmokeParser, OpenSmokeExecutor, check_Experiment_Model
 from SciExpeM.checkPermissionGroup import *
 from ExperimentManager.Models import *
 
@@ -52,6 +52,9 @@ def startSimulation(request):
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: ChemModel not exist.")
 
+    if not check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id):
+        return Response('startSimulation. This ChemModel does not support this experiment!', status=HTTP_400_BAD_REQUEST)
+
     try:
         with transaction.atomic():
             query = Execution.objects.filter(experiment__id=experiment_id, chemModel__id=model_id)
@@ -74,7 +77,7 @@ def startSimulation(request):
 
                 mapping_files = list(set([mapping.file for mapping in exp.experiment_interpreter.mappings.all()]))
 
-                Thread(target=OpenSmokeExecutor.execute,
+                Thread(target=OpenSmokeExecutor.execute_tsp,
                        args=(experiment_id, model_id, new_exec.id, solver, mapping_files)).start()
 
         return Response('startSimulation: Simulation started.', status=HTTP_200_OK)

@@ -43,7 +43,7 @@ class getRawData(View.FrontEndBaseView):
     paramsType = {'experiment_id': int, 'type': str}
     required_groups = {'POST': ['WRITE']}
 
-    def view_post(self):
+    def view_post(self, request):
         if self.type == 'data':
             dg_label = ['experimental_data', 'initial_condition']
         elif self.type == 'profile':

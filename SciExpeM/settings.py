@@ -38,6 +38,7 @@ SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
+
 COMPRESS_ENABLED = True
 
 SENDFILE_BACKEND = 'sendfile.backends.development'

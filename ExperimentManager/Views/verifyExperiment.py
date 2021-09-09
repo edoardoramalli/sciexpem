@@ -30,7 +30,7 @@ class verifyExperiment(View.ExperimentManagerBaseView):
                     bucket_url, publish_url, doi, deposition_id = reserved_doi()
                     zenodo = True
                     update_description(title=doi,
-                                       description=exp.file_paper.references,
+                                       description=exp.file_paper.description,
                                        deposition_id=deposition_id)
 
                     exp.fileDOI = doi

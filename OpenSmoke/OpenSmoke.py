@@ -7,8 +7,12 @@ from django import db
 import pandas as pd
 from OpenSmoke.exceptions import *
 import sys
+import pathlib
+import subprocess
+import os
 from pint import UnitRegistry
 from io import StringIO
+import traceback
 import ExperimentManager.Models as Model
 from CurveMatching.CurveMatching import curveMatchingExecution
 
@@ -35,6 +39,14 @@ def getColumnNameSimulator(experiment):
         mappings_name.add(x_name)
 
 
+def check_Experiment_Model(experiment_id, chemModel_id):
+    exp = Model.Experiment.objects.get(id=experiment_id)
+    chemModel = Model.ChemModel.objects.get(id=chemModel_id)
+    initial_species = set([x.specie.preferredKey for x in exp.initial_species.all()])
+    supported_species = set(chemModel.supported_species)
+    return initial_species.issubset(supported_species)
+
+
 class OpenSmokeParser:
     def __init__(self):
         pass
@@ -59,6 +71,8 @@ class OpenSmokeParser:
             name = h_split[0]
             try:
                 unit = h_split[1].replace("]", "")
+                if unit == '-':
+                    unit = 'unitless'
             except IndexError:
                 if '_x' in name:
                     unit = "mole fraction"
@@ -145,16 +159,20 @@ class OpenSmokeExecutor:
         list_header = list(dataframe)
         list_allowed = set([])
         for mapping in execution.experiment.experiment_interpreter.mappings.all():
+            if any(map(lambda x: x == 'None' or x == 'none',
+                       [mapping.x_sim_name, mapping.y_sim_name, mapping.y_exp_name, mapping.x_exp_name])):
+                continue
             list_allowed.add(mapping.x_sim_name)
             y_sim_name = mapping.y_sim_name
             if y_sim_name == 'composition_x':
                 compositions = Model.DataColumn.objects.filter(experiment=execution.experiment, name='composition')
                 for comp in compositions:
-                    list_species = comp.species
+                    list_species = comp.species_object.all()
                     for species in list_species:
-                        list_allowed.add(species + '_x')
+                        list_allowed.add(species.preferredKey + '_x')
             else:
                 list_allowed.add(mapping.y_sim_name)
+
         list_allowed = list(list_allowed)
 
         a = set(list_allowed)
@@ -172,14 +190,6 @@ class OpenSmokeExecutor:
                                          file_type=file_name)
             data.save()
 
-    @staticmethod
-    def read_output_OS_from_path(folder: str, file_name: str, execution):
-        """
-        Given an OS output file path of an execution, create the corresponding execution columns
-        Raise: OpenSmokeWrongInputFile. If the file is missing.
-        """
-        dataframe, units = OpenSmokeParser.parse_output_string(open(os.path.join(folder, file_name + '.out')).read())
-        OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
 
     @staticmethod
     def read_output_OS_string(text, file_name, execution):
@@ -191,69 +201,118 @@ class OpenSmokeExecutor:
         OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
 
     @staticmethod
-    def execute(exp_id, chemModel_id, execution_id, solver, files):
+    def read_output_OS_from_path(folder: str, file_name: str, execution):
+        """
+        Given an OS output file path of an execution, create the corresponding execution columns
+        Raise: OpenSmokeWrongInputFile. If the file is missing.
+        """
         try:
-
-            # IDs already checked by caller function
-            chemModel = Model.ChemModel.objects.get(id=chemModel_id)
-            experiment = Model.Experiment.objects.get(id=exp_id)
-
-            #  Mandatory fields in the model. So no empty fields
-            kinetics_file = chemModel.xml_file_kinetics
-            reaction_names_file = chemModel.xml_file_reaction_names
-
-            # Must be present to verify and experiment
-            open_smoke_input_file = experiment.os_input_file
-
-            # Create SandBox
-            import tempfile
-
-            # create a temporary directory
-            with tempfile.TemporaryDirectory() as sandbox:
-                kinetic_path = os.path.join(sandbox, "kinetics")
-                os.mkdir(kinetic_path)
-
-                kin_file = open(os.path.join(kinetic_path, "kinetics.xml"), "w+")
-                kin_file.write(kinetics_file)
-                kin_file.close()
-
-                reac_file = open(os.path.join(kinetic_path, "reaction_names.xml"), "w+")
-                reac_file.write(reaction_names_file)
-                reac_file.close()
-
-                open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, kinetic_path, sandbox)
-                os_file = open(os.path.join(sandbox, "input.dic"), "w+")
-                os_file.write(open_smoke_input_text)
-                os_file.close()
-
-                bashCommand = ". ~/.bashrc && echo | OpenSMOKEpp_" + solver + ".sh --input " + sandbox + "/input.dic"
-
-                import subprocess
-
-                process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
-                output, error = process.communicate()
-
-                output = output.decode('ascii')
-
-
-                if 'Fatal error' in output:
-                    output = output[output.find('Fatal error:'):]
-                    msg_error = output[12: output.find('\n')].strip()
-                    execution = Model.Execution.objects.get(id=execution_id)
-                    execution.execution_error = msg_error
-                    execution.save()
-                else:
-                    execution = Model.Execution.objects.get(id=execution_id)
-                    execution.execution_end = timezone.localtime()
-                    execution.save()
-                    for file in files:
-                        OpenSmokeExecutor.read_output_OS_from_path(folder=sandbox, file_name=file, execution=execution)
-                    curveMatchingExecution(current_execution=execution)
-
+            text = open(os.path.join(folder, file_name + '.out'), errors='strict').read()
+            # dataframe, units = OpenSmokeParser.parse_output_string(text)
+            # OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
+            OpenSmokeExecutor.read_output_OS_string(text=text, file_name=file_name, execution=execution)
         except Exception as e:
-            execution = Model.Execution.objects.get(id=execution_id)
+            traceback.print_exc()
             execution.execution_error = e
             execution.save()
+            return
 
-        finally:
-            db.close_old_connections()
+
+
+    @staticmethod
+    def execute_tsp(exp_id, chemModel_id, execution_id, solver, files):
+
+
+        path = pathlib.Path(__file__).parent.parent.resolve()
+        run_file_path = os.path.join(path, 'runOS.py')
+
+        bashCommand = "tsp -n /home/eramalli/.conda/envs/django/bin/python3.9 {file} ".format(file=run_file_path)
+        bashCommand += '--exp {} --chem {} --exec {} --solver {} --files {} '.format(exp_id, chemModel_id, execution_id,
+                                                                                     solver, ' '.join(files))
+
+        # print(bashCommand)
+        # return
+
+        process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+        output, error = process.communicate()
+
+
+    # @staticmethod
+    # def execute(exp_id, chemModel_id, execution_id, solver, files):
+    #     try:
+    #
+    #         # IDs already checked by caller function
+    #         chemModel = Model.ChemModel.objects.get(id=chemModel_id)
+    #         experiment = Model.Experiment.objects.get(id=exp_id)
+    #
+    #         #  Mandatory fields in the model. So no empty fields
+    #         kinetics_file = chemModel.xml_file_kinetics
+    #         reaction_names_file = chemModel.xml_file_reaction_names
+    #
+    #         # Must be present to verify and experiment
+    #         open_smoke_input_file = experiment.os_input_file
+    #
+    #         # Create SandBox
+    #         import tempfile
+    #
+    #         # create a temporary directory
+    #         with tempfile.TemporaryDirectory() as sandbox:
+    #             kinetic_path = os.path.join(sandbox, "kinetics")
+    #             os.mkdir(kinetic_path)
+    #
+    #             kin_file = open(os.path.join(kinetic_path, "kinetics.xml"), "w+")
+    #             kin_file.write(kinetics_file)
+    #             kin_file.close()
+    #
+    #             reac_file = open(os.path.join(kinetic_path, "reaction_names.xml"), "w+")
+    #             reac_file.write(reaction_names_file)
+    #             reac_file.close()
+    #
+    #             open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, kinetic_path, sandbox)
+    #             os_file = open(os.path.join(sandbox, "input.dic"), "w+")
+    #             os_file.write(open_smoke_input_text)
+    #             os_file.close()
+    #
+    #             bashCommand = ". ~/.bashrc && tsp OpenSMOKEpp_" + solver + ".sh --input " + sandbox + "/input.dic"
+    #
+    #             import subprocess
+    #
+    #             process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+    #             output, error = process.communicate()
+    #
+    #             output = output.decode('ascii')
+    #
+    #             # print(output)
+    #             #
+    #             # print(121312321)
+    #             # print(error)
+    #             #
+    #             print(sandbox)
+    #             # #
+    #             import time
+    #             #
+    #             time.sleep(100)
+    #
+    #             # input('ciaooooo')
+    #
+    #             if 'Fatal error' in output:
+    #                 output = output[output.find('Fatal error:'):]
+    #                 msg_error = output[12: output.find('\n')].strip()
+    #                 execution = Model.Execution.objects.get(id=execution_id)
+    #                 execution.execution_error = msg_error
+    #                 execution.save()
+    #             else:
+    #                 execution = Model.Execution.objects.get(id=execution_id)
+    #                 execution.execution_end = timezone.localtime()
+    #                 execution.save()
+    #                 for file in files:
+    #                     OpenSmokeExecutor.read_output_OS_from_path(folder=sandbox, file_name=file, execution=execution)
+    #                 curveMatchingExecution(current_execution=execution)
+    #
+    #     except Exception as e:
+    #         execution = Model.Execution.objects.get(id=execution_id)
+    #         execution.execution_error = e
+    #         execution.save()
+    #
+    #     finally:
+    #         db.close_old_connections()

@@ -52,7 +52,6 @@ def executeOptimaPPExperiment(request):
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="executeOptimaPPExperiment: KeyError in HTTP parameters. Missing parameter.")
 
-
     except Exception:
         err_type, value, traceback = sys.exc_info()
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,

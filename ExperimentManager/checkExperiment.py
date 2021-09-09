@@ -18,6 +18,9 @@ def checkInitialSpecies(experiment):
     if len(initial_species) == 0 and experiment.experiment_type != 'laminar burning velocity measurement':
         raise ExperimentConsistencyError('No initial species.')
 
+    if len(initial_species) == 0 and experiment.experiment_type == 'laminar burning velocity measurement':
+        return
+
     units_initial_species = set([])
     value_initial_species = []
     for specie in initial_species:
@@ -123,6 +126,7 @@ def check_OS_input_file(experiment, profile_list):
     Output = check_result['Output']
     ListOfProfiles = check_result['ListOfProfiles']
     Profile = check_result['Profile']
+    Profile = False
 
     if not (KineticsFolder and (OutputFolder or Output)):
         raise ExperimentConsistencyError('OpenSmoke input missing @KineticsFolder or @Output keyword.')
@@ -162,7 +166,8 @@ def checkExperiment(experiment, opensmoke=True):
     for column in data_columns:
         if column.uncertainty_kind:
             uncertainty_list.append(column)
-        elif column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history', 'T-l history']:
+        elif column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history',
+                                                              'T-l history']:
             profile_list.append(column)
         else:
             if column.dg_id not in dg_dict:
