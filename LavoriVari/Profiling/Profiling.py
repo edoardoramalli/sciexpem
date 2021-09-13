@@ -2,44 +2,259 @@ import os
 import django
 import requests, json
 from dateutil.parser import parse
+from SplinePoliMi import Spline
 from django.db.models import Q
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+from matplotlib.backends.backend_pdf import PdfPages
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SciExpeM.settings")
 django.setup()
 
+from ReSpecTh.Tool import visualizeSingleDataGroup
+
 from ExperimentManager.Models import *
+import timeit
+
+exps = Experiment.objects.filter(~Q(experiment_interpreter=None))
+
+
+
+# n_cols = 3
+# n_rows = 3
+# index = 0
+#
+#
+#
+# def getAxes(i):
+#     x_index = i % n_rows
+#     y_index = i // n_rows
+#     print(x_index, y_index)
+#     if i == 0:
+#         fig, axes = plt.subplots(n_cols, n_rows)
+#         pass
+#     else:
+#         pass
+#
+#     new_i = (i + 1) % (n_cols * n_rows)
+#     print(new_i)
+#     return new_i, axes
+#     # fig, axes = plt.subplots(n_cols, n_rows)
+#     # axes[0, 0].plot(x, y)
+#     # axes[1, 1].scatter(x, y)
+#
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+# index = getAxes(index)
+#
+# exit()
+import time
+with PdfPages('multipage_pdf_3.pdf') as pdf:
+    for experiment in tqdm(exps):
+        # print(experiment.fileDOI)
+        # time.sleep(0.1)
+
+        experiment_interpreter = experiment.interpreter
+
+        mapping_list = experiment_interpreter.mappings.all()
+
+        result_dg = {}
+
+        info_dg = {}
+
+        columns_list = DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data")
+
+        columns_list_dg = {column.dg_id for column in columns_list}
+
+        for dg in columns_list_dg:
+            info_dg['Data Group ({})'.format(dg)], result_dg['Data Group ({})'.format(dg)] = visualizeSingleDataGroup(dg,
+                                                                                                                      mapping_list,
+                                                                                                                      experiment)
+        for dg in result_dg:
+            for pair in result_dg[dg]:
+                x = pair['x']
+                y = pair['y']
+                x_eval = np.linspace(min(x), max(x), 250)
+
+                try:
+                    spline = Spline(x=x, y=y, criterion='AIC')
+                    # spline2 = Spline(x=x, y=y, criterion='BIC')
+                    # spline3 = Spline(x=x, y=y, criterion='SSE')
+                except ValueError:
+                    print(x)
+                    print(y)
+                plt.plot(x, y, 'o', label='Exp. Data')
+                plt.plot(x_eval, spline.evaluate(x_eval), label='Spline - AIC')
+                # plt.plot(x_eval, spline2.evaluate(x_eval), label='Spline - BIC')
+                # plt.plot(x_eval, spline3.evaluate(x_eval), label='Spline - SSE')
+                plt.legend()
+                plt.title(experiment.fileDOI)
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
+
+                del spline
+                # del spline2
+                # del spline3
+
+
+
+# with open('experiments_doi.txt', 'w+') as file:
+#     for e in exps:
+#         file.write(e.fileDOI + '\n')
+
+
+
+
+
+exit()
+
+
+
+# Experiment
+
+print('# Exp:', Experiment.objects.all().count())
+print('# Exp Verified:', Experiment.objects.filter(status='verified').count())
+print('# Exp Unverified:', Experiment.objects.filter(status='unverified').count())
+print('# Exp Invalid:', Experiment.objects.filter(status='invalid').count())
+print('# Exp Managed:', Experiment.objects.filter(~Q(experiment_interpreter=None)).count())
+
+# Get reactors
+
+for x in Experiment.objects.all().values('reactor').distinct():
+    reactor = x['reactor']
+    print('# Exp {}: {}'.format(reactor, Experiment.objects.filter(reactor=reactor).count()))
+
+# Exp type
+for x in Experiment.objects.all().values('experiment_type').distinct():
+    experiment_type = x['experiment_type']
+    print('# Exp {}: {}'.format(experiment_type, Experiment.objects.filter(experiment_type=experiment_type).count()))
+
+
+# Execution
+print('# Exec Started:', Execution.objects.all().count())
+print('# Exec Ended:', Execution.objects.filter(~Q(execution_end=None)).count())
+print('# Exec Error:', Execution.objects.filter(~Q(execution_error=None)).count())
+print('# Exec Exp:', Execution.objects.all().values('experiment__id').distinct().count())
+
+
+
+# CurveMatching
+print('# CM Total:', CurveMatchingResult.objects.all().count())
+print('# CM Exec:', CurveMatchingResult.objects.all().values('execution_column__execution__id').distinct().count())
+print('# CM Exp:', CurveMatchingResult.objects.all().values('execution_column__execution__experiment__id').distinct().count())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit()
 
 import pandas as pd
 from tqdm import tqdm
 
 import math
 
+dcs = DataColumn.objects.filter(name='uncertainty', experiment__fuels__contained_by=list(['H2S', 'CH4', 'CO', 'H2', 'SO2']))
+print(len(dcs))
+freq = {}
+
+fuels = set([])
+t = {}
+
+for dc in dcs:
+    for f in dc.experiment.fuels:
+        fuels.add(f)
+    t[dc.experiment.experiment_type] = t.get(dc.experiment.experiment_type, 0) + 1
+    if dc.uncertainty.species_object.all():
+        for s in dc.uncertainty.species_object.all():
+            freq[s.preferredKey] = freq.get(s.preferredKey, 0) + 1
+
+    else:
+        freq[dc.uncertainty.name] = freq.get(dc.uncertainty.name, 0) + 1
+
+print(freq)
+print(fuels)
+print(t)
+
+
+exps = Experiment.objects.filter(fuels__contained_by=list(['H2S', 'CH4', 'CO', 'H2', 'SO2']))
+
+r = set([])
+
+for exp in exps:
+    dcs = exp.data_columns.all()
+
+
+
+# exps = [e for e in list(DataColumn.objects.filter(name='uncertainty').values('experiment_id', 'uncertainty_reference__name'))]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit()
 
 print('------- INITIAL SPECIES --------------------------------')
-# for initial in InitialSpecie.objects.all():
-#     possible = []
-#     possible = Specie.objects.filter(preferredKey=initial.name)
-#     if len(possible) == 0:
-#         possible = Specie.objects.filter(names__contains=[initial.name])
-#
-#         if len(possible) == 0:
-#             print('ZERO --> ', initial.id, initial.name)
-#         elif len(possible) > 1:
-#             print('MORE --> ', initial.id)
-#         else:
-#             initial.specie = possible[0]
-#             initial.save()
-#     elif len(possible) > 1:
-#         print('MORE --> ', initial.id)
-#     else:
-#         initial.specie = possible[0]
-#         initial.save()
+for initial in InitialSpecie.objects.all():
+    possible = []
+    possible = Specie.objects.filter(preferredKey=initial.name)
+    if len(possible) == 0:
+        possible = Specie.objects.filter(names__contains=[initial.name])
+
+        if len(possible) == 0:
+            print('ZERO --> ', initial.id, initial.name)
+        elif len(possible) > 1:
+            print('MORE --> ', initial.id)
+        else:
+            initial.specie = possible[0]
+            initial.save()
+    elif len(possible) > 1:
+        print('MORE --> ', initial.id)
+    else:
+        initial.specie = possible[0]
+        initial.save()
 
 
 print('------- DATA COLUMNS --------------------------------')
 
-r  = []
+r = []
 
+exp = set([])
 for dc in DataColumn.objects.all():
     species = dc.species
 
@@ -61,17 +276,20 @@ for dc in DataColumn.objects.all():
                 elif len(possible) > 1:
                     print('MORE --> ', dc.id, species)
                     r += species
+                    exp.add(dc.experiment.id)
                 else:
                     dc.species_object.add(possible[0])
                     dc.save()
             elif len(possible) > 1:
                 print('MORE --> ', dc.id, species)
                 r += species
+                exp.add(dc.experiment.id)
             else:
                 dc.species_object.add(possible[0])
                 dc.save()
 
 print(list(set(r)))
+print(exp)
 
 print('------- EXEC COLUMNS --------------------------------')
 

@@ -1,12 +1,15 @@
 from rest_framework import serializers
 from ExperimentManager.Models import InitialSpecie
+import ExperimentManager.Serializers as Serializers
 import ExperimentManager.Serializers.Tool as Tool
 
 
 class InitialSpecieSerializer(serializers.ModelSerializer):
+    specie = Serializers.SpecieSerializer(read_only=True)
+
     class Meta:
         model = InitialSpecie
-        fields = ['id', 'name', 'units', 'value', 'source_type']
+        fields = ['id', 'specie', 'units', 'value', 'source_type']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

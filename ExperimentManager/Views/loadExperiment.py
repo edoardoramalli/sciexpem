@@ -112,6 +112,9 @@ class loadExperiment(View.ExperimentManagerBaseView):
     def view_post(self, request):
         username = request.user.username
 
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data=self.viewName + ": TODO inserire inchi e varie.")
+
         if self.format_file == 'XML_ReSpecTh':
             try:
                 respecth_text_to_experiment(username, self.file_text)

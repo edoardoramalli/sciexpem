@@ -112,26 +112,26 @@ class prova(View.ExperimentManagerBaseView):
         #
         # print(species)
         # print(len(species))
-        r = []
-
-        ended = Execution.objects.filter(~Q(execution_end=None))
-
-
-        print(list(set([exec.experiment.id for exec in ended if exec.experiment.status=='verified'])))
-
-        for end in ended:
-            exec_columns = end.execution_columns.all()
-            tmp = True
-            for column in exec_columns:
-                if CurveMatchingResult.objects.filter(execution_column=column).exists():
-                    tmp = False
-                    break
-            if tmp:
-                r.append(end.id)
-
-
-        print(len(ended))
-        print(r)
+        # r = []
+        #
+        # ended = Execution.objects.filter(~Q(execution_end=None))
+        #
+        #
+        # print(list(set([exec.experiment.id for exec in ended if exec.experiment.status=='verified'])))
+        #
+        # for end in ended:
+        #     exec_columns = end.execution_columns.all()
+        #     tmp = True
+        #     for column in exec_columns:
+        #         if CurveMatchingResult.objects.filter(execution_column=column).exists():
+        #             tmp = False
+        #             break
+        #     if tmp:
+        #         r.append(end.id)
+        #
+        #
+        # print(len(ended))
+        # print(r)
 
         # r = {}
         #
@@ -147,5 +147,10 @@ class prova(View.ExperimentManagerBaseView):
         # print([k for k in r if r[k] > 1])
         #
         # # Execution.objects.get(id=208).delete()
+
+        import time
+        time.sleep(20)
+
+        print('edoooooooooooooo')
 
         return Response(status=HTTP_200_OK)

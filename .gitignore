@@ -45,3 +45,9 @@ tmp.zip
 edoardo.out
 
 edo_b
+
+*.pdf
+
+*.xlsx
+
+*.backup

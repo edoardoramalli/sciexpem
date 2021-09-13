@@ -16,7 +16,7 @@ class getPlotExperiment(View.FrontEndBaseView):
     paramsType = {'exp_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         experiment = Models.Experiment.objects.get(id=self.exp_id)
         if experiment.interpreter is None:
             return Response(status=HTTP_400_BAD_REQUEST, data="getPlotExperiment: Experiment is not managed.")

@@ -12,18 +12,18 @@ import pandas as pd
 
 def create_header(column):
     text = ''
-    if not column.species:
+    if not column.species_object.all():
         if column.name != 'uncertainty':
             text = column.name + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
         else:
             name = str(column.uncertainty.name)
             if name == 'composition':
-                name = ','.join(column.uncertainty.species)
+                name = '+'.join([specie.preferredKey for specie in column.uncertainty.species_object.all()])
             text = column.name + " [" + column.units + "]" + " --> " + name + " (" + str(
                 column.source_type) + ", " + str(column.uncertainty_kind) + ", " + str(
                 column.uncertainty_bound) + ")"
     else:
-        text = ','.join(column.species) + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
+        text = '+'.join([specie.preferredKey for specie in column.species_object.all()]) + " [" + column.units + "]" + " (" + str(column.source_type) + ")"
     return text
 
 
@@ -43,7 +43,7 @@ class getRawData(View.FrontEndBaseView):
     paramsType = {'experiment_id': int, 'type': str}
     required_groups = {'POST': ['WRITE']}
 
-    def view_post(self):
+    def view_post(self, request):
         if self.type == 'data':
             dg_label = ['experimental_data', 'initial_condition']
         elif self.type == 'profile':

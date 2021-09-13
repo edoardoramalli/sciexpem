@@ -41,6 +41,7 @@ class insertElement(View.ExperimentManagerBaseView):
                 try:
                     if self.model_name == 'Experiment':
                         self.property_dict['fileDOI'] = 'tmp_' + str(random.randint(0, int(1e20)))
+                        self.property_dict['username'] = username
 
                     list_objects = getattr(model, 'create' + self.model_name)(self.property_dict)
 
@@ -49,8 +50,9 @@ class insertElement(View.ExperimentManagerBaseView):
 
                 current_exp = None
                 for obj in list_objects:
+                    # In teoria il save lo si potrebbe portare dentro...farlo due volto non guasta
                     if isinstance(obj, Experiment):
-                        obj.username = username
+                        # obj.username = username
                         obj.save()
                         current_exp = obj
                     else:
@@ -58,7 +60,7 @@ class insertElement(View.ExperimentManagerBaseView):
 
                 if current_exp is not None:
                     checkExperiment(current_exp)
-
+                    # raise ValueError('EDOOO')
 
         except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError) as e:
             return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)

@@ -16,7 +16,7 @@ class getSpecieList(View.FrontEndBaseView):
     paramsType = {'fields': tuple, 'args': dict}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         queryset = Models.Specie.objects.filter(**self.args).distinct()
         results = []
         for element in queryset:

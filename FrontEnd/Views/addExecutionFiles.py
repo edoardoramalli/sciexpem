@@ -25,7 +25,7 @@ class addExecutionFiles(View.FrontEndBaseView):
     required_groups = {'POST': ['READ']}
 
 
-    def view_post(self):
+    def view_post(self, request):
         with transaction.atomic():
 
             execution = Models.Execution.objects.get(id=self.execution_id)

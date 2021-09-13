@@ -93,7 +93,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 info['yaxis']['type'] = 'log'
 
             if y_element.name == 'composition':
-                name = ','.join(y_element.species)
+                name = '+'.join([specie.preferredKey for specie in y_element.species_object.all()])
             elif y_element.name:
                 name = y_element.name
             elif not y_element.name and y_element.label:
@@ -102,6 +102,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 name = 'No Name'
 
             tmp = {'x': x, 'y': y, 'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10}, 'name': name}
+
             if uncertainty:
                 tmp['error_y'] = uncertainty_dict
             result.append(tmp)
@@ -175,6 +176,7 @@ class Consistency:
         return self.unit[y_name][x_name]
 
 
+
 def pairExecutionExperiment(execution, mapping, consistency):
     """
     Return the experiment and execution curve pair, with the same unit and same transformation
@@ -198,7 +200,7 @@ def pairExecutionExperiment(execution, mapping, consistency):
     file = mapping.file
 
     if x_sim_name == 'None' or y_sim_name == 'None':
-        return {'valid': False}
+        return [{'valid': False}]
 
     # Y EXP
 
@@ -213,8 +215,11 @@ def pairExecutionExperiment(execution, mapping, consistency):
         # X EXP
 
         filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id}
-
-        x_dataColumn = Models.DataColumn.objects.get(**filter_x)
+        try:
+            x_dataColumn = Models.DataColumn.objects.get(**filter_x)
+        except Models.DataColumn.DoesNotExist:
+            # TODO
+            print(x_dataColumn)
 
         # For each experimental data in the same config add the units of the axis
         consistency.add_unit(x_name=x_dataColumn.name,
@@ -247,9 +252,11 @@ def pairExecutionExperiment(execution, mapping, consistency):
         x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
 
         if not x_execution_column.exists():
+            # TODO salvare msg errore
             raise ExecutionColumnError
         else:
             x_execution_column = x_execution_column[0]
+            # TODO cosa fare se più colonne?
 
         x_sim = applyTransformation(
             my_list=Unit.convert_list(my_list=list(x_execution_column.data),
@@ -259,31 +266,53 @@ def pairExecutionExperiment(execution, mapping, consistency):
             plotscale=x_transformation,
             threshold=threshold)
 
+        def get_Y_ExecutionColumn(execution_filter_y):
+            y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
+
+            if not y_execution_column.exists():
+                print(execution_filter_y)
+                raise ExecutionColumnError
+            else:
+                y_execution_column = y_execution_column[0]
+
+            y_sim = applyTransformation(
+                my_list=Unit.convert_list(my_list=list(y_execution_column.data),
+                                          unit=y_execution_column.units,
+                                          desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
+                                                                            y_name=current_y.name)[1]),
+                plotscale=y_transformation,
+                threshold=threshold)
+            return y_sim, y_execution_column
+
+
         # Y SIM
         if current_y.name != 'composition':
             execution_filter_y = {'execution': execution,
                                   'file_type': file,
                                   y_sim_location: y_sim_name}
+
+            y_sim, y_execution_column = get_Y_ExecutionColumn(execution_filter_y=execution_filter_y)
+            y_execution_column = [y_execution_column]
         else:
-            specie = [s for s in current_y.species][0]  # TODO non va bene quando sommo le speciee
-            execution_filter_y = {'execution': execution,
-                                  'file_type': file,
-                                  y_sim_location: specie + '_x'}
+            dataColumnSpecies = current_y.species_object.all()
 
-        y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
+            y_sim_tot = [0] * len(x_execution_column.data)
+            y_execution_column_tot = []
 
-        if not y_execution_column.exists():
-            raise ExecutionColumnError
-        else:
-            y_execution_column = y_execution_column[0]
+            for specie_object in dataColumnSpecies:
+                specie = [name + '_x' for name in specie_object.names]
+                execution_filter_y = {'execution': execution,
+                                      'file_type': file,
+                                      y_sim_location + '__in': specie}
 
-        y_sim = applyTransformation(
-            my_list=Unit.convert_list(my_list=list(y_execution_column.data),
-                                      unit=y_execution_column.units,
-                                      desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
-                                                                        y_name=current_y.name)[1]),
-            plotscale=y_transformation,
-            threshold=threshold)
+                y_sim_partial, y_execution_column_partial = get_Y_ExecutionColumn(execution_filter_y=execution_filter_y)
+
+                y_sim_tot = [x + y for x, y in zip(y_sim_partial, y_sim_tot)]
+                y_execution_column_tot.append(y_execution_column_partial)
+
+            y_execution_column = y_execution_column_tot
+            y_sim = y_sim_tot
+
 
         result.append({
             'valid': valid,
@@ -337,6 +366,8 @@ def visualizeExecution(execution, consist=None) -> dict:
 
             exp_name = execution.experiment.fileDOI if y_dataColumn.name != 'composition' else execution.experiment.fileDOI + ' ' + y_dataColumn.label
 
+            x_exp, y_exp = zip(*sorted(zip(x_exp, y_exp)))
+
             consistency.add_experimental(x_name=x_dataColumn.name,
                                          y_name=y_dataColumn.name,
                                          key=exp_name,
@@ -346,6 +377,8 @@ def visualizeExecution(execution, consist=None) -> dict:
                                                  'name': exp_name})
 
             sim_name = execution.chemModel.name if y_dataColumn.name != 'composition' else execution.chemModel.name + ' ' + y_dataColumn.label
+
+            x_sim, y_sim = zip(*sorted(zip(x_sim, y_sim)))
 
             # ADD SIM
             consistency.add_result(x_name=x_dataColumn.name,
@@ -376,3 +409,4 @@ def resultExecutionVisualization(consistency):
         for x_key in consistency.result[y_key]:
             consistency.result[y_key][x_key] += consistency.experimental[y_key][x_key].values()
     return {'info': consistency.info, 'data': consistency.result}
+

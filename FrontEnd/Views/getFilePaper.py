@@ -16,7 +16,7 @@ class getFilePaper(View.FrontEndBaseView):
     paramsType = {'fields': tuple, 'exp_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         file_paper = Models.Experiment.objects.get(id=self.exp_id).file_paper
 
         results = [Serializers.FilePaperSerializer(file_paper, fields=self.fields).data]

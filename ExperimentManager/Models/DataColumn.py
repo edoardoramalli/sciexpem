@@ -1,5 +1,9 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+
+import inspect
 
 import ExperimentManager.Models.Tool as Tool
 import ExperimentManager.Models as Model
@@ -10,7 +14,7 @@ from ReSpecTh.FuelValid import ValidFuel
 from ReSpecTh.phi_to_mol_frac import GetMoleFractionsFromEquivalenceRatio
 
 validatorProperty = ReSpecThValidProperty()
-validatorSpecie = ReSpecThValidSpecie()
+# validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
 
@@ -45,6 +49,14 @@ class DataColumn(models.Model):
     # Foreign Key
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="data_columns")
 
+    # def __init__(self, *args, species_object=[], **kwargs):
+    #     super(DataColumn, self).__init__(*args, **kwargs)
+    #     self.save()
+    #     if species_object:
+    #         for specie in species_object:
+    #             self.species_object.add(specie)  # Non importa fare save dopo many to many add
+    #     # self.save()
+
     def range(self):
         return self.data[0], self.data[-1]
 
@@ -61,7 +73,14 @@ class DataColumn(models.Model):
         label = text_dict.get('label')
         dg_label = text_dict.get('dg_label')
         species = text_dict.get('species')
+        species_object = text_dict.get('species_object')
         data_group_profile = text_dict.get('data_group_profile')
+
+        list_species = None
+        if species_object:
+            list_species = []
+            for specie in species_object:
+                list_species.append(Model.Specie.objects.get(id=int(specie)))
 
         fuel_oxidizer = text_dict.get('fuel_oxidizer')
 
@@ -84,10 +103,26 @@ class DataColumn(models.Model):
             elif sum(values_fuels) != 1:
                 raise ConstraintFieldExperimentError('The sum of fuels percentage must be 1')
 
-            atoms = ReSpecThAtomSpecie()
+            # atoms = ReSpecThAtomSpecie()
 
-            oxis_dict = {atoms.to_atoms[oxi['specie'].upper()]: oxi['value'] for oxi in oxidizers}
-            fuels_dict = {atoms.to_atoms[f['specie'].upper()]: f['value'] for f in fuels}
+            # oxis_dict = {atoms.to_atoms[oxi['specie'].upper()]: oxi['value'] for oxi in oxidizers}
+            # fuels_dict = {atoms.to_atoms[f['specie'].upper()]: f['value'] for f in fuels}
+
+            oxis_dict = {Model.Specie.objects.get(id=oxi['specie']).formula: oxi['value'] for oxi in oxidizers}
+            fuels_dict = {Model.Specie.objects.get(id=f['specie']).formula: f['value'] for f in fuels}
+
+            back_dict = {}
+
+            for x in fuels + oxidizers:
+                species_object = Model.Specie.objects.get(id=x['specie'])
+                formula = species_object.formula
+                if formula not in back_dict:
+                    back_dict[formula] = species_object
+                elif formula in back_dict and back_dict[formula] == species_object:
+                    continue
+                else:
+                    # La stessa formula C1H2... può essere associata a più inchi ma dopo non so come tornare indietro
+                    raise ValueError('TODO: Situazione non ancora gestita. Contattare Edoardo!')
 
             results = []
 
@@ -97,19 +132,29 @@ class DataColumn(models.Model):
 
             species_division = {}
 
+            # print(results)
+
             for r in results:
                 for specie in r:
-                    species_division[atoms.to_species[specie.upper()]] = species_division.get(
-                        atoms.to_species[specie.upper()], []) + [r[specie]]
+                    species_division[back_dict[specie.upper()]] = species_division.get(
+                        back_dict[specie.upper()], []) + [r[specie]]
+
+            # print(species_division)
+
+            # raise ValueError('Edoooo')
 
             for division in species_division:
-                others.append(DataColumn(name='composition', units='mole fraction',
-                                         data=species_division[division],
-                                         dg_id=dg_id,
-                                         species=[division],
-                                         source_type='calculated',
-                                         dg_label=dg_label,
-                                         experiment=experiment))
+                current = DataColumn.objects.create(name='composition', units='mole fraction',
+                                                    data=species_division[division],
+                                                    dg_id=dg_id,
+                                                    source_type='calculated',
+                                                    dg_label=dg_label,
+                                                    experiment=experiment)
+                if [division]:
+                    for specie in [division]:
+                        current.species_object.add(specie)
+
+                others.append(current)
 
         if data_group_profile:
             tmp = []
@@ -126,14 +171,26 @@ class DataColumn(models.Model):
         uncertainty = None
         if uncertainty_reference:
             uncertainty_reference['experiment'] = experiment
-            uncertainty = DataColumn(**uncertainty_reference)
+            uncertainty = DataColumn.objects.create(**uncertainty_reference)
 
-        current = DataColumn(name=name, units=units, data=data, dg_id=dg_id, label=label, species=species,
-                             source_type=source_type, dg_label=dg_label, data_group_profile=data_group_profile,
-                             uncertainty_reference=uncertainty, uncertainty_kind=uncertainty_kind,
-                             uncertainty_bound=uncertainty_bound,
-                             experiment=experiment)
+        current = DataColumn.objects.create(name=name, units=units, data=data, dg_id=dg_id, label=label,
+                                            source_type=source_type, dg_label=dg_label,
+                                            data_group_profile=data_group_profile,
+                                            uncertainty_reference=uncertainty, uncertainty_kind=uncertainty_kind,
+                                            uncertainty_bound=uncertainty_bound,
+                                            experiment=experiment)
 
+        if list_species:
+            for specie in list_species:
+                current.species_object.add(specie)  # Non importa fare save dopo many to many add
+        # self.save()
+
+        # TODO Accordance between species array and label
+        if current.name == 'composition' or current.name == 'concentration':
+            list_species = [specie.preferredKey for specie in current.species_object.all()]
+            current.label = '[' + ','.join(list_species) + ']'.replace(',', '+')
+            current.save()
+        # TODO fix specie in fule oxi + salva incertezza
         return [uncertainty, current] + others if uncertainty else [current] + others
 
     def __str__(self):
@@ -180,9 +237,6 @@ class DataColumn(models.Model):
         if (label == 'composition' or label == 'concentration') and species is None:
             raise ConstraintFieldExperimentError(
                 "The label is composition or concentration but no specie is specified!")
-        # TODO Accordance between species array and label
-        if name == 'composition' or name == 'concentration':
-            self.label = '[' + ','.join(species) + ']'
 
         if label \
                 and name != 'composition' \
@@ -190,14 +244,14 @@ class DataColumn(models.Model):
                 and not validatorProperty.isValidSymbolName(symbol=label, name=name):
             raise ConstraintFieldExperimentError(
                 "Not correspondence between unit '%s' and label '%s' in data column!" % (unit, label))
-        if species and not validatorSpecie.isValid(species):
-            raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
+        # if species and not validatorSpecie.isValid(species):
+        #     raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
         # Without next if data could be negative
         if not all(float(x) >= 0 for x in data):
             raise ConstraintFieldExperimentError("Amount data column '%s' must be positive!" % str(data))
 
     def save(self, *args, **kwargs):
-        self.check_fields()
+        # self.check_fields()
         super().save(*args, **kwargs)
 
         # TODO Override DELETE and UPDATE

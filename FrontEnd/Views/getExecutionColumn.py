@@ -23,6 +23,10 @@ def supportGetExecutionColumn(execution):
         x_sim_name = mapping.x_sim_name
         x_sim_location = mapping.x_sim_location
 
+        if any(map(lambda x: x == 'None' or x == 'none',
+                   [mapping.x_sim_name, mapping.y_sim_name, mapping.y_exp_name, mapping.x_exp_name])):
+            continue
+
         # X SIM
         execution_filter_x = {'execution': execution, 'file_type': file, x_sim_location: x_sim_name}
         x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)[0]
@@ -54,7 +58,7 @@ class getExecutionColumn(View.FrontEndBaseView):
     paramsType = {'execution_id': int}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         execution = Models.Execution.objects.get(id=self.execution_id)
 
         if not execution.execution_end:
@@ -71,5 +75,7 @@ class getExecutionColumn(View.FrontEndBaseView):
         df = df[cols]
 
         df = df.where(pd.notnull(df), None)
+
+        df = df.sort_values(by=df.columns[0])
 
         return Response(df.to_dict(orient="records"), HTTP_200_OK)
