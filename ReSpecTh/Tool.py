@@ -292,6 +292,7 @@ def pairExecutionExperiment(execution, mapping, consistency):
                                   y_sim_location: y_sim_name}
 
             y_sim, y_execution_column = get_Y_ExecutionColumn(execution_filter_y=execution_filter_y)
+            y_execution_column = [y_execution_column]
         else:
             dataColumnSpecies = current_y.species_object.all()
 

@@ -115,13 +115,13 @@ def getCurveMatching(query: dict) -> list:
             exp_cm[exp_doi]['models'][model_name] = []
         exp_cm[exp_doi]['models'][model_name].append(
             {'execution_column_name': execution_column_name,
-             'score': result.score,
-             'error': result.error,
-             'd0L2': result.d0L2,
-             'd1L2': result.d1L2,
-             'd0Pe': result.d0Pe,
-             'd1Pe': result.d1Pe,
-             'shift': result.shift,
+             'score': round(result.score, 5),
+             'error': round(result.error, 5),
+             'd0L2': round(result.d0L2, 5),
+             'd1L2': round(result.d1L2, 5),
+             'd0Pe': round(result.d0Pe, 5),
+             'd1Pe': round(result.d1Pe, 5),
+             'shift': round(result.shift, 5),
              })
 
     result = []
@@ -138,13 +138,13 @@ def getCurveMatching(query: dict) -> list:
             avg_score_shift = mean([diz['shift'] for diz in exp_cm[exp]['models'][model_name]])
             tmp.append({
                 'name': model_name,
-                'score': float(avg_score),
-                'error': float(avg_score_error),
-                'd0L2': float(avg_score_d0L2),
-                'd1L2': float(avg_score_d1L2),
-                'd0Pe': float(avg_score_d0Pe),
-                'd1Pe': float(avg_score_d1Pe),
-                'shift': float(avg_score_shift),
+                'score': round(float(avg_score), 5),
+                'error': round(float(avg_score_error), 5),
+                'd0L2': round(float(avg_score_d0L2), 5),
+                'd1L2': round(float(avg_score_d1L2), 5),
+                'd0Pe': round(float(avg_score_d0Pe), 5),
+                'd1Pe': round(float(avg_score_d1Pe), 5),
+                'shift': round(float(avg_score_shift), 5),
                 'details': exp_cm[exp]['models'][model_name]
             })
         result.append({'id': exp_cm[exp]['id'], 'fileDOI': exp, 'models': tmp})

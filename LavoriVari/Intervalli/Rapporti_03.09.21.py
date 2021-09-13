@@ -28,7 +28,7 @@ import pandas as pd
 
 plot = True
 
-output_folder = "./H2_Composition/"
+output_folder = "./CH4_Composition/"
 
 
 def zip_order(xx, yy):
@@ -416,7 +416,7 @@ def generate_df(diz):
 
 
 def analisi_intervalli():
-    with open('./Exp_H2_Composition.list', 'r') as file:
+    with open('./Exp_CH4_Composition.list', 'r') as file:
         exps = json.load(file)
 
     domains = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}

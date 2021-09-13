@@ -3,5 +3,7 @@ from OpenSmoke import views
 
 urlpatterns = [
     path('API/startSimulation', views.startSimulation, name="startSimulation"),
-    path('API/returnResult', views.returnResult, name='returnResult')
+    path('API/returnResult', views.returnResult, name='returnResult'),
+    path('API/createFolderSimulation', views.createFolderSimulation, name='createFolderSimulation'),
+    path('API/initializeSimulation', views.initializeSimulation, name='initializeSimulation'),
 ]

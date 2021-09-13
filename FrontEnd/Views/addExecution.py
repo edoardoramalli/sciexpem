@@ -17,7 +17,7 @@ from io import BytesIO
 
 class addExecution(View.FrontEndBaseView):
     viewName = 'addExecution'
-    paramsType = {'experiment_id': int, 'chemModel_id': int}
+    paramsType = {'experiment_id': int, 'chemModel_id': int, 'everything': bool}
     required_groups = {'GET': ['WRITE']}
 
     def view_get(self, request):
@@ -49,8 +49,9 @@ class addExecution(View.FrontEndBaseView):
 
             s = BytesIO()
             zf = zipfile.ZipFile(s, "w")
-            zf.writestr(zinfo_or_arcname='/kinetics/kinetics.xml', data=xml_file_kinetics)
-            zf.writestr(zinfo_or_arcname='/kinetics/reaction_names.xml', data=xml_file_reaction_names)
+            if self.everything:
+                zf.writestr(zinfo_or_arcname='/kinetics/kinetics.xml', data=xml_file_kinetics)
+                zf.writestr(zinfo_or_arcname='/kinetics/reaction_names.xml', data=xml_file_reaction_names)
             zf.writestr(zinfo_or_arcname='input.dic', data=open_smoke_input_text)
             zf.writestr(zinfo_or_arcname='RunWindow.bat', data=run_bat)
             zf.writestr(zinfo_or_arcname='RunUnix.sh', data=run_unix)

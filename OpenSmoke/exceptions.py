@@ -1,6 +1,6 @@
 class MissingOpenSmokeOutputFile(Exception):
-    def __init__(self):
-        super().__init__("The OpenSMOKE output file is missing.")
+    def __init__(self, msg=''):
+        super().__init__("The OpenSMOKE output file is missing. {}.".format(msg))
 
 
 class OpenSmokeWrongInputFile(Exception):

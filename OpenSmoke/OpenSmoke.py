@@ -206,32 +206,30 @@ class OpenSmokeExecutor:
         Given an OS output file path of an execution, create the corresponding execution columns
         Raise: OpenSmokeWrongInputFile. If the file is missing.
         """
-        try:
-            text = open(os.path.join(folder, file_name + '.out'), errors='strict').read()
+        file_path = os.path.join(folder, file_name + '.out')
+        if os.path.isfile(file_path):
+            text = open(file_path, errors='strict').read()
             # dataframe, units = OpenSmokeParser.parse_output_string(text)
             # OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
             OpenSmokeExecutor.read_output_OS_string(text=text, file_name=file_name, execution=execution)
-        except Exception as e:
-            traceback.print_exc()
-            execution.execution_error = e
-            execution.save()
-            return
+        else:
+            raise MissingOpenSmokeOutputFile(file_name + '.out')
+
 
 
 
     @staticmethod
-    def execute_tsp(exp_id, chemModel_id, execution_id, solver, files):
+    def execute_tsp(exp_id, chemModel_id, execution_id, solver, files, just_initialized=False):
 
 
         path = pathlib.Path(__file__).parent.parent.resolve()
         run_file_path = os.path.join(path, 'runOS.py')
 
         bashCommand = "tsp -n /home/eramalli/.conda/envs/django/bin/python3.9 {file} ".format(file=run_file_path)
-        bashCommand += '--exp {} --chem {} --exec {} --solver {} --files {} '.format(exp_id, chemModel_id, execution_id,
+        bashCommand += ' --exp {} --chem {} --exec {} --solver {} --files {} '.format(exp_id, chemModel_id, execution_id,
                                                                                      solver, ' '.join(files))
-
-        # print(bashCommand)
-        # return
+        if just_initialized:
+            return bashCommand
 
         process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
         output, error = process.communicate()
