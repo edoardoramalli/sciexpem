@@ -18,6 +18,8 @@ from django.urls import path, include
 from rest_framework.status import *
 from django.views.decorators.cache import never_cache
 from django.shortcuts import render
+from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
@@ -91,8 +93,38 @@ def loginUser(request):
         return Response('Username or Password are wrong', status=HTTP_403_FORBIDDEN)
 
 
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def testConnection(request):
+    return Response(status=HTTP_200_OK)
+
+
+
+@api_view(['POST'])
+@permission_classes([])
+def createUser(request):
+    if request.user.is_staff:
+        params = request.data
+        groups = params['groups']
+        fields = dict(params['fields'])
+
+        user = User.objects.create_user(**fields)
+
+        for group in groups:
+            current_group = Group.objects.get(name=group)
+            current_group.user_set.add(user)
+
+        return Response(status=HTTP_200_OK, data='ok')
+    else:
+        return Response(status=HTTP_403_FORBIDDEN, data='No!')
+
+
+
 urlpatterns = [
     path('', home, name='home'),
+    path('testConnection', testConnection),
+    path('createUser', createUser),
     path('UI', UI, name='UI'),
     path('testAuthentication', testAuthentication),
     path('login', loginUser),
@@ -102,6 +134,7 @@ urlpatterns = [
     path('CurveMatching/', include('CurveMatching.urls')),
     path('OpenSmoke/', include('OpenSmoke.urls')),
     path('ReSpecTh/', include('ReSpecTh.urls')),
+    path('CrowdSourcing/', include('CrowdSourcing.urls')),
     path('getInfoUser', CustomAuthToken.as_view(), name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]# + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

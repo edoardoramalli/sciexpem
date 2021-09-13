@@ -27,14 +27,14 @@ class ReSpecThParser:
 
     @property
     def fileDOI(self):
-        e = self.root.find("./comment")
+        e = self.root.find("./fileDOI")
         if e is None:
             return None
         return e.text
 
     @property
     def comment(self):
-        e = self.root.find("./fileDOI")
+        e = self.root.find("./comment")
         if e is None:
             return None
         return e.text
@@ -48,6 +48,48 @@ class ReSpecThParser:
 
     def getBiblio(self):
         e = self.root.find("./bibliographyLink/description")
+        return e.text
+
+    def getBiblioDOI(self):
+        e = self.root.find("./bibliographyLink/referenceDOI")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioAuthor(self):
+        e = self.root.find("./bibliographyLink/details/author")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioTitle(self):
+        e = self.root.find("./bibliographyLink/details/title")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioJournal(self):
+        e = self.root.find("./bibliographyLink/details/journal")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioVolume(self):
+        e = self.root.find("./bibliographyLink/details/volume")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioPage(self):
+        e = self.root.find("./bibliographyLink/details/pages")
+        if e is None:
+            return None
+        return e.text
+
+    def getBiblioYear(self):
+        e = self.root.find("./bibliographyLink/details/year")
+        if e is None:
+            return None
         return e.text
 
     def get_common_property(self, s):
@@ -106,20 +148,23 @@ class ReSpecThParser:
 
         return pd.DataFrame.from_records(columns_data, columns=columns)
 
-
     def initial_composition(self):
         initial_composition = self.get_common_property("initial composition")
+
         if not initial_composition:
             return []
+
+        source_type = initial_composition.attrib.get("sourcetype")
 
         initial_species = []
         for component in initial_composition:
             name = component.find('speciesLink').attrib.get('preferredKey')
             value = component.find('amount').text
-            # cas = component.find('speciesLink').attrib.get('CAS')
             units = component.find('amount').attrib.get("units")
-            # initial_specie = {"name": name, "value": value, "cas": cas, "units": units}
-            initial_specie = {"name": name, "value": value, "units": units}
+            current_source_type = component.find('speciesLink').attrib.get("sourcetype")
+            if current_source_type:
+                source_type = current_source_type
+            initial_specie = {"name": name, "value": value, "units": units, "source_type": source_type}
 
             initial_species.append(initial_specie)
         return initial_species
@@ -133,18 +178,28 @@ class ReSpecThParser:
     def common_properties(self):  # not initial composition
         common_properties = self.root.find("./commonProperties")
         if not common_properties:
-            return []
-
-        props = []
+            return {}
+        props = {}
+        uncertainty = {}
         for prop in common_properties:  # IMPROVABLE IN XML TO DISCARD initial comp. directly
             name = prop.attrib.get("name")
             if not name or name == 'initial composition' or name == 'evaluated standard deviation':
                 continue
-            units = prop.attrib.get("units")
-            value = prop.find("value").text
-            # sourcetype = prop.attrib.get("sourcetype")
-            # props.append({"name": name, "units": units, "value": value, "sourcetype": sourcetype})
-            props.append({"name": name, "units": units, "value": value})
+            # elif name == 'uncertainty':
+            #     uncertainty[prop.attrib.get("reference")] = \
+            #         {'uncertainty_kind': prop.attrib.get("kind"),
+            #          'uncertainty_bound': prop.attrib.get("bound"),
+            #          'uncertainty_value': prop.find("value").text
+            #          }
+            else:
+                units = prop.attrib.get("units")
+                value = prop.find("value").text
+                source_type = prop.attrib.get("sourcetype")
+                props[name] = {"name": name, "units": units, "value": value, "source_type": source_type}
+
+        for u in uncertainty:
+            props[u].update(uncertainty[u])
+
         return props
 
     def extract_columns_multi_dg(self):
@@ -152,57 +207,64 @@ class ReSpecThParser:
         result = []
         for dataGroup in dataGroups:
             dg_id = dataGroup.attrib['id']
+            dg_label = dataGroup.attrib['label'] if 'label' in dataGroup.attrib else 'experimental_data'
+            if dg_label == 'V-t history' or dg_label == 'T-t history' or dg_label == 'P-t history':
+                dataPointLink = dataGroup.attrib['dataPointLink']
+                if dataPointLink == 'all':
+                    dataPointLink = ['all']
+                else:
+                    dataPointLink = dataPointLink.split(';')
+            else:
+                dataPointLink = []
+
             dg_columns = []
 
             for prop in dataGroup.findall("property"):
                 name = prop.attrib.get('name')
                 units = prop.attrib.get('units')
                 label = prop.attrib.get('label')
-
-
-                ignore = prop.attrib.get('ignore') if prop.attrib.get('ignore') is not None else False
-                nominal = prop.attrib.get('nominal')
-                plotscale = prop.attrib.get('plotscale') if prop.attrib.get('plotscale') is not None else "lin"
-
-                species = None
-                xml_species = prop.findall('speciesLink')
-                if xml_species:
-                    species = [specie.attrib['preferredKey'] for specie in xml_species]
-
+                iid = prop.attrib.get('id')
+                source_type = prop.attrib.get('sourcetype')
                 data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
-                dg_columns.append(
-                    {'name': name, "units": units, "label": label,
-                     "species": species, "data": data, "dg_id": dg_id,
-                     'ignore': ignore, 'nominal': nominal, 'plotscale': plotscale})
 
-                # extract dataPoint attributes
-            dataPoints = dataGroup.findall('dataPoint')
-            dp_attributes = dataPoints[0].attrib
-            for k in dp_attributes.keys():
-                data = [float(dp.attrib[k]) for dp in dataPoints]
-                dg_columns.append(
-                    {'name': k, "units": "unitless", "label": k, "species": None, "data": data, "dg_id": dg_id,
-                     'ignore': False, 'nominal': None, 'plotscale': 'lin'})
+                if name != 'uncertainty':
+                    species = None
+                    xml_species = prop.findall('speciesLink')
+                    if xml_species:
+                        species = [specie.attrib['preferredKey'] for specie in xml_species]
+
+                    dg_columns.append(
+                        {'id': iid, 'name': name, "units": units, "label": label, 'data_group_profile': dataPointLink,
+                         "species": species, "data": data, "dg_id": dg_id, "source_type": source_type, 'dg_label': dg_label})
+                else:
+                    dg_columns.append(
+                        {'id': iid, 'name': name, "units": units, "label": label, "data": data, "dg_id": dg_id,
+                         "source_type": source_type, 'data_group_profile': dataPointLink,  'dg_label': dg_label,
+                         "uncertainty_reference": prop.attrib.get('reference'),
+                         'uncertainty_kind': prop.attrib.get('kind'),
+                         'uncertainty_bound': prop.attrib.get('bound'),
+                         })
 
             result.append(dg_columns)
+
         return result
 
-    def extract_uncertainties(self):
-        columns = []
-        dataGroup = self.root.find("dataGroup")
-        at = dataGroup.findall("property[@name='uncertainty']") + dataGroup.findall("uncertainty")
-        for uncertainty in at:
-            units = uncertainty.attrib.get('units')
-            label = uncertainty.attrib.get('label')
-            reference = uncertainty.attrib.get('reference')
-            bound = uncertainty.attrib.get('bound')
-            kind = uncertainty.attrib.get('kind')
-
-            data = [float(dp.find(uncertainty.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
-            columns.append(
-                {'reference': reference, "units": units, "label": label, "bound": bound, "kind": kind, "data": data})
-
-        return columns
+    # def extract_uncertainties(self):
+    #     columns = []
+    #     dataGroup = self.root.find("dataGroup")
+    #     at = dataGroup.findall("property[@name='uncertainty']") + dataGroup.findall("uncertainty")
+    #     for uncertainty in at:
+    #         units = uncertainty.attrib.get('units')
+    #         label = uncertainty.attrib.get('label')
+    #         reference = uncertainty.attrib.get('reference')
+    #         bound = uncertainty.attrib.get('bound')
+    #         kind = uncertainty.attrib.get('kind')
+    #
+    #         data = [float(dp.find(uncertainty.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
+    #         columns.append(
+    #             {'reference': reference, "units": units, "label": label, "bound": bound, "kind": kind, "data": data})
+    #
+    #     return columns
 
     @classmethod
     def from_file(cls, path):
@@ -267,14 +329,14 @@ class ReSpecThValidProperty:
 
     def isValidSymbol(self, symbol):
         for prop in self.props:
-            if symbol in prop.symbols:
+            if symbol in prop.symbols or 'all' in prop.symbols:
                 return True
         return False
 
     def isValidSymbolName(self, symbol, name):
         name = name.lower()
         for prop in self.props:
-            if symbol in prop.symbols and name in prop.names:
+            if (symbol in prop.symbols or 'all' in prop.symbols) and name in prop.names:
                 return True
         return False
 
@@ -283,17 +345,17 @@ class ReSpecThValidProperty:
             return False
         elif symbol is not None and name is not None:
             for prop in self.props:
-                if symbol in prop.symbols and name in prop.names and unit in prop.units:
+                if (symbol in prop.symbols or 'all' in prop.symbols) and name in prop.names and (unit in prop.units or 'all' in prop.units):
                     return True
             return False
         elif symbol is not None and name is None:
             for prop in self.props:
-                if symbol in prop.symbols and unit in prop.units:
+                if (symbol in prop.symbols or 'all' in prop.symbols) and (unit in prop.units or 'all' in prop.units):
                     return True
             return False
         elif symbol is None and name is not None:
             for prop in self.props:
-                if name in prop.names and unit in prop.units:
+                if name in prop.names and (unit in prop.units or 'all' in prop.units):
                     return True
             return False
 
@@ -314,6 +376,20 @@ class ReSpecThValidSpecie:
             return reduce(lambda x, y: x and (y.upper() in self.species), name, True)
         else:
             return name.upper() in self.species
+
+
+class ReSpecThAtomSpecie:
+
+    def __init__(self, file=os.path.join(settings.BASE_DIR, "Files/Nomenclatura_originale_POLIMI.txt")):
+        self.to_atoms = {}  # Species name list in UPPERCASE only
+        self.to_species = {}
+        with open(file, "r") as file:
+            file.readline()
+            file.readline()
+            for line in file:
+                line_split = line.strip().split()
+                self.to_atoms[line_split[2].upper()] = line_split[0].upper()
+                self.to_species[line_split[0].upper()] = line_split[2].upper()
 
 
 class ReSpecThValidExperimentType:

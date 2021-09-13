@@ -35,3 +35,19 @@ SciExpeM/settingsFile
 staticfiles/
 
 nohup.out
+
+CrowdSourcing/migrations/
+
+edo.zip
+
+tmp.zip
+
+edoardo.out
+
+edo_b
+
+*.pdf
+
+*.xlsx
+
+*.backup

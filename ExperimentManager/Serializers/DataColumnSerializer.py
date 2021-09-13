@@ -4,17 +4,30 @@ import ExperimentManager.Serializers.Tool as Tool
 
 
 class DataColumnSerializer(serializers.ModelSerializer):
+    uncertainty_reference = serializers.SerializerMethodField()
+
     class Meta:
         model = DataColumn
-        fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'nominal', 'plotscale', 'ignore']
+        fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'uncertainty_reference']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
 
+        req = ['uncertainty_reference']
+
+        if fields is None:
+            fields = tuple(req)
+
         super(DataColumnSerializer, self).__init__(*args, **kwargs)
 
         Tool.drop_fields(self, fields)
+
+    def get_uncertainty_reference(self, obj):
+        if obj.uncertainty_reference is not None:
+            return DataColumnSerializer(obj.uncertainty_reference).data
+        else:
+            return None
 
     def create(self, validated_data):
         return DataColumn.objects.create(**validated_data)
@@ -26,8 +39,8 @@ class DataColumnSerializer(serializers.ModelSerializer):
         instance.dg_id = validated_data.get('dg_id', instance.dg_id)
         instance.label = validated_data.get('label', instance.label)
         instance.species = validated_data.get('species', instance.species)
-        instance.nominal = validated_data.get('nominal', instance.nominal)
-        instance.plotscale = validated_data.get('plotscale', instance.plotscale)
-        instance.ignore = validated_data.get('ignore', instance.ignore)
+        # instance.nominal = validated_data.get('nominal', instance.nominal)
+        # instance.plotscale = validated_data.get('plotscale', instance.plotscale)
+        # instance.ignore = validated_data.get('ignore', instance.ignore)
         instance.save()
         return instance

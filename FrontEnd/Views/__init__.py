@@ -12,3 +12,6 @@ from .addExecution import addExecution
 from .getExecutionColumn import getExecutionColumn
 from .getExecutionFileList import getExecutionFileList
 from .addExecutionFiles import addExecutionFiles
+from .getProfile import getProfile
+from .getRawData import getRawData
+from .getSpecieList import getSpecieList

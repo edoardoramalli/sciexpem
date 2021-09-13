@@ -6,7 +6,7 @@ import ExperimentManager.Serializers.Tool as Tool
 class FilePaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = FilePaper
-        fields = ['id', 'references', 'reference_doi']
+        fields = ['id', 'description', 'reference_doi', 'author', 'title', 'volume', 'journal', 'year', 'page']
         read_only_fields = ['id']
 
     def __init__(self, *args, **kwargs):

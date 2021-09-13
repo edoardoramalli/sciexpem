@@ -3,6 +3,8 @@ import ExperimentManager.views as View
 from ExperimentManager.Models import *
 from ExperimentManager.exceptions import *
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
+from ReSpecTh.zenodo import *
+from ExperimentManager.checkExperiment import checkExperiment
 
 # Django import
 from rest_framework.response import Response
@@ -10,6 +12,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from django.db import transaction, DatabaseError
 
 import json
+import random
 
 
 class insertElement(View.ExperimentManagerBaseView):
@@ -20,7 +23,7 @@ class insertElement(View.ExperimentManagerBaseView):
     def view_post(self, request):
         username = request.user.username
 
-        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment']
+        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment', 'Specie']
 
         self.property_dict = json.loads(self.property_dict)
 
@@ -36,37 +39,32 @@ class insertElement(View.ExperimentManagerBaseView):
         try:
             with transaction.atomic():
                 try:
+                    if self.model_name == 'Experiment':
+                        self.property_dict['fileDOI'] = 'tmp_' + str(random.randint(0, int(1e20)))
+                        self.property_dict['username'] = username
+
                     list_objects = getattr(model, 'create' + self.model_name)(self.property_dict)
+
                 except MandatoryFieldError as e:
                     return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
 
-                exp = None
+                current_exp = None
                 for obj in list_objects:
+                    # In teoria il save lo si potrebbe portare dentro...farlo due volto non guasta
                     if isinstance(obj, Experiment):
-                        obj.username = username
+                        # obj.username = username
                         obj.save()
-                        exp = obj
+                        current_exp = obj
                     else:
                         obj.save()
-                if exp is not None:
-                    txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment=exp,
-                                                                 data_groups=exp.data_columns.all(),
-                                                                 initial_species=exp.initial_species.all(),
-                                                                 common_properties=exp.common_properties.all(),
-                                                                 file_paper=exp.file_paper)
-                    xml, error = OptimaPP.txt_to_xml(txt)
-                    if error:
-                        raise OptimaPPError(error)
-                    else:
-                        exp.xml_file = xml
-                        exp.save()
 
+                if current_exp is not None:
+                    checkExperiment(current_exp)
+                    # raise ValueError('EDOOO')
+
+        except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError) as e:
+            return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
         except DatabaseError as e:
             return Response(self.viewName + ": " + str(e.__cause__), status=HTTP_400_BAD_REQUEST)
-        except ConstraintFieldExperimentError as e:
-            return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
-        except OptimaPPError as e:
-            return Response(self.viewName + ": OptimaPP error. " + str(e),
-                            status=HTTP_400_BAD_REQUEST)
 
         return Response("{} element inserted successfully.".format(self.model_name), status=HTTP_200_OK)

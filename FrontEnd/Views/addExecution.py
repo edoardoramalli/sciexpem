@@ -1,7 +1,7 @@
 # Local import
 import FrontEnd.views as View
 import ExperimentManager.Models as Models
-from OpenSmoke.OpenSmoke import OpenSmokeParser
+from OpenSmoke.OpenSmoke import OpenSmokeParser, check_Experiment_Model
 
 # Django import
 from rest_framework.response import Response
@@ -17,13 +17,16 @@ from io import BytesIO
 
 class addExecution(View.FrontEndBaseView):
     viewName = 'addExecution'
-    paramsType = {'experiment_id': int, 'chemModel_id': int}
-    required_groups = {'GET': ['READ']}
+    paramsType = {'experiment_id': int, 'chemModel_id': int, 'everything': bool}
+    required_groups = {'GET': ['WRITE']}
 
     def view_get(self, request):
 
         if Models.Execution.objects.filter(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id).exists():
             return Response('addExecution. Execution already exists!', status=HTTP_400_BAD_REQUEST)
+
+        if not check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id):
+            return Response('addExecution. This ChemModel does not support this experiment!', status=HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
 
@@ -39,11 +42,19 @@ class addExecution(View.FrontEndBaseView):
 
             open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, './kinetics', '.')
 
+            run_bat = '"%OPENSMOKEPP_EXE_FOLDER%\OpenSMOKEpp_{}.exe" --input input.dic\n\npause'.format(
+                experiment.experiment_interpreter.solver)
+
+            run_unix = 'OpenSMOKEpp_{} --input input.dic'.format(experiment.experiment_interpreter.solver)
+
             s = BytesIO()
             zf = zipfile.ZipFile(s, "w")
-            zf.writestr(zinfo_or_arcname='/kinetics/kinetics.xml', data=xml_file_kinetics)
-            zf.writestr(zinfo_or_arcname='/kinetics/reaction_names.xml', data=xml_file_reaction_names)
+            if self.everything:
+                zf.writestr(zinfo_or_arcname='/kinetics/kinetics.xml', data=xml_file_kinetics)
+                zf.writestr(zinfo_or_arcname='/kinetics/reaction_names.xml', data=xml_file_reaction_names)
             zf.writestr(zinfo_or_arcname='input.dic', data=open_smoke_input_text)
+            zf.writestr(zinfo_or_arcname='RunWindow.bat', data=run_bat)
+            zf.writestr(zinfo_or_arcname='RunUnix.sh', data=run_unix)
             zf.close()
 
             response_file = s.getvalue()
@@ -53,6 +64,8 @@ class addExecution(View.FrontEndBaseView):
                 chemModel=chemModel,
                 execution_start=timezone.localtime(),
                 username=request.user.username,
+                # username='edo',
+
             )
 
             new_exec.save()
@@ -60,5 +73,3 @@ class addExecution(View.FrontEndBaseView):
             response = HttpResponse(response_file)
             response['Content-Disposition'] = 'attachment; filename= {}'.format(self.experiment_id)
             return response
-
-

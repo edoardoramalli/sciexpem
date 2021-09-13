@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"),
     path('api/opensmoke/fuels_names', views.fuels_names, name="fuels-names"),
     path('api/get_experiment_type_list', views.get_experiment_type_list, name="get_experiment_type_list"),
+    path('api/get_chemModel_version_list', views.get_chemModel_version_list, name='get_chemModel_version_list'),
     path('api/get_username', views.get_username, name="get_username"),
 
     path('api/get_experiment_data_columns/<int:pk>', views.get_experiment_data_columns, name="get_experiment_data_columns"),
@@ -19,6 +20,8 @@ urlpatterns = [
 
 
     # NEW NEW
+    path('API/getRawData', Views.getRawData.as_view(), name="getRawData"),
+    path('API/getProfile', Views.getProfile.as_view(), name="getProfile"),
     path('API/addExecutionFiles', Views.addExecutionFiles.as_view(), name="addExecutionFiles"),
     path('API/getExecutionFileList', Views.getExecutionFileList.as_view(), name="getExecutionFileList"),
     path('API/getExecutionColumn', Views.getExecutionColumn.as_view(), name="getExecutionColumn"),
@@ -33,7 +36,7 @@ urlpatterns = [
     path('API/getAllPlotExecution', Views.getAllPlotExecution.as_view(), name="getAllPlotExecution"),
     path('API/getModelList', Views.getModelList.as_view(), name="getModelList"),
     path('API/getHeatMapExecution', Views.getHeatMapExecution.as_view(), name="getHeatMapExecution"),
-
+    path('API/getSpecieList', Views.getSpecieList.as_view(), name="getSpecieList"),
 
     path('API/prova', views.prova.as_view(), name="prova"),
 

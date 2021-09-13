@@ -1,5 +1,5 @@
 from django.db import models
-import ExperimentManager.Models as Model
+# from ExperimentManager.Models import ExperimentInterpreter
 
 
 class MappingInterpreter(models.Model):
@@ -17,7 +17,7 @@ class MappingInterpreter(models.Model):
 
     file = models.CharField(max_length=100)
 
-    experiment_interpreter = models.ForeignKey(Model.ExperimentInterpreter, on_delete=models.CASCADE,
+    experiment_interpreter = models.ForeignKey('ExperimentInterpreter', on_delete=models.CASCADE,
                                                related_name="mappings")
 
     def save(self, *args, **kwargs):

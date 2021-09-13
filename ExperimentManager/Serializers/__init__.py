@@ -1,3 +1,4 @@
+from .SpecieSerializer import SpecieSerializer
 from .CommonPropertySerializer import CommonPropertySerializer
 from .InitialSpecieSerializer import InitialSpecieSerializer
 from .FilePaperSerializer import FilePaperSerializer
@@ -11,3 +12,4 @@ from .CurveMatchingSerializer import CurveMatchingResultSerializer
 from .ExperimentInterpreterSerializer import ExperimentInterpreterSerializer
 from .MappingInterpreterSerializer import MappingInterpreterSerializer
 from .RuleInterpreterSerializer import RuleInterpreterSerializer
+

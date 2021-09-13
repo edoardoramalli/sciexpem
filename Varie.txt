@@ -1,2 +1,3 @@
 WebPack visualizer: https://chrisbateman.github.io/webpack-visualizer/
 Curve Matching Compiler on OpenSmoke Machine: g++-7 -shared -std=c++17 -fPIC ./CLibrary/main.cpp -o /home/eramalli/sciexpem/CurveMatching/CurveMatchingPython.o -O3 -Wall -DNDEBUG
+Local Backup python manage.py dbbackup -O edo.o

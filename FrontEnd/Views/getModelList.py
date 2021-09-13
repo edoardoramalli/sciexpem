@@ -16,7 +16,7 @@ class getModelList(View.FrontEndBaseView):
     paramsType = {'fields': tuple}
     required_groups = {'POST': ['READ']}
 
-    def view_post(self):
+    def view_post(self, request):
         queryset = Models.ChemModel.objects.all()
         results = []
 

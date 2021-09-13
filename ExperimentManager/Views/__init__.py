@@ -7,3 +7,7 @@ from .requestPropertyList import requestPropertyList
 from .verifyExperiment import verifyExperiment
 from .getCurveMatching import getCurveMatching
 from .insertElement import insertElement
+from .prova import prova
+from .getSimulation import getSimulation
+from .getReportSimulation import getReportSimulation
+from .getAnalytics import getAnalytics

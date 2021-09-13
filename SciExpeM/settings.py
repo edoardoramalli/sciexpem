@@ -37,8 +37,11 @@ SettingsReader = SettingsReader(os.path.join(BASE_DIR, 'SciExpeM', 'settingsFile
 SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+
 COMPRESS_ENABLED = True
+
+SENDFILE_BACKEND = 'sendfile.backends.development'
 
 ALLOWED_HOSTS = ['*']
 
@@ -61,8 +64,10 @@ INSTALLED_APPS = [
     'OpenSmoke.apps.OpensmokeConfig',
     'CurveMatching.apps.CurvematchingConfig',
     'ReSpecTh.apps.RespecthConfig',
+    'CrowdSourcing.apps.CrowdsourcingConfig',
     'dbbackup',
-    'django_cron'
+    'django_cron',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -88,8 +93,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -213,3 +217,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Local
 OPTIMAPP_PATH = SettingsReader.settings['OPTIMAPP_PATH']
+ZENODO_ACCESS_TOKEN = SettingsReader.settings['ZENODO_ACCESS_TOKEN']
+
+
+

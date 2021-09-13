@@ -7,8 +7,12 @@ from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, 
 from ReSpecTh.FuelValid import ValidFuel
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 import ExperimentManager.Models.Tool as Tool
+from ExperimentManager.Models import ExperimentInterpreter
 
 from enum import Enum
+import functools
+import operator
+from itertools import chain
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -26,9 +30,9 @@ class Experiment(models.Model):
     xml_file = models.TextField(blank=True, null=True)
     os_input_file = models.TextField(blank=True, null=True)
 
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, default=None, null=True, related_name="children")
-
     comment = models.CharField(max_length=280, blank=True, null=True)
+
+    notes = models.TextField(blank=True, null=True)
 
     # Meta Data
     fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
@@ -46,7 +50,8 @@ class Experiment(models.Model):
 
     username = models.CharField(max_length=75, blank=True, null=True)
 
-
+    experiment_interpreter = models.ForeignKey(ExperimentInterpreter, on_delete=models.SET_NULL, default=None,
+                                               null=True)
 
     def check_fields(self):
         experiment_type = self.experiment_type
@@ -94,12 +99,12 @@ class Experiment(models.Model):
         if not self.experiment_interpreter:
             raise ConstraintFieldExperimentError("Experiment is not managed yet.")
 
-    def check_os_file(self):  # TODO in realta non fa il check ma genera solo il file template
+    def check_and_generate_os_file(self):
         if self.os_input_file:
             self.os_input_file = OpenSmokeParser.parse_input_string(self.os_input_file)
 
     def save(self, *args, **kwargs):
-        self.check_os_file()
+        self.check_and_generate_os_file()
         self.check_fields()
         if self.status == 'verified':
             self.check_verify()
@@ -127,22 +132,34 @@ class Experiment(models.Model):
             fileDOI = text_dict['fileDOI']
             reactor = text_dict['reactor']
             experiment_type = text_dict['experiment_type']
+            username = text_dict['username']
         except KeyError as error:
             raise MandatoryFieldError(error)
 
         exp = Experiment(experiment_type=experiment_type, reactor=reactor, fileDOI=fileDOI, os_input_file=os_input_file,
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
                          phi_sup=phi_sup, phi_inf=phi_inf, fuels=fuels, status='unverified', file_paper=paper,
-                         comment=comment)
+                         comment=comment, username=username)
+
+
+        paper.save()
+        exp.save()
 
         data_columns = text_dict['data_columns']
-        tmp1 = [Model.DataColumn.createDataColumn(column, exp) for column in data_columns]
+        tmp1 = functools.reduce(operator.iconcat,
+                                [Model.DataColumn.createDataColumn(column, exp) for column in data_columns], [])
 
-        common_properties = text_dict['common_properties']
-        tmp2 = [Model.CommonProperty.createCommonProperty(prop, exp) for prop in common_properties]
+        common_properties = text_dict.get('common_properties')
+        if common_properties:
+            tmp2 = [Model.CommonProperty.createCommonProperty(prop, exp) for prop in common_properties]
+        else:
+            tmp2 = []
 
         initial_species = text_dict['initial_species']
         tmp3 = [Model.InitialSpecie.createInitialSpecie(init, exp) for init in initial_species]
+
+        for item in tmp1 + tmp2 + tmp3:
+            item.save()
 
         return [paper] + [exp] + tmp1 + tmp2 + tmp3
 
@@ -173,53 +190,81 @@ class Experiment(models.Model):
 
         return params
 
-
     def run_experiment_interpreter(self):
         # Rispettare le regole
-        types = Model.ExperimentInterpreter.objects.all()
+        types_list = Model.ExperimentInterpreter.objects.all()
+        names_data_columns = set(
+            [column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
+        names_data_columns.discard('uncertainty')
 
         result = None
-
-        for t in types:
-            test_rule = True
-            for r in Model.RuleInterpreter.objects.filter(experiment_interpreter=t):
-                property_name = r.property_name
-                property_value = r.property_value
+        for exp_type in types_list:
+            for rule in Model.RuleInterpreter.objects.filter(experiment_interpreter=exp_type):
+                property_name = rule.property_name
+                property_value = rule.property_value
                 if not getattr(self, property_name) == property_value:
-                    test_rule = False
                     break
-            if test_rule is False:
-                continue
-            # Se arrivo qui ho rispettato tutte le rules. Adesso controllo i campi
-            # TODO il problema è che experiment non deve avere altri campi !
-            test_mapping = True
-            # Controllo che esista un mapping
-            mapping_set = set([])
-            for m in Model.MappingInterpreter.objects.filter(experiment_interpreter=t):
-                x_exp_name = m.x_exp_name
-                x_exp_location = m.x_exp_location
-                mapping_set.add(x_exp_name)
-                diz_x = {'experiment': self, x_exp_location: x_exp_name}
-                if not Model.DataColumn.objects.filter(**diz_x).exists():
-                    test_mapping = False
-                    break
-                y_exp_name = m.y_exp_name
-                y_exp_location = m.y_exp_location
-                mapping_set.add(y_exp_name if not y_exp_name.startswith('[') else 'composition')
-                diz_y = {'experiment': self, y_exp_location: y_exp_name}
-                if not Model.DataColumn.objects.filter(**diz_y).exists():
-                    test_mapping = False
-                    break
-            experiment_set = set([])
-            for DC in Model.DataColumn.objects.filter(experiment=self):
-                experiment_set.add(DC.name)
-            if mapping_set != experiment_set:
-                test_mapping = False
-            if test_mapping:
-                result = t.name
+            else:
+                mapping_fields = Model.MappingInterpreter.objects.filter(experiment_interpreter=exp_type).values(
+                    'x_exp_name', 'y_exp_name')
+                mapping_fields_list = []
+                for diz in list(mapping_fields):
+                    mapping_fields_list += list(diz.values())
+
+                mapping_set = set(mapping_fields_list)
+
+                if names_data_columns != mapping_set:
+                    continue
+                else:
+                    result = exp_type
 
         return result
 
     @property
-    def experiment_interpreter(self):
-        return self.run_experiment_interpreter()
+    def interpreter(self):
+        if self.experiment_interpreter is None:
+            new_type = self.run_experiment_interpreter()
+            if new_type:
+                self.experiment_interpreter = new_type
+                self.save()
+            return self.experiment_interpreter
+        else:
+            return self.experiment_interpreter
+
+    @property
+    def interpreter_name(self):
+        if self.interpreter is None:
+            return None
+        else:
+            return self.interpreter.name
+
+    def compare_equality(self, other, prop) -> bool:
+        if prop == 'InitialSpecie':
+            list_element_other = other.initial_species.all()
+            list_element = self.initial_species.all()
+            dict_element_other = [{'specie': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+                                  list_element_other]
+            dict_element = [{'name': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+                            list_element]
+        elif prop == 'CommonProperty':
+            list_element_other = other.common_properties.all()
+            list_element = self.common_properties.all()
+            dict_element_other = [{'name': element.name, 'units': element.units, 'value': element.value} for element in
+                                  list_element_other]
+            dict_element = [{'name': element.name, 'units': element.units, 'value': element.value} for element in
+                            list_element]
+        else:
+            raise Exception
+
+        unique = []
+        if len(dict_element_other) == len(dict_element):
+            for element in dict_element:
+                if element in dict_element_other:
+                    unique.append(True)
+                    continue
+                else:
+                    unique.append(False)
+                    break
+            return all(unique)
+        else:
+            return False

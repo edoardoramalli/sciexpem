@@ -13,8 +13,11 @@ validatorSpecie = ReSpecThValidSpecie()
 class InitialSpecie(models.Model):
     # Mandatory - Checked Field
     name = models.CharField(max_length=20)
+    specie = models.ForeignKey(Model.Specie, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
+
+    source_type = models.CharField(max_length=15)
 
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="initial_species")
 
@@ -22,25 +25,33 @@ class InitialSpecie(models.Model):
         return "%s %s %s" % (self.name, self.value, self.units)
 
     def check_fields(self):
-        name = self.name
+        # name = self.name
         unit = self.units
         value = self.value
 
+        source_type = self.source_type
+
+        if source_type not in ['reported', 'digitized', 'calculated', 'estimated']:
+            raise ConstraintFieldExperimentError(
+                "Name '%s' is not valid for source type in Initial Specie!" % source_type)
+
         if float(value) < 0:
             raise ConstraintFieldExperimentError("Value initial specie '%s' must be positive!" % value)
-        if not validatorSpecie.isValid(name):
-            raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
+        # if not validatorSpecie.isValid(name):
+        #     raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name="composition"):
             raise ConstraintFieldExperimentError(
                 "Unit initial specie '%s' is not valid for 'composition' element!" % unit)
 
     @staticmethod
     def createInitialSpecie(text_dict, experiment):
-        name = text_dict['name']
+        specie_id = int(text_dict['specie'])
+        specie = Model.Specie.objects.get(id=specie_id)
         units = text_dict['units']
         value = text_dict['value']
+        source_type = text_dict['source_type']
 
-        return InitialSpecie(name=name, units=units, value=value, experiment=experiment)
+        return InitialSpecie(specie=specie, units=units, value=value, experiment=experiment, source_type=source_type)
 
     def save(self, *args, **kwargs):
         self.check_fields()

@@ -1,5 +1,6 @@
 # Local import
 import ExperimentManager.views as View
+from ExperimentManager.Views.insertElement import checkExperiment
 from ExperimentManager.Models import *
 from ExperimentManager.exceptions import *
 from ReSpecTh.ReSpecThParser import ReSpecThParser
@@ -19,7 +20,7 @@ def respecth_text_to_experiment(username, file):
         reactor = respecth_obj.apparatus
         experiment_type = respecth_obj.experiment_type
         fileDOI = respecth_obj.fileDOI
-        # comment = respecth_obj.comment
+        comment = respecth_obj.comment
 
         if not reactor:
             raise MandatoryFieldExperimentError("Reactor")
@@ -34,11 +35,22 @@ def respecth_text_to_experiment(username, file):
         else:
             ignition_type = respecth_obj.get_ignition_type()
 
-            # TODO non viene controllato se c'è il DOI
-            # TODO non viene controllato se esiste già
+            # TODO non viene controllato se esiste già la reference ma il doi si
 
-            paper = FilePaper(references=respecth_obj.getBiblio())
-            paper.save()
+            reference_doi = respecth_obj.getBiblioDOI()
+            if reference_doi is not None and FilePaper.objects.filter(reference_doi=reference_doi).exists():
+                paper = FilePaper.objects.get(reference_doi=reference_doi)
+            else:
+                paper = FilePaper(description=respecth_obj.getBiblio(),
+                                  reference_doi=respecth_obj.getBiblioDOI(),
+                                  author=respecth_obj.getBiblioAuthor(),
+                                  title=respecth_obj.getBiblioTitle(),
+                                  journal=respecth_obj.getBiblioJournal(),
+                                  page=respecth_obj.getBiblioPage(),
+                                  year=respecth_obj.getBiblioYear(),
+                                  volume=respecth_obj.getBiblioVolume(),
+                                  )
+                paper.save()
 
             e = Experiment(reactor=reactor,
                            experiment_type=experiment_type,
@@ -47,17 +59,37 @@ def respecth_text_to_experiment(username, file):
                            file_paper=paper,
                            xml_file=file,
                            status=status,
+                           comment=comment,
                            username=username)
             e.save()
 
-            columns_groups = respecth_obj.extract_columns_multi_dg()
+            data_groups = respecth_obj.extract_columns_multi_dg()
 
-            for g in columns_groups:
-                for c in g:
-                    co = DataColumn(experiment=e, **c)
-                    co.save()
+            for group in data_groups:
+                association = {}
+                tmp = []
+                # Le incertezze sono tutte in cima alla lista. Ho la certezza di aver creato le precedenti
+                for column in group:
+                    if 'uncertainty_reference' not in column:
+                        tmp.append(column)
+                    else:
+                        tmp.insert(0, column)
 
-            common_properties = respecth_obj.common_properties()
+                for column in tmp:
+                    current_id = column.pop('id')
+                    if 'uncertainty_reference' in column:
+                        uncertainty_reference = column['uncertainty_reference']
+                        column['uncertainty_reference'] = None
+                        current_column = DataColumn(experiment=e, **column)
+                        current_column.save()
+                        association[uncertainty_reference] = current_column
+                    else:
+                        if current_id in association:
+                            column['uncertainty_reference'] = association[current_id]
+                        current_column = DataColumn(experiment=e, **column)
+                        current_column.save()
+
+            common_properties = list(respecth_obj.common_properties().values())
 
             for c in common_properties:
                 cp = CommonProperty(experiment=e, **c)
@@ -69,6 +101,8 @@ def respecth_text_to_experiment(username, file):
                 ip = InitialSpecie(experiment=e, **i)
                 ip.save()
 
+            checkExperiment(e, opensmoke=False)
+
 
 class loadExperiment(View.ExperimentManagerBaseView):
     viewName = 'loadExperiment'
@@ -78,9 +112,14 @@ class loadExperiment(View.ExperimentManagerBaseView):
     def view_post(self, request):
         username = request.user.username
 
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data=self.viewName + ": TODO inserire inchi e varie.")
+
         if self.format_file == 'XML_ReSpecTh':
             try:
                 respecth_text_to_experiment(username, self.file_text)
+            except ExperimentConsistencyError as e:
+                return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
             except DuplicateExperimentError:
                 return Response(status=HTTP_400_BAD_REQUEST,
                                 data=self.viewName + ": Duplicated Experiment.")

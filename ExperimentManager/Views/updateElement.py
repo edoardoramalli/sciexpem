@@ -1,6 +1,9 @@
 # Local import
 import ExperimentManager.views as View
 from ExperimentManager.Models import *
+from ExperimentManager.exceptions import *
+from ExperimentManager.checkExperiment import checkExperiment
+
 
 # Django import
 from rest_framework.response import Response
@@ -29,7 +32,9 @@ class updateElement(View.ExperimentManagerBaseView):
 
         try:
             with transaction.atomic():
-                element = model.objects.get(pk=self.element_id)
+                element = model.objects.select_for_update().get(pk=self.element_id)
+                # TODO impedire modifica di alcuni attributi se ho già verificato --> generato doi
+                # TODO se l'elemento modificato è un exp far partire di nuovo il check
                 for prop in self.property_dict:
                     if prop in element.__dict__:
                         setattr(element, prop, self.property_dict[prop])
@@ -38,6 +43,16 @@ class updateElement(View.ExperimentManagerBaseView):
                                         data="updateElement: Attribute '{}' not exist in model '{}'".format(prop,
                                                                                                             self.model_name))
                 element.save()
+                if self.model_name == 'Experiment':
+                    checkExperiment(element)
+                    # Cosi viene ricalcolato se cambio qualche parametro
+                    element.experiment_interpreter = None
+                    # Questa istruzione forza a ricalcolarlo
+                    tmp = element.interpreter
+                    element.save()
+
+        except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError, SpecieConsistencyError) as e:
+            return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="updateElement: ID Error. Element ID '{}' in Model '{}' not exist."

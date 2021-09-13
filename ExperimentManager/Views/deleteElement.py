@@ -19,7 +19,7 @@ class deleteElement(View.ExperimentManagerBaseView):
             return Response("deleteElement. User is not authenticated.", status=HTTP_401_UNAUTHORIZED)
 
         supported_models = ['ChemModel', 'FilePaper', 'Experiment', 'Execution', 'CurveMatchingResult',
-                            'ExperimentInterpreter']
+                            'ExperimentInterpreter', 'Specie', 'DataColumn']
 
         if self.model_name not in supported_models:
             return Response(status=HTTP_400_BAD_REQUEST,
