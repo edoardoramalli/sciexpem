@@ -28,7 +28,7 @@ import pandas as pd
 
 plot = True
 
-output_folder = "./CH4_Composition/"
+output_folder = "./H2_IDT/"
 
 
 def zip_order(xx, yy):
@@ -279,7 +279,7 @@ class Domain:
         #     plt.show()
 
 
-def process_summary(exp_id, current_summary, domain_list, pdf_list, excel_list):
+def process_summary(exp_id, current_summary, domain_list):
     for model in current_summary:
 
         model_name = model['model']['name']
@@ -295,20 +295,24 @@ def process_summary(exp_id, current_summary, domain_list, pdf_list, excel_list):
 
             # print(subject)
 
-            if pair['x_exp_name'] != 'temperature' or pair['y_exp_name'] != 'composition':
-                continue
+            # if pair['x_exp_name'] != 'temperature' or pair['y_exp_name'] != 'composition':
+            #     continue
+
+            if pair['y_unit'] != 'us':
+                print('NOOOOOO', pair['y_unit'] )
+                # exit()
 
             # # If the Domain Object does not exist, create it
 
             if subject not in domain_list[model_name]:
-                domain_list[model_name][subject] = Domain(x_range=(500, 2000), x_tickness=20)
-                pdf_list[model_name][subject] = PdfPages(os.path.join(output_folder, f'{model_name}_{subject}.pdf'))
-                excel_list[model_name][subject] = pd.ExcelWriter(
-                    path=os.path.join(output_folder, f'{model_name}_{subject}.xlsx'), engine="openpyxl")
+                domain_list[model_name][subject] = Domain(x_range=(0, 1.5), x_tickness=0.025)
+                # pdf_list[model_name][subject] = PdfPages(os.path.join(output_folder, f'{model_name}_{subject}.pdf'))
+                # excel_list[model_name][subject] = pd.ExcelWriter(
+                #     path=os.path.join(output_folder, f'{model_name}_{subject}.xlsx'), engine="openpyxl")
 
             current_domain = domain_list[model_name][subject]
-            current_pdf = pdf_list[model_name][subject]
-            current_excel = excel_list[model_name][subject]
+            # current_pdf = pdf_list[model_name][subject]
+            # current_excel = excel_list[model_name][subject]
 
             x_exp, y_exp = pair['x_exp_data'], pair['y_exp_data']
             x_sim, y_sim = pair['x_sim_data'], pair['y_sim_data']
@@ -337,11 +341,11 @@ def process_summary(exp_id, current_summary, domain_list, pdf_list, excel_list):
             current_domain.systematic_analysis(exp_spline=spline_exp,
                                                sim_spline=spline_model,
                                                x_axis=x_exp,
-                                               current_excel=current_excel,
+                                               # current_excel=current_excel,
                                                exp_id=exp_id,
                                                model=model)
 
-            current_pdf.savefig()
+            # current_pdf.savefig()
             plt.close()
 
 
@@ -415,37 +419,38 @@ def generate_df(diz):
     return df
 
 
-def analisi_intervalli():
-    with open('./Exp_CH4_Composition.list', 'r') as file:
-        exps = json.load(file)
+def analisi_intervalli(exps):
 
     domains = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
-    pdfs = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
-
-    excels = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
+    # pdfs = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
+    #
+    # excels = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
 
     for exp_id in tqdm(exps):
         # print('EXP ID:', exp_id)
 
-        # if exp_id != 875:
+        # if exp_id != 205:
         #     continue
 
         # Given an Exp return all the pairs for each simulated model
         current_summary = create_summary(exp_id)
+        #
+        # print(current_summary)
+        #
+        # exit()
 
-        process_summary(exp_id=exp_id, current_summary=current_summary, domain_list=domains, pdf_list=pdfs,
-                        excel_list=excels)
+        process_summary(exp_id=exp_id, current_summary=current_summary, domain_list=domains)
 
         # break
 
-    for model in pdfs:
-        for subject in pdfs[model]:
-            pdfs[model][subject].close()
-            excels[model][subject].close()
+    # for model in pdfs:
+    #     for subject in pdfs[model]:
+    #         pdfs[model][subject].close()
+    #         excels[model][subject].close()
 
     # exit()
 
-    summary = PdfPages(os.path.join(output_folder, 'Summary.pdf'))
+    # summary = PdfPages(os.path.join(output_folder, 'Summary.pdf'))
 
     color_list = ['blue', 'red', 'green', 'yellow']
 
@@ -508,168 +513,16 @@ def analisi_intervalli():
                           subject=subject)
 
             # plt.show()
-        ax11.bar(ticks_sovrastima, freq_sovrastima, width=20, color='royalblue', alpha=0.2)
-        ax22.bar(ticks_sottostima, freq_sottostima, width=20, color='royalblue', alpha=0.2)
+        ax11.bar(ticks_sovrastima, freq_sovrastima, width=0.025, color='royalblue', alpha=0.2)
+        ax22.bar(ticks_sottostima, freq_sottostima, width=0.025, color='royalblue', alpha=0.2)
         ax1.legend()
         ax2.legend()
         summary.savefig()
         plt.close()
 
-    summary.close()
+    # summary.close()
 
 
-def analisi_rapporti():
-    pdfs = {'POLIMI_1212_C1C3': {}, 'CRECK_2003_C1C3_DME_LTHT': {}}
-
-    with open('./exp.list', 'r') as file:
-        exps = json.load(file)
-
-    stores = {'POLIMI_1212_C1C3': {'exp': Store(), 'sim': Store()},
-              'CRECK_2003_C1C3_DME_LTHT': {'exp': Store(), 'sim': Store()}}
-
-    stores_total = {'POLIMI_1212_C1C3': Store(), 'CRECK_2003_C1C3_DME_LTHT': Store()}
-
-    for exp_id in tqdm(exps):
-
-        # Given an Exp return all the pairs for each simulated model
-        sim_models = create_summary(exp_id)
-
-        for model in sim_models:
-            model_name = model['model']['name']
-            if not (model_name == 'CRECK_2003_C1C3_DME_LTHT' or model_name == 'POLIMI_1212_C1C3'):
-                continue
-
-            # print(model['pairs'])
-
-            couples_exp = {}
-            couples_model = {}
-
-            for pair in model['pairs']:
-
-                subject = pair['y_sim_name']
-                if pair['y_exp_name'] != 'composition':
-                    continue
-
-                subject_exp = pair['y_exp_name'] if pair['y_exp_name'] != 'composition' else subject
-
-                couples_exp[subject_exp] = {'x': pair['x_exp_data'], 'y': pair['y_exp_data']}
-                couples_model[subject_exp] = {'x': pair['x_sim_data'], 'y': pair['y_sim_data']}
-
-            if len(couples_exp) > 2:
-                for combination in combinations(couples_exp.keys(), 2):
-                    a = combination[0]
-                    b = combination[1]
-
-                    x1_exp_tmp = couples_exp[a]['x']
-                    y1_exp_tmp = couples_exp[a]['y']
-
-                    spline_exp_1 = Spline(x=x1_exp_tmp, y=y1_exp_tmp)
-
-                    x2_exp_tmp = couples_exp[b]['x']
-                    y2_exp_tmp = couples_exp[b]['y']
-
-                    print(a, b)
-                    print(x1_exp_tmp)
-                    print(y1_exp_tmp)
-                    print(x2_exp_tmp)
-                    print(y2_exp_tmp)
-
-                    spline_exp_2 = Spline(x=x2_exp_tmp, y=y2_exp_tmp)
-
-                    def exp_1(x: float):
-                        return spline_exp_1.evaluate(x)
-
-                    def exp_2(x: float):
-                        return spline_exp_2.evaluate(x)
-
-                    x_inf, x_sup = domain_intersection(a_inf=min(x1_exp_tmp), a_sup=max(x1_exp_tmp),
-                                                       b_inf=min(x2_exp_tmp), b_sup=max(x2_exp_tmp))
-
-                    area_exp_1, err_exp = integrate.quad(exp_1, x_inf, x_sup)
-                    area_exp_2, err_exp = integrate.quad(exp_2, x_inf, x_sup)
-
-                    exp_area_ratio = area_exp_1 / area_exp_2
-
-                    stores[model_name]['exp'].add(pair=combination, value=exp_area_ratio)
-
-                    x1_sim_tmp = couples_model[a]['x']
-                    y1_sim_tmp = couples_model[a]['y']
-
-                    spline_sim_1 = Spline(x=x1_sim_tmp, y=y1_sim_tmp)
-
-                    x2_sim_tmp = couples_model[b]['x']
-                    y2_sim_tmp = couples_model[b]['y']
-
-                    print(x1_sim_tmp)
-                    print(y1_sim_tmp)
-                    print(x2_sim_tmp)
-                    print(y2_sim_tmp)
-
-                    print(area_exp_1, area_exp_2, exp_area_ratio)
-
-                    spline_sim_2 = Spline(x=x2_sim_tmp, y=y2_sim_tmp)
-
-                    def sim_1(x: float):
-                        return spline_sim_1.evaluate(x)
-
-                    def sim_2(x: float):
-                        return spline_sim_2.evaluate(x)
-
-                    x_inf, x_sup = domain_intersection(a_inf=min(x1_sim_tmp), a_sup=max(x1_sim_tmp),
-                                                       b_inf=min(x2_sim_tmp), b_sup=max(x2_sim_tmp))
-
-                    area_sim_1, err_exp = integrate.quad(sim_1, x_inf, x_sup)
-                    area_sim_2, err_exp = integrate.quad(sim_2, x_inf, x_sup)
-
-                    sim_area_ratio = area_sim_1 / area_sim_2
-
-                    print(area_sim_1, area_sim_2, sim_area_ratio)
-
-                    exit()
-
-                    stores[model_name]['sim'].add(pair=combination, value=sim_area_ratio)
-
-                    variation = (sim_area_ratio - exp_area_ratio) * 100 / exp_area_ratio
-
-                    stores_total[model_name].add(pair=combination, value=variation)
-
-                    # x_sim_tmp = np.array()
-                    # y_sim_tmp = np.array()
-                # print(list(combinations(couples_exp.keys(), 2)))
-                # print(list(combinations(couples_model.keys(), 2)))
-            # exit()
-
-    with open('POLIMI_1212_C1C3_exp.json', 'w+') as file:
-        obj = stores['POLIMI_1212_C1C3']['exp'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    with open('POLIMI_1212_C1C3_sim.json', 'w+') as file:
-        obj = stores['POLIMI_1212_C1C3']['exp'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    with open('CRECK_2003_C1C3_DME_LTHT_exp.json', 'w+') as file:
-        obj = stores['CRECK_2003_C1C3_DME_LTHT']['exp'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    with open('CRECK_2003_C1C3_DME_LTHT_sim.json', 'w+') as file:
-        obj = stores['CRECK_2003_C1C3_DME_LTHT']['sim'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    with open('POLIMI_1212_C1C3_tot.json', 'w+') as file:
-        obj = stores_total['POLIMI_1212_C1C3'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    with open('CRECK_2003_C1C3_DME_LTHT_tot.json', 'w+') as file:
-        obj = stores_total['CRECK_2003_C1C3_DME_LTHT'].couple
-        obj = {str(key[0]) + '/' + str(key[1]): obj[key] for key in obj}
-        json.dump(obj, file)
-
-    # print(exp_store.couple)
 
 
 if __name__ == "__main__":

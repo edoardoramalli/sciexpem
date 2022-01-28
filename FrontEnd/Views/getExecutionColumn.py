@@ -7,6 +7,7 @@ from FrontEnd.exceptions import ExecutionColumnError
 # Django import
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 
 # System import
 import json
@@ -29,7 +30,12 @@ def supportGetExecutionColumn(execution):
 
         # X SIM
         execution_filter_x = {'execution': execution, 'file_type': file, x_sim_location: x_sim_name}
-        x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)[0]
+        try:
+            x_execution_column = Models.ExecutionColumn.objects.get(**execution_filter_x)
+        except MultipleObjectsReturned:
+            raise ValueError('Too many x axis in execution columns!')
+        except ObjectDoesNotExist:
+            raise ValueError('No x axis in execution columns!')
 
         x_sim_data = [float(x) for x in x_execution_column.data]
         x_sim_units = x_execution_column.units
@@ -44,11 +50,15 @@ def supportGetExecutionColumn(execution):
 
         for y in y_execution_column:
             y_sim_data = [float(y) for y in y.data]
+            if len(x_sim_data) != len(y_sim_data):
+                raise ValueError('Execution columns with different lengths')
             y_sim_units = y.units
             y_sim_label = y.label
             result[y_sim_label + '[' + y_sim_units + ']'] = y_sim_data
 
         result[x_sim_label + '[' + x_sim_units + ']'] = x_sim_data
+
+
 
     return pd.DataFrame.from_dict(result)
 

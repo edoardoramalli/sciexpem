@@ -11,6 +11,34 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from django.db import transaction
 
 
+def getSpecie(diz):
+    preferredKey = diz.pop('preferredKey')
+    CAS = diz.pop('CAS')
+    InChI = diz.pop('InChI')
+    SMILES = diz.pop('SMILES')
+    chemName = diz.pop('chemName')
+
+    if not InChI:
+        raise ValueError('The InChI of the specie is mandatory!')
+
+    specie = Specie.objects.get(InChI=InChI)
+
+    if specie is None:
+        raise ValueError(
+            'The specie is not in the database. Contact admin!')  # per creare una specie manca la formula CxHyOz
+    else:
+        # if not all([preferredKey == specie.preferredKey, InChI == specie.InChI, SMILES == specie.SMILES,
+        #  chemName == specie.chemName, CAS == specie.CAS]):
+        #     pass
+        #     # TODO warning? bloccare inserimento?
+        #     # raise ValueError('The InChI {} of the specie exists but the other fields are different!'.format(InChI))
+        # else:
+        #     diz['specie'] = specie
+        #     return diz
+
+        return specie
+
+
 def respecth_text_to_experiment(username, file):
     status = "unverified"
     with transaction.atomic():
@@ -21,7 +49,9 @@ def respecth_text_to_experiment(username, file):
         experiment_type = respecth_obj.experiment_type
         fileDOI = respecth_obj.fileDOI
         comment = respecth_obj.comment
+        reactor_modes = respecth_obj.modes
 
+        # TODO questi controlli dovrebbero essere inutili dal momento che checkExp dovrebbe farli!
         if not reactor:
             raise MandatoryFieldExperimentError("Reactor")
         elif not experiment_type:
@@ -53,6 +83,7 @@ def respecth_text_to_experiment(username, file):
                 paper.save()
 
             e = Experiment(reactor=reactor,
+                           reactor_modes=reactor_modes,
                            experiment_type=experiment_type,
                            fileDOI=fileDOI,
                            ignition_type=ignition_type,
@@ -86,8 +117,28 @@ def respecth_text_to_experiment(username, file):
                     else:
                         if current_id in association:
                             column['uncertainty_reference'] = association[current_id]
+                        species_object_list = []
+                        species = column.pop('species')
+                        for specie in species:
+                            if 'chemName' in specie:
+                                specie.pop('chemName')
+
+                            query_specie = Specie.objects.filter(**specie)
+
+                            if len(query_specie) == 1:
+                                current_specie = query_specie[0]
+                            elif len(query_specie) == 0:
+                                raise ValueError('The desired specie not exist in the database. Contact admin. {}'.format(specie))
+                            else:
+                                raise ValueError('Ambiguity to select specie in database. Contact admin.')
+                            species_object_list.append(current_specie)
+
+
                         current_column = DataColumn(experiment=e, **column)
                         current_column.save()
+
+                        for specie_object in species_object_list:
+                            current_column.species_object.add(specie_object)
 
             common_properties = list(respecth_obj.common_properties().values())
 
@@ -98,7 +149,7 @@ def respecth_text_to_experiment(username, file):
             initial_species = respecth_obj.initial_composition()
 
             for i in initial_species:
-                ip = InitialSpecie(experiment=e, **i)
+                ip = InitialSpecie(experiment=e, **{'specie': getSpecie(i), **i})
                 ip.save()
 
             checkExperiment(e, opensmoke=False)
@@ -111,9 +162,6 @@ class loadExperiment(View.ExperimentManagerBaseView):
 
     def view_post(self, request):
         username = request.user.username
-
-        return Response(status=HTTP_400_BAD_REQUEST,
-                        data=self.viewName + ": TODO inserire inchi e varie.")
 
         if self.format_file == 'XML_ReSpecTh':
             try:

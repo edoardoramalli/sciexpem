@@ -13,11 +13,10 @@ urlpatterns = [
     path('api/get_chemModel_version_list', views.get_chemModel_version_list, name='get_chemModel_version_list'),
     path('api/get_username', views.get_username, name="get_username"),
 
-    path('api/get_experiment_data_columns/<int:pk>', views.get_experiment_data_columns, name="get_experiment_data_columns"),
-
+    path('api/get_experiment_data_columns/<int:pk>', views.get_experiment_data_columns,
+         name="get_experiment_data_columns"),
 
     # path('api/get_reactor_type_list', views.get_reactor_type_list, name="get_reactor_type_list"),
-
 
     # NEW NEW
     path('API/getRawData', Views.getRawData.as_view(), name="getRawData"),
@@ -37,10 +36,17 @@ urlpatterns = [
     path('API/getModelList', Views.getModelList.as_view(), name="getModelList"),
     path('API/getHeatMapExecution', Views.getHeatMapExecution.as_view(), name="getHeatMapExecution"),
     path('API/getSpecieList', Views.getSpecieList.as_view(), name="getSpecieList"),
+    path('API/getValidation', Views.getValidation.as_view(), name="getValidation"),
+    path('API/getFuelValidation', Views.getFuelValidation.as_view(), name="getFuelValidation"),
+    path('API/getWorld', Views.getWorld.as_view(), name="getWorld"),
+    path('API/getIntervalAnalysis', Views.getIntervalAnalysis.as_view(), name="getIntervalAnalysis"),
+    path('API/getWorldDiff', Views.getWorldDiff.as_view(), name="getWorldDiff"),
+    path('API/getCluster', Views.getCluster.as_view(), name="getCluster"),
+    path('API/getTargetValidation', Views.getTargetValidation.as_view(), name="getTargetValidation"),
+    path('API/getPlotsValidation', Views.getPlotsValidation.as_view(), name="getPlotsValidation"),
+    path('API/getParityPlot', Views.getParityPlot.as_view(), name="getParityPlot"),
+    path('API/getDataFrameExecution', Views.getDataFrameExecution.as_view(), name="getDataFrameExecution"),
 
     path('API/prova', views.prova.as_view(), name="prova"),
-
-
-
 
 ]

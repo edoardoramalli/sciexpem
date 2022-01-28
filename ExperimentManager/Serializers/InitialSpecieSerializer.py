@@ -15,6 +15,11 @@ class InitialSpecieSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
 
+        req = ['specie']
+
+        if fields is None:
+            fields = tuple(req)
+
         super(InitialSpecieSerializer, self).__init__(*args, **kwargs)
 
         Tool.drop_fields(self, fields)

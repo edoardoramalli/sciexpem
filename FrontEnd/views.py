@@ -213,6 +213,7 @@ class DataExcelUploadView(APIView):
 class FrontEndBaseView(APIView):
     viewName = 'BaseView'
     paramsType = {}
+    defaultParams = {}
     permission_classes = [HasGroupPermission] if settings.GROUP_ACTIVE else []
 
     def view_post(self, request):
@@ -245,7 +246,7 @@ class FrontEndBaseView(APIView):
             params = dict(request.data)
             try:
                 for par in self.paramsType:
-                    self.__setattr__(par, self.paramsType[par](params[par]))
+                    self.__setattr__(par, self.paramsType[par](params[par] if par in params else self.defaultParams[par]))
             except KeyError as e:
                 return Response(status=HTTP_400_BAD_REQUEST,
                                 data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))

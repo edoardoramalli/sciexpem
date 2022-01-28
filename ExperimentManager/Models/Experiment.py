@@ -8,6 +8,7 @@ from ReSpecTh.FuelValid import ValidFuel
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 import ExperimentManager.Models.Tool as Tool
 from ExperimentManager.Models import ExperimentInterpreter
+from SciExpeM import settings
 
 from enum import Enum
 import functools
@@ -23,7 +24,7 @@ validatorFuel = ValidFuel()
 class Experiment(models.Model):
     reactor = models.CharField(max_length=50)
     experiment_type = models.CharField(max_length=50)  # is checked
-    fileDOI = models.CharField(max_length=50, unique=True)  # DOI experiment
+    fileDOI = models.CharField(max_length=150, unique=True)  # DOI experiment
     file_paper = models.ForeignKey(Model.FilePaper, on_delete=models.SET_NULL, default=None, null=True)
     ignition_type = models.CharField(max_length=75, blank=True, null=True)
 
@@ -33,6 +34,8 @@ class Experiment(models.Model):
     comment = models.CharField(max_length=280, blank=True, null=True)
 
     notes = models.TextField(blank=True, null=True)
+
+    reactor_modes = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
 
     # Meta Data
     fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
@@ -54,6 +57,7 @@ class Experiment(models.Model):
                                                null=True)
 
     def check_fields(self):
+        # TODO add check on reactor_modes
         experiment_type = self.experiment_type
         fuels = list(self.fuels) if self.fuels is not None else []
         phi_inf = self.phi_inf if self.phi_inf is not None else 0
@@ -126,6 +130,7 @@ class Experiment(models.Model):
         comment = text_dict.get('comment')
         os_input_file = text_dict.get('os_input_file')
         ignition_type = text_dict.get('ignition_type')
+        reactor_modes = text_dict.get('reactor_modes')
 
         # Model Mandatory
         try:
@@ -139,7 +144,7 @@ class Experiment(models.Model):
         exp = Experiment(experiment_type=experiment_type, reactor=reactor, fileDOI=fileDOI, os_input_file=os_input_file,
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
                          phi_sup=phi_sup, phi_inf=phi_inf, fuels=fuels, status='unverified', file_paper=paper,
-                         comment=comment, username=username)
+                         comment=comment, username=username, reactor_modes=reactor_modes)
 
 
         paper.save()
@@ -196,6 +201,7 @@ class Experiment(models.Model):
         names_data_columns = set(
             [column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
         names_data_columns.discard('uncertainty')
+        names_data_columns.discard('evaluated standard deviation')
 
         result = None
         for exp_type in types_list:
@@ -222,7 +228,7 @@ class Experiment(models.Model):
 
     @property
     def interpreter(self):
-        if self.experiment_interpreter is None:
+        if self.experiment_interpreter is None and settings.DEBUG:
             new_type = self.run_experiment_interpreter()
             if new_type:
                 self.experiment_interpreter = new_type
@@ -239,6 +245,12 @@ class Experiment(models.Model):
             return self.interpreter.name
 
     def compare_equality(self, other, prop) -> bool:
+        def similarity(elem, dict_other, threshold):
+            if threshold == 0:
+                return elem in dict_other
+            else:
+                pass
+
         if prop == 'InitialSpecie':
             list_element_other = other.initial_species.all()
             list_element = self.initial_species.all()

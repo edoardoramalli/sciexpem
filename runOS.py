@@ -29,7 +29,8 @@ def execute(exp_id, chemModel_id, execution_id, solver, files):
 
             createFolderSimulation_utils(exp_id=exp_id, chemModel_id=chemModel_id, folderPath=sandbox)
 
-            bashCommand = '. ~/.bashrc && OpenSMOKEpp_' + solver + ".sh --input " + sandbox + "/input.dic"
+            bashCommand = 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/eramalli/opensmoke++suite-0.13.0/lib && '
+            bashCommand += ' /home/eramalli/.opensmoke/opensmoke++suite-0.15.0/bin/OpenSMOKEpp_' + solver + ".sh --input " + sandbox + "/input.dic"
 
             # print(bashCommand)
             #
@@ -40,21 +41,7 @@ def execute(exp_id, chemModel_id, execution_id, solver, files):
 
             process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
             output, error = process.communicate()
-
             output = output.decode('ascii')
-
-            # print(output)
-            #
-            # print(121312321)
-            # print(error)
-            #
-            # print(sandbox)
-            # #
-            # import time
-            #
-            # time.sleep(100)
-
-            # input('ciaooooo')
 
             if 'Fatal error' in output:
                 output = output[output.find('Fatal error:'):]

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 import ExperimentManager.Models.Tool as Tool
 import ExperimentManager.Models as Model
+from ExperimentManager.exceptions import *
 
 
 class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
@@ -16,8 +17,14 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
 
     # TODO file_type con label o name deve essere unique
 
-    def range(self):
+    def check_fields(self):
+        data = self.data
+
+        if len(data) == 0:
+            raise ConstraintFieldExperimentError("Execution Data field is empty")
+
         return self.data[0], self.data[-1]
 
     def save(self, *args, **kwargs):
+        self.check_fields()
         super().save(*args, **kwargs)

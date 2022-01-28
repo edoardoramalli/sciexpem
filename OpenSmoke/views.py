@@ -102,8 +102,14 @@ def initializeSimulation(request):
     username = request.user.username
     params = request.data
     try:
-        model_id = int(params['chemModel'])
-        experiment_id = int(params['experiment'])
+        model_id = params['chemModel']
+        experiment_id = params['experiment']
+
+        if not model_id or not experiment_id:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="initializeSimulation: KeyError in HTTP parameters. Missing parameter.")
+        model_id = int(model_id)
+        experiment_id = int(experiment_id)
     except KeyError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="initializeSimulation: KeyError in HTTP parameters. Missing parameter.")
@@ -135,27 +141,26 @@ def initializeSimulation(request):
                     return Response(status=HTTP_400_BAD_REQUEST,
                                     data="initializeSimulation: ID Error.")
 
-                new_exec = Execution(experiment=exp, chemModel=model,
-                                     execution_start=timezone.localtime(),
-                                     username=username)
+                new_exec = Execution(experiment=exp, chemModel=model, username=username)
                 new_exec.save()
 
-                solver = exp.experiment_interpreter.solver
+                # solver = exp.experiment_interpreter.solver
+                #
+                # mapping_files = list(set([mapping.file for mapping in exp.experiment_interpreter.mappings.all()]))
+                #
+                # bashCommand = OpenSmokeExecutor.execute_tsp(exp_id=experiment_id,
+                #                                             chemModel_id=model_id,
+                #                                             execution_id=new_exec.id,
+                #                                             solver=solver,
+                #                                             files=mapping_files,
+                #                                             just_initialized=True)
 
-                mapping_files = list(set([mapping.file for mapping in exp.experiment_interpreter.mappings.all()]))
-
-                bashCommand = OpenSmokeExecutor.execute_tsp(exp_id=experiment_id,
-                                                            chemModel_id=model_id,
-                                                            execution_id=new_exec.id,
-                                                            solver=solver,
-                                                            files=mapping_files,
-                                                            just_initialized=True)
-
-        return Response('initializeSimulation: Simulation prepared - {}'.format(bashCommand), status=HTTP_200_OK)
+        # return Response('initializeSimulation: Simulation prepared - {}'.format(bashCommand), status=HTTP_200_OK)
+        return Response(status=HTTP_200_OK)
 
     except Exception as err:
         err_type, value, traceback = sys.exc_info()
-        logger.info(f'{username} - Error Simulate' + str(err_type.__name__) + " : " + str(value))
+        # logger.info(f'{username} - Error Simulate' + str(err_type.__name__) + " : " + str(value))
 
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                         data="initializeSimulation: Generic error in start simulation. "
@@ -178,44 +183,48 @@ def createFolderSimulation(request):
 
     query_exp = Experiment.objects.filter(id=experiment_id)
     if query_exp.exists():
-        if not query_exp[0].status == 'verified':
-            return Response(status=HTTP_400_BAD_REQUEST, data="createLocalSimulation: Experiment not verified.")
+        pass
+        # if not query_exp[0].status == 'verified':
+        #     return Response(status=HTTP_400_BAD_REQUEST, data="createLocalSimulation: Experiment not verified.")
     else:
         return Response(status=HTTP_400_BAD_REQUEST, data="createLocalSimulation: Experiment not exist.")
 
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="createLocalSimulation: ChemModel not exist.")
 
-    try:
-        with transaction.atomic():
-            try:
-                exp = query_exp[0]
-                model = ChemModel.objects.get(id=model_id)
-            except ObjectDoesNotExist:
-                return Response(status=HTTP_400_BAD_REQUEST,
-                                data="createLocalSimulation: ID Error.")
+    # try:
+    with transaction.atomic():
+        try:
+            exp = query_exp[0]
+            model = ChemModel.objects.get(id=model_id)
+        except ObjectDoesNotExist:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="createLocalSimulation: ID Error.")
+        # print('edoooooo')
+        # home_path = os.environ.get('./../')
+        folderPath = os.path.join('./../', "Exp_{}-ChemModel_{}".format(exp.id, model.id))
+        # print(folderPath)
+        os.makedirs(folderPath, exist_ok=True)
 
-            home_path = os.environ.get('HOME')
-            folderPath = os.path.join(home_path, "Exp_{}-ChemModel_{}".format(exp.id, model.id))
-            os.makedirs(folderPath, exist_ok=True)
+        createFolderSimulation_utils(exp_id=exp.id, chemModel_id=model.id, folderPath=folderPath)
 
-            createFolderSimulation_utils(exp_id=exp.id, chemModel_id=model.id, folderPath=folderPath)
+        # solver = exp.experiment_interpreter.solver
+        solver = 'edo'
 
-            solver = exp.experiment_interpreter.solver
 
-        return Response('createLocalSimulation: Simulation ready - {} - {}.'.format(solver, folderPath),
+    return Response('createLocalSimulation: Simulation ready - {} - {}.'.format(solver, folderPath),
                         status=HTTP_200_OK)
 
-    except Exception as err:
-        print(err)
-        err_type, value, traceback = sys.exc_info()
-        print(err_type)
-        print(value)
-        print(traceback.print_tb())
-        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
-                        data="startSimulation: Generic error in start simulation. ")
-    finally:
-        db.close_old_connections()
+    # except Exception as err:
+    #     print(err)
+    #     err_type, value, traceback = sys.exc_info()
+    #     print(err_type)
+    #     print(value)
+    #     print(traceback.print_tb())
+    #     return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+    #                     data="startSimulation: Generic error in start simulation. ")
+    # finally:
+    #     db.close_old_connections()
 
 
 @api_view(['POST'])

@@ -5,7 +5,21 @@ from CurveMatching.CurveMatchingPython import CurveMatching
 from SciExpeM import settings
 from ReSpecTh.Tool import pairExecutionExperiment, Consistency
 from statistics import mean
-from time import sleep
+
+
+import threading
+lock = threading.Lock()
+
+running_cm = False
+
+
+def blocking_execute_cm(**kwargs):
+    lock.acquire()
+    CurveMatching.running_cm = True
+    r = executeCurveMatching(**kwargs)
+    CurveMatching.running_cm = False
+    lock.release()
+    return r
 
 
 def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
@@ -13,6 +27,9 @@ def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
 
     if not os.path.isfile(library_path):
         raise FileNotFoundError('CurveMatching executable not found.')
+
+    if len(x_exp) > 100 or len(x_sim) > 100:
+        raise ValueError('Too many values to compute curve matching')
 
     x_exp = [float(e) for e in x_exp]
     y_exp = [float(e) for e in y_exp]
@@ -34,6 +51,23 @@ def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
 
 
 def curveMatchingExecution(current_execution):
+    try:
+        if current_execution.execution_end is None or current_execution.execution_error is not None:
+            raise ValueError('Execution ({}) not ended or with errors.'.format(current_execution.id))
+        if len(current_execution.execution_columns.all()) <= 1:
+            raise ValueError('Execution ({}) not enough columns.'.format(current_execution.id))
+        if any(ll > 100 for ll in [len(c.data) for c in current_execution.execution_columns.all()]):
+            raise ValueError('createUpdateExecutionCurveMatching: Execution ({}) with too many data.')
+    except ValueError as e:
+        c_text = current_execution.execution_error
+        if c_text:
+            c_text += '\n' + str(e)
+        else:
+            c_text = str(e)
+        current_execution.execution_error = c_text
+        current_execution.save()
+        return
+
     experiment = current_execution.experiment
     mappings_list = experiment.experiment_interpreter.mappings.all()
 
@@ -64,11 +98,11 @@ def curveMatchingExecution(current_execution):
             else:
                 uncertainty_data = []
 
-            indexes = executeCurveMatching(x_exp=x_exp, y_exp=y_exp,
-                                           x_sim=x_sim, y_sim=y_sim,
-                                           uncertainty=uncertainty_data,
-                                           numberOfBootstrapVariations=80,
-                                           possibleNegativeOrdinates=True)
+            indexes = blocking_execute_cm(x_exp=x_exp, y_exp=y_exp,
+                                          x_sim=x_sim, y_sim=y_sim,
+                                          uncertainty=uncertainty_data,
+                                          numberOfBootstrapVariations=80,
+                                          possibleNegativeOrdinates=True)
 
             values = {'score': indexes['score'],
                       'error': indexes['error'],
@@ -91,7 +125,7 @@ def curveMatchingExecution(current_execution):
                 cm_result, created = Model.CurveMatchingResult.objects.update_or_create(defaults=values,
                                                                                         execution_column=exec_column)
 
-            sleep(0.5)  # qualche volta da errore in malloc forse perchè è troppo veloce a rilasciare la memoria?
+            #sleep(0.5)  # qualche volta da errore in malloc forse perchè è troppo veloce a rilasciare la memoria?
 
 
 def getCurveMatching(query: dict) -> list:
@@ -101,27 +135,45 @@ def getCurveMatching(query: dict) -> list:
     :rtype: list
     """
 
-    cm_results = Model.CurveMatchingResult.objects.filter(**query).distinct()
+    cm_results = Model.CurveMatchingResult.objects.filter(**query).distinct().values(
+        'score', 'error', 'd0L2', 'd1L2', 'd0Pe', 'd1Pe', 'shift',
+        'execution_column__execution__experiment__fileDOI',
+        'execution_column__execution__chemModel__name',
+        'execution_column__label',
+        'execution_column__execution__experiment__id'
+    )
+
+    # print(cm_results)
+    #
+    # return {}
 
     exp_cm = {}
 
     for result in cm_results:
-        exp_doi = result.execution_column.execution.experiment.fileDOI
-        model_name = result.execution_column.execution.chemModel.name
-        execution_column_name = result.execution_column.label
+        exp_doi = result['execution_column__execution__experiment__fileDOI']
+        model_name = result['execution_column__execution__chemModel__name']
+        execution_column_name = result['execution_column__label']
+        exp_id = result['execution_column__execution__experiment__id']
+        score = round(result['score'], 5)
+        error = round(result['error'], 5)
+        d0L2 = round(result['d0L2'], 5)
+        d1L2 = round(result['d1L2'], 5)
+        d0Pe = round(result['d0Pe'], 5)
+        d1Pe = round(result['d1Pe'], 5)
+        shift = round(result['shift'], 5)
         if exp_doi not in exp_cm:
-            exp_cm[exp_doi] = {'id': result.execution_column.execution.experiment.id, 'models': {model_name: []}}
+            exp_cm[exp_doi] = {'id': exp_id, 'models': {model_name: []}}
         elif model_name not in exp_cm[exp_doi]['models']:
             exp_cm[exp_doi]['models'][model_name] = []
         exp_cm[exp_doi]['models'][model_name].append(
             {'execution_column_name': execution_column_name,
-             'score': round(result.score, 5),
-             'error': round(result.error, 5),
-             'd0L2': round(result.d0L2, 5),
-             'd1L2': round(result.d1L2, 5),
-             'd0Pe': round(result.d0Pe, 5),
-             'd1Pe': round(result.d1Pe, 5),
-             'shift': round(result.shift, 5),
+             'score': score,
+             'error': error,
+             'd0L2': d0L2,
+             'd1L2': d1L2,
+             'd0Pe': d0Pe,
+             'd1Pe': d1Pe,
+             'shift': shift,
              })
 
     result = []

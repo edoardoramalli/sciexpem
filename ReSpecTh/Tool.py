@@ -165,16 +165,18 @@ class Consistency:
             if x_name not in self.unit[y_name]:
                 self.unit[y_name][x_name] = (x_unit, y_unit)
 
-    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict):
+    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict, title: str =None):
         if y_name not in self.info:
             self.info[y_name] = {x_name: {'xaxis': x_axis, 'yaxis': y_axis}}
         else:
             if x_name not in self.info[y_name]:
                 self.info[y_name][x_name] = {'xaxis': x_axis, 'yaxis': y_axis}
 
+        if title:
+            self.info[y_name][x_name]['title'] = title
+
     def get_unit(self, x_name: str, y_name: str, ):
         return self.unit[y_name][x_name]
-
 
 
 def pairExecutionExperiment(execution, mapping, consistency):
@@ -270,8 +272,8 @@ def pairExecutionExperiment(execution, mapping, consistency):
             y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
 
             if not y_execution_column.exists():
-                print(execution_filter_y)
-                raise ExecutionColumnError
+                # print(execution_filter_y)
+                raise ExecutionColumnError(str({'experiment': execution.experiment, **execution_filter_y}))
             else:
                 y_execution_column = y_execution_column[0]
 
@@ -283,7 +285,6 @@ def pairExecutionExperiment(execution, mapping, consistency):
                 plotscale=y_transformation,
                 threshold=threshold)
             return y_sim, y_execution_column
-
 
         # Y SIM
         if current_y.name != 'composition':
@@ -313,7 +314,6 @@ def pairExecutionExperiment(execution, mapping, consistency):
             y_execution_column = y_execution_column_tot
             y_sim = y_sim_tot
 
-
         result.append({
             'valid': valid,
             'x_exp': x_exp,
@@ -329,7 +329,7 @@ def pairExecutionExperiment(execution, mapping, consistency):
     return result
 
 
-def visualizeExecution(execution, consist=None) -> dict:
+def visualizeExecution(execution, consist=None, target=None) -> dict:
     #  experiment status is assumed to be managed
 
     consistency = Consistency() if consist is None else consist
@@ -350,17 +350,24 @@ def visualizeExecution(execution, consist=None) -> dict:
             x_execution_column = result['x_execution_column']
             y_execution_column = result['y_execution_column']
 
+            if target:
+                if target != y_execution_column[0].label:
+                    continue
+
             x_unit_name = x_dataColumn.units if mapping.x_transformation != 'inv' else '1000/' + x_dataColumn.units
             x_name = ' [{}] ({})'.format(x_unit_name, mapping.x_transformation)
             y_unit_name = y_dataColumn.units if mapping.y_transformation != 'inv' else '1000/' + y_dataColumn.units
             y_name = ' [{}] ({})'.format(y_unit_name, mapping.y_transformation)
-            consistency.add_info(x_name=x_dataColumn.name,
-                                 y_name=y_dataColumn.name,
-                                 x_axis={
-                                     'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name},
-                                 y_axis={
-                                     'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name,
-                                        'type': 'lin' if execution.experiment.experiment_type != 'ignition delay measurement' else 'log'})
+            diz_info = {'x_name': x_dataColumn.name,
+                        'y_name': y_dataColumn.name,
+                        'x_axis': {
+                            'title': (x_dataColumn.name if x_dataColumn.name else x_dataColumn.label) + x_name},
+                        'y_axis': {
+                            'title': (y_dataColumn.name if y_dataColumn.name else y_dataColumn.label) + y_name,
+                            'type': 'lin' if execution.experiment.experiment_type != 'ignition delay measurement' else 'log'}}
+            if target:
+                diz_info['title'] = int(execution.experiment.id)
+            consistency.add_info(**diz_info)
 
             # ADD EXP
 
@@ -372,7 +379,8 @@ def visualizeExecution(execution, consist=None) -> dict:
                                          y_name=y_dataColumn.name,
                                          key=exp_name,
                                          result={'x': x_exp,
-                                                 'y': y_exp if execution.experiment.experiment_type != 'ignition delay measurement' else [10**e for e in y_exp],
+                                                 'y': y_exp if execution.experiment.experiment_type != 'ignition delay measurement' else [
+                                                     10 ** e for e in y_exp],
                                                  'type': 'scatter', 'mode': 'markers', 'marker': {'size': 10},
                                                  'name': exp_name})
 
@@ -384,8 +392,9 @@ def visualizeExecution(execution, consist=None) -> dict:
             consistency.add_result(x_name=x_dataColumn.name,
                                    y_name=y_dataColumn.name,
                                    result={'x': x_sim,
-                                           'y': y_sim if execution.experiment.experiment_type != 'ignition delay measurement' else [10**e for e in y_sim],
-                                           'type': 'scatter', 'mode': 'lines+markers', 'marker': {'size': 10},
+                                           'y': y_sim if execution.experiment.experiment_type != 'ignition delay measurement' else [
+                                               10 ** e for e in y_sim],
+                                           'type': 'scatter', 'mode': 'lines', 'line': {'dash': 'dot', 'width': 4},
                                            'name': sim_name})
 
     return consistency
@@ -409,4 +418,3 @@ def resultExecutionVisualization(consistency):
         for x_key in consistency.result[y_key]:
             consistency.result[y_key][x_key] += consistency.experimental[y_key][x_key].values()
     return {'info': consistency.info, 'data': consistency.result}
-

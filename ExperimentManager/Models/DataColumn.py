@@ -194,7 +194,7 @@ class DataColumn(models.Model):
         return [uncertainty, current] + others if uncertainty else [current] + others
 
     def __str__(self):
-        return "%s %s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.data, self.dg_id)
+        return "%s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.dg_id)
 
     def check_fields(self):
         name = self.name

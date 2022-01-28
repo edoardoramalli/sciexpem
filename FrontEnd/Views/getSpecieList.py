@@ -20,6 +20,6 @@ class getSpecieList(View.FrontEndBaseView):
         queryset = Models.Specie.objects.filter(**self.args).distinct()
         results = []
         for element in queryset:
-            results.append(Serializers.SpecieSerializer(element).data)
+            results.append(Serializers.SpecieSerializer(element, fields=self.fields).data)
         return Response(json.dumps(results), status=HTTP_200_OK)
 

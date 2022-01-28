@@ -22,7 +22,7 @@ def run_cm(execution):
 class addExecutionFiles(View.FrontEndBaseView):
     viewName = 'addExecutionFiles'
     paramsType = {'execution_id': int, 'files': dict}
-    required_groups = {'POST': ['READ']}
+    required_groups = {'POST': ['WRITE']}
 
 
     def view_post(self, request):

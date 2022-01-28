@@ -21,6 +21,9 @@ class updateElement(View.ExperimentManagerBaseView):
 
     def view_post(self, request):
         self.property_dict = json.loads(self.property_dict)
+        if not self.property_dict:
+            return Response(status=HTTP_400_BAD_REQUEST,
+                            data="updateElement: property_dict is empty")
         if self.model_name == 'Experiment' and 'status' in self.property_dict:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="updateElement: It is not possible to verify and experiment.")
@@ -45,10 +48,11 @@ class updateElement(View.ExperimentManagerBaseView):
                 element.save()
                 if self.model_name == 'Experiment':
                     checkExperiment(element)
+                    # TODO RIMETTERE RICALCOLO INTERPRETE DOPO UPDATE PARAMETRI!
                     # Cosi viene ricalcolato se cambio qualche parametro
-                    element.experiment_interpreter = None
-                    # Questa istruzione forza a ricalcolarlo
-                    tmp = element.interpreter
+                    # element.experiment_interpreter = None
+                    # # Questa istruzione forza a ricalcolarlo
+                    # tmp = element.interpreter
                     element.save()
 
         except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError, SpecieConsistencyError) as e:

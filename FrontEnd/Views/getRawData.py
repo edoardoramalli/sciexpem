@@ -41,13 +41,13 @@ def sort_columns(columns):
 class getRawData(View.FrontEndBaseView):
     viewName = 'getRawData'
     paramsType = {'experiment_id': int, 'type': str}
-    required_groups = {'POST': ['WRITE']}
+    required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
         if self.type == 'data':
             dg_label = ['experimental_data', 'initial_condition']
         elif self.type == 'profile':
-            dg_label = ['V-t history', 'p-t history', 'T-t history']
+            dg_label = ['V-t history', 'p-t history', 'T-t history', 'T-l history']
         else:
             return Response(self.viewName + ": Type not valid.", status=HTTP_400_BAD_REQUEST)
 

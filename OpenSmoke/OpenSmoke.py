@@ -42,9 +42,25 @@ def getColumnNameSimulator(experiment):
 def check_Experiment_Model(experiment_id, chemModel_id):
     exp = Model.Experiment.objects.get(id=experiment_id)
     chemModel = Model.ChemModel.objects.get(id=chemModel_id)
-    initial_species = set([x.specie.preferredKey for x in exp.initial_species.all()])
+    initial_species = [x.specie for x in exp.initial_species.all()]
+    dc_species = []
+    for x in exp.data_columns.all():
+        for s in x.species_object.all():
+            dc_species.append(s)
+
+    all_species = initial_species + dc_species
+
     supported_species = set(chemModel.supported_species)
-    return initial_species.issubset(supported_species)
+
+    passed = True
+
+
+    for specie in all_species:
+        names = set(specie.names)  # qui c'è anche preffered key per forza
+        if not names & supported_species: # se l'intersezione tra i names e le supported species è vuota
+            passed = False
+            break
+    return passed
 
 
 class OpenSmokeParser:
@@ -52,8 +68,10 @@ class OpenSmokeParser:
         pass
 
     @staticmethod
-    def create_output(file, model_path, output_path):
+    def create_output(file, model_path, output_path, profiles=None):
         output_file = file.replace("$PATHKINETICFOLDER$", model_path).replace("$PATHOUTPUTFOLDER$", output_path)
+        if profiles:
+            output_file = output_file.replace("$LISTPROFILE$", profiles)
         return output_file
 
     @staticmethod
@@ -66,9 +84,12 @@ class OpenSmokeParser:
         prop = {}
         # Extract header from OS output file
         header = [x[: x.rfind("(")] for x in output_str.split('\n')[0].strip().split()]
+
+        list_names = []
         for h in header:
             h_split = h.split("[")
             name = h_split[0]
+            list_names.append(name)
             try:
                 unit = h_split[1].replace("]", "")
                 if unit == '-':
@@ -82,7 +103,11 @@ class OpenSmokeParser:
                     unit = "unitless"
             prop[name] = unit
         try:
-            df = pd.read_csv(buffer_str, delim_whitespace=True, skiprows=1, names=prop.keys())
+            # seen = set()
+            # dupes = [x for x in list_names if x in seen or seen.add(x)]
+            # print('edoo', dupes)
+            # TODO se per sbaglio nell'input file di OS si richiede due volte la stessa specie, l'output file di OS avrà due volte la stessa colonna e si smongola tutto!
+            df = pd.read_csv(buffer_str, delim_whitespace=True, skiprows=1, names=list_names)
         except pd.errors.EmptyDataError:
             raise MissingOpenSmokeOutputFile
 
@@ -117,38 +142,141 @@ class OpenSmokeParser:
         Raise: OpenSmokeWrongInputFile. If the input OS file does not have @KineticsFolder or @OutputFolder line
         :rtype: str. The template input OS file.
         """
+
+        left_space = '\t' * 2
+
+        first_inner_space = ' '
+        second_inner_space = ' ' * 3
+
+        isStarted = False
+        isOpen = False
+
+        inline_profile = False
+
         output_string = ""
         kinetics = False
         output = False
         string = string.strip()
-        for line in string.split("\n"):
-            if "@KineticsFolder" in line.split():
-                kinetics = True
-                output_string += "\t\t@KineticsFolder\t\t\t $PATHKINETICFOLDER$;" + "\n"
-            elif "@OutputFolder" in line.split():
-                output = True
-                output_string += "\t\t@OutputFolder\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
-            elif "@Output" in line.split():
-                output = True
-                output_string += "\t\t@Output\t\t\t $PATHOUTPUTFOLDER$;" + "\n"
-            elif "@ListOfProfiles" in line.split():
-                output_string += "\t\t@ListOfProfiles\t\t\t $LISTPROFILE$;" + "\n"
-            elif "@Profile" in line.split():
-                output_string += "\t\t@Profile\t\t\t $PROFILE$;" + "\n"
+        split_string = string.split('\n')
+
+        buffer_space = 35
+
+        for line_number, line in enumerate(split_string):
+            line = line.strip()
+            if line == '':
+                continue
+
+            if line.startswith('//'):
+                output_string += line.strip() + '\n'
+                continue
+
+            if 'Dictionary' in line:
+                isStarted = True
+                tmp_split = line.split()
+                if len(tmp_split) > 2:
+                    raise OpenSmokeWrongInputFile("Bad definition of dictionary at line " + str(line_number))
+                if isOpen:
+                    raise OpenSmokeWrongInputFile("Missing closing dictionary symbol '}' at line " + str(line_number))
+                output_string += '\n' + line.strip()
+                continue
+
+            if '{' in line:
+                if isStarted:
+                    isOpen = True
+                else:
+                    raise OpenSmokeWrongInputFile("Missing dictionary definition at line " + str(line_number))
+                output_string += '\n' + line.strip() + '\n'
+                continue
+
+            if '}' in line:
+                if isOpen:
+                    isOpen = False
+                    isStarted = False
+                else:
+                    raise OpenSmokeWrongInputFile("Dictionary is closed but not opened at line " + str(line_number))
+                output_string += '\n' + line.strip() + '\n'
+                continue
+
+            if line.startswith('@'):
+                if not isOpen:
+                    raise OpenSmokeWrongInputFile("Missing opening dictionary symbol '{' at line " + str(line_number))
+
+                split_line = line.split('//')
+
+                line = split_line[0]
+
+                if ';' not in line:
+                    raise OpenSmokeWrongInputFile("Missing closing line character ';' at line {}".format(line_number))
+
+                line = line.replace(';', ' ')
+
+                line = line.split()
+
+                remainder = ''
+                if len(split_line) > 1:
+                    remainder = split_line[1]
+                    print('remainder')
+                    print(remainder)
+
+                tmp = ''
+
+                for index_split, split in enumerate(line):
+                    current_space = first_inner_space * (buffer_space - len(split))
+                    if "@KineticsFolder" in split:
+                        kinetics = True
+                        tmp += "@KineticsFolder" + current_space + "$PATHKINETICFOLDER$"
+                        break
+                    elif "@OutputFolder" in line:
+                        output = True
+                        tmp += "@OutputFolder" + current_space + "$PATHOUTPUTFOLDER$"
+                        break
+                    elif "@Output" in line:
+                        output = True
+                        tmp += "@Output" + current_space + "$PATHOUTPUTFOLDER$"
+                        break
+                    elif "@ListOfProfiles" in line:
+                        tmp += "@ListOfProfiles" + current_space + "$LISTPROFILE$"
+                        break
+                    # elif "@Profile" in line:
+                    #     tmp += "@Profile" + current_space + "$PROFILE$"
+                    #     break
+                    else:
+                        if split == ';':
+                            break
+                        if index_split == 0:
+                            tmp += split + current_space
+                        else:
+                            tmp += split + second_inner_space
+
+                output_string += left_space + tmp.strip() + ';'
+                if remainder:
+                    output_string += second_inner_space + '//    ' + remainder.strip()
+                output_string += '\n'
+            # elif line.startswith('@') and 'Profile' in line:
+            #     inline_profile = True
+            # elif ';' in line:
+            #     inline_profile = False
+            # elif inline_profile:
+            #     pass
             else:
-                output_string += line + "\n"
+                raise OpenSmokeWrongInputFile("Invalid line " + str(line_number))
 
         if not (kinetics and output):
             raise OpenSmokeWrongInputFile(
                 'Missing @KineticsFolder keyword' if not kinetics else 'Missing @Output keyword')
 
-        return output_string
+        return output_string.strip()
 
 
 class OpenSmokeExecutor:
 
     @staticmethod
     def createExecutionColumn(dataframe, units, file_name, execution):
+        dataframe = dataframe.drop_duplicates()
+        # Be sure that the execution has not any execution columns:
+        if execution.execution_columns.all():
+            execution.execution_columns.all().delete()
+
         if dataframe.isnull().values.any():
             dataframe = dataframe.dropna()
             if execution.execution_error:
@@ -190,7 +318,6 @@ class OpenSmokeExecutor:
                                          file_type=file_name)
             data.save()
 
-
     @staticmethod
     def read_output_OS_string(text, file_name, execution):
         """
@@ -198,6 +325,16 @@ class OpenSmokeExecutor:
         Raise: OpenSmokeWrongInputFile. If the file is missing.
         """
         dataframe, units = OpenSmokeParser.parse_output_string(text)
+
+        if execution.experiment.reactor == 'rapid compression machine':
+            for col in list(dataframe.columns):
+                if col.startswith('tau1_'):
+                    suffix = col.split('_')[1]
+                    break
+            # TODO in teoria non ci importa il suffisso tanto per le rcm non c'è distinzione tra slope, max, intercept, etc..
+            dataframe['tau'] = dataframe['tau1_{}'.format(suffix)] - dataframe['tau2_{}'.format(suffix)]
+            units['tau'] = units['tau1_{}'.format(suffix)]
+
         OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
 
     @staticmethod
@@ -213,27 +350,30 @@ class OpenSmokeExecutor:
             # OpenSmokeExecutor.createExecutionColumn(dataframe, units, file_name, execution)
             OpenSmokeExecutor.read_output_OS_string(text=text, file_name=file_name, execution=execution)
         else:
-            raise MissingOpenSmokeOutputFile(file_name + '.out')
-
-
-
+            raise MissingOpenSmokeOutputFile('It is missing ' + file_name + '.out')
 
     @staticmethod
     def execute_tsp(exp_id, chemModel_id, execution_id, solver, files, just_initialized=False):
-
 
         path = pathlib.Path(__file__).parent.parent.resolve()
         run_file_path = os.path.join(path, 'runOS.py')
 
         bashCommand = "tsp -n /home/eramalli/.conda/envs/django/bin/python3.9 {file} ".format(file=run_file_path)
-        bashCommand += ' --exp {} --chem {} --exec {} --solver {} --files {} '.format(exp_id, chemModel_id, execution_id,
-                                                                                     solver, ' '.join(files))
+        bashCommand += ' --exp {} --chem {} --exec {} --solver {} --files {} '.format(exp_id, chemModel_id,
+                                                                                      execution_id,
+                                                                                      solver, ' '.join(files))
         if just_initialized:
             return bashCommand
 
         process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
         output, error = process.communicate()
 
+        # import runOS
+        #
+        # runOS.execute(exp_id, chemModel_id, execution_id, solver, files)
+
+        # print(output)
+        # print(error)
 
     # @staticmethod
     # def execute(exp_id, chemModel_id, execution_id, solver, files):

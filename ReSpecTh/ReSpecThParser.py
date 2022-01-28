@@ -19,6 +19,13 @@ class ReSpecThParser:
         return a.text
 
     @property
+    def modes(self):
+        a = self.root.findall("./apparatus/mode")
+        if a is None:
+            return None
+        return [el.text for el in a]
+
+    @property
     def experiment_type(self):
         e = self.root.find("./experimentType")
         if e is None:
@@ -90,7 +97,7 @@ class ReSpecThParser:
         e = self.root.find("./bibliographyLink/details/year")
         if e is None:
             return None
-        return e.text
+        return int(e.text)
 
     def get_common_property(self, s):
         return self.root.find("./commonProperties/property/[@name='%s']" % s)
@@ -161,10 +168,23 @@ class ReSpecThParser:
             name = component.find('speciesLink').attrib.get('preferredKey')
             value = component.find('amount').text
             units = component.find('amount').attrib.get("units")
+            CAS = component.find('speciesLink').attrib.get("CAS")
+            InChI = component.find('speciesLink').attrib.get("InChI")
+            SMILES = component.find('speciesLink').attrib.get("SMILES")
+            chemName = component.find('speciesLink').attrib.get("chemName")
             current_source_type = component.find('speciesLink').attrib.get("sourcetype")
             if current_source_type:
                 source_type = current_source_type
-            initial_specie = {"name": name, "value": value, "units": units, "source_type": source_type}
+            initial_specie = {
+                "value": value,
+                "units": units,
+                "source_type": source_type,
+                "preferredKey": name,
+                "CAS": CAS,
+                "InChI": InChI,
+                "SMILES": SMILES,
+                "chemName": chemName,
+            }
 
             initial_species.append(initial_specie)
         return initial_species
@@ -228,18 +248,24 @@ class ReSpecThParser:
                 data = [float(dp.find(prop.attrib['id']).text) for dp in dataGroup.findall('dataPoint')]
 
                 if name != 'uncertainty':
-                    species = None
+                    species = []
                     xml_species = prop.findall('speciesLink')
-                    if xml_species:
-                        species = [specie.attrib['preferredKey'] for specie in xml_species]
+                    for specie in xml_species:
+                        CAS = specie.attrib.get("CAS")
+                        InChI = specie.attrib.get("InChI")
+                        SMILES = specie.attrib.get("SMILES")
+                        chemName = specie.attrib.get("chemName")
+                        species.append({'InChI':InChI, 'CAS':CAS, 'SMILES':SMILES, 'chemName': chemName})
+
 
                     dg_columns.append(
                         {'id': iid, 'name': name, "units": units, "label": label, 'data_group_profile': dataPointLink,
-                         "species": species, "data": data, "dg_id": dg_id, "source_type": source_type, 'dg_label': dg_label})
+                         "species": species, "data": data, "dg_id": dg_id, "source_type": source_type,
+                         'dg_label': dg_label})
                 else:
                     dg_columns.append(
                         {'id': iid, 'name': name, "units": units, "label": label, "data": data, "dg_id": dg_id,
-                         "source_type": source_type, 'data_group_profile': dataPointLink,  'dg_label': dg_label,
+                         "source_type": source_type, 'data_group_profile': dataPointLink, 'dg_label': dg_label,
                          "uncertainty_reference": prop.attrib.get('reference'),
                          'uncertainty_kind': prop.attrib.get('kind'),
                          'uncertainty_bound': prop.attrib.get('bound'),
@@ -345,7 +371,8 @@ class ReSpecThValidProperty:
             return False
         elif symbol is not None and name is not None:
             for prop in self.props:
-                if (symbol in prop.symbols or 'all' in prop.symbols) and name in prop.names and (unit in prop.units or 'all' in prop.units):
+                if (symbol in prop.symbols or 'all' in prop.symbols) and name in prop.names and (
+                        unit in prop.units or 'all' in prop.units):
                     return True
             return False
         elif symbol is not None and name is None:

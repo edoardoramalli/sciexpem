@@ -19,7 +19,6 @@ class getExperimentList(View.FrontEndBaseView):
     def view_post(self, request):
         queryset = Models.Experiment.objects.filter(**self.args).distinct()
         # queryset = Models.Experiment.objects.filter(id=1111).distinct()
-
         results = []
         for element in queryset:
             results.append(Serializers.ExperimentSerializer(element, fields=self.fields).data)

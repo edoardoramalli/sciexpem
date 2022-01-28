@@ -1,7 +1,6 @@
 import tempfile
 import subprocess
 import os
-import collections
 from django.conf import settings
 
 
@@ -72,7 +71,7 @@ class TranslatorOptimaPP:
         return txt
 
     @staticmethod
-    def create_inline(delimiter="\t", **kwargs):
+    def create_inline(delimiter="\t", species_used=None, **kwargs):
         txt = ""
         keys = kwargs.keys()
         for key in keys:
@@ -81,12 +80,15 @@ class TranslatorOptimaPP:
                 continue
             if key == 'Species_LIST':
                 for index, specie in enumerate(kwargs[key]):
-                    # TODO da rivedere come fare....
+                    if specie.preferredKey in species_used:
+                        preferredKey = specie.preferredKey + '_' + str(species_used[specie.preferredKey])
+                        species_used[specie.preferredKey] += 1
+                    else:
+                        preferredKey = specie.preferredKey
+                        species_used[specie.preferredKey] = 1
+
                     if specie.preferredKey:
-                        if index == 0:
-                            txt += "Species:" + delimiter + specie.preferredKey + delimiter
-                        else:
-                            txt += "Species:" + delimiter + specie.preferredKey + "_" + str(index) + delimiter
+                        txt += "Species:" + delimiter + preferredKey + delimiter
                     if specie.chemName:
                         txt += "Chemical_name:" + delimiter + specie.chemName + delimiter
                     if specie.CAS:
@@ -126,30 +128,41 @@ class TranslatorOptimaPP:
                                                File__DOI=experiment.fileDOI,  # M
                                                Experiment__type=experiment.experiment_type,  # M
                                                Apparatus=experiment.reactor)  # M
+        if experiment.reactor_modes:
+            for mode in experiment.reactor_modes:
+                txt += TranslatorOptimaPP.create_lines(Operation__mode=mode)
+
         return txt
 
     @staticmethod
-    def create_common_experimental_conditions(initial_species, common_properties):
+    def create_common_experimental_conditions(initial_species, common_properties, species_used):
         txt = "Common experimental conditions:\n"
         for prop in common_properties:
             txt += TranslatorOptimaPP.create_inline(Name=prop.name,
                                                     Source_type=prop.source_type,
                                                     Unit=prop.units,
                                                     Value=prop.value) + "\n"
-        for specie in initial_species:
+        for i_specie in initial_species:
+            if i_specie.specie.preferredKey in species_used:
+                preferredKey = i_specie.specie.preferredKey + '_' + str(species_used[i_specie.specie.preferredKey])
+                species_used[i_specie.specie.preferredKey] += 1
+            else:
+                preferredKey = i_specie.specie.preferredKey
+                species_used[i_specie.specie.preferredKey] = 1
+
             txt += TranslatorOptimaPP.create_inline(Name="composition",
-                                                    Species=specie.specie.preferredKey,
-                                                    Chemical_name=specie.specie.chemName,
-                                                    CAS=specie.specie.CAS,
-                                                    InChI=specie.specie.InChI,
-                                                    SMILES=specie.specie.SMILES,
-                                                    Source_type=specie.source_type,
-                                                    Unit=specie.units,
-                                                    Value=specie.value) + "\n"
+                                                    Species=preferredKey,
+                                                    Chemical_name=i_specie.specie.chemName,
+                                                    CAS=i_specie.specie.CAS,
+                                                    InChI=i_specie.specie.InChI,
+                                                    SMILES=i_specie.specie.SMILES,
+                                                    Source_type=i_specie.source_type,
+                                                    Unit=i_specie.units,
+                                                    Value=i_specie.value) + "\n"
         return txt
 
     @staticmethod
-    def create_varied_experimental_conditions_and_measured_results(data_group, offset):
+    def create_varied_experimental_conditions_and_measured_results(data_group, offset, species_used):
         txt = TranslatorOptimaPP.create_inline(dataGroupID=data_group[0].dg_id,
                                                dataGroupLabel=data_group[0].dg_label) + "\n"
 
@@ -173,11 +186,13 @@ class TranslatorOptimaPP:
                                                         Species_LIST=data.species_object.all(),
                                                         Unit=data.units,
                                                         ID=id_x,
-                                                        Source_type=data.source_type)
+                                                        Source_type=data.source_type,
+                                                        species_used=species_used)
             else:
                 txt += TranslatorOptimaPP.create_inline(Name=data.name,
                                                         Label=data.label,
                                                         Species_LIST=data.species_object.all(),
+                                                        species_used=species_used,
                                                         Unit=data.units,
                                                         ID=id_x,
                                                         Source_type=data.source_type,
@@ -241,9 +256,12 @@ class TranslatorOptimaPP:
 
     @staticmethod
     def create_OptimaPP_txt(experiment, data_groups, initial_species, common_properties, file_paper):
+        species_used = {}
+
         txt = ""
         txt += TranslatorOptimaPP.create_header(experiment, file_paper)
-        txt += TranslatorOptimaPP.create_common_experimental_conditions(initial_species, common_properties)
+        txt += TranslatorOptimaPP.create_common_experimental_conditions(initial_species, common_properties,
+                                                                        species_used)
 
         data_groups_dict = {}
         data_groups_dict_profile = {}
@@ -267,7 +285,8 @@ class TranslatorOptimaPP:
         offset_id = 1
         for dg in data_groups_dict:
             txt += TranslatorOptimaPP.create_varied_experimental_conditions_and_measured_results(data_groups_dict[dg],
-                                                                                                 offset_id)
+                                                                                                 offset_id,
+                                                                                                 species_used)
             offset_id += len(data_groups_dict[dg])
 
         for dg in data_groups_dict_profile:

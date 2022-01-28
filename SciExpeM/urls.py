@@ -17,12 +17,13 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.status import *
 from django.views.decorators.cache import never_cache
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
+from django.contrib.auth.forms import AuthenticationForm
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
@@ -30,7 +31,6 @@ from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny
-
 
 import sys
 
@@ -57,7 +57,8 @@ class CustomAuthToken(ObtainAuthToken):
             'permissions': user.get_user_permissions(),
         })
 
-@login_required
+
+@login_required()
 def UI(request):
     return render(request, 'FrontEnd/index.html')
 
@@ -78,19 +79,27 @@ def testAuthentication(request):
         return Response(status=HTTP_401_UNAUTHORIZED)
 
 
+from django.contrib import messages
+
+
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
 def loginUser(request):
+    form = AuthenticationForm(request.POST)
     params = request.data
     username = params['username']
     password = params['password']
+
     user = authenticate(request, username=username, password=password)
     if user is not None:
-        login(request, user)
-        return Response('Username or Password are wrong', status=HTTP_200_OK)
+        if user.is_active:
+            login(request, user)
+            return redirect('home')
+
     else:
-        return Response('Username or Password are wrong', status=HTTP_403_FORBIDDEN)
+        messages.error(request, 'Username or password not correct')
+        return redirect('login')
 
 
 @api_view(['GET'])
@@ -98,7 +107,6 @@ def loginUser(request):
 @permission_classes([])
 def testConnection(request):
     return Response(status=HTTP_200_OK)
-
 
 
 @api_view(['POST'])
@@ -120,14 +128,14 @@ def createUser(request):
         return Response(status=HTTP_403_FORBIDDEN, data='No!')
 
 
-
 urlpatterns = [
-    path('', home, name='home'),
+    # path('', home, name='home'),
     path('testConnection', testConnection),
     path('createUser', createUser),
-    path('UI', UI, name='UI'),
+    path('', UI, name='home'),
     path('testAuthentication', testAuthentication),
-    path('login', loginUser),
+    path('loginUser/', loginUser, name='loginUser'),
+    path('login/', auth_views.LoginView.as_view(), {'template_name': 'registration/login.html'}, name='login'),
     path('admin/', admin.site.urls),
     path('frontend/', include('FrontEnd.urls')),
     path('ExperimentManager/', include('ExperimentManager.urls')),
@@ -137,4 +145,8 @@ urlpatterns = [
     path('CrowdSourcing/', include('CrowdSourcing.urls')),
     path('getInfoUser', CustomAuthToken.as_view(), name='api_token_auth'),
     path('accounts/', include('django.contrib.auth.urls')),
-]# + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]
+
+# print(static(settings.STATIC_URL, document_root=settings.STATIC_ROOT))
+
+# urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

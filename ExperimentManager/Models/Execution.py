@@ -1,15 +1,18 @@
 from django.db import models
 import ExperimentManager.Models as Model
 from ExperimentManager.exceptions import *
+from django.utils import timezone
 
 
 class Execution(models.Model):
     chemModel = models.ForeignKey(Model.ChemModel, on_delete=models.CASCADE, related_name="executions")
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="executions")
+    execution_created = models.DateTimeField(blank=False, default=timezone.now)
     execution_start = models.DateTimeField(null=True, blank=True)
     execution_end = models.DateTimeField(null=True, blank=True)
     username = models.CharField(max_length=75, blank=True, null=True)
     execution_error = models.TextField(null=True, blank=True)
+    computer = models.CharField(max_length=75, blank=True, null=True)
 
     class Meta:
         unique_together = ('chemModel', 'experiment',)

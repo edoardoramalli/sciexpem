@@ -12,7 +12,7 @@ import json
 class getProfile(View.FrontEndBaseView):
     viewName = 'getProfile'
     paramsType = {'data': str}
-    required_groups = {'POST': ['WRITE']}
+    required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
         text = self.data.split('\n')

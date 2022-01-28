@@ -22,6 +22,7 @@ class insertElement(View.ExperimentManagerBaseView):
 
     def view_post(self, request):
         username = request.user.username
+        # username = 'pippo'
 
         supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment', 'Specie']
 

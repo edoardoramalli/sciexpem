@@ -39,7 +39,7 @@ def create_summary(exp_id, chemModel=''):
                     y_unit = units[1]
 
                     x_sim_name = pair['x_execution_column'].label
-                    y_sim_name = ', '.join([exec_col.label for exec_col in pair['y_execution_column'].label])
+                    y_sim_name = ', '.join([exec_col.label for exec_col in pair['y_execution_column']])
 
                     current_pair = {
                         'x_exp_data': pair['x_exp'],

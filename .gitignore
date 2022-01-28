@@ -51,3 +51,11 @@ edo_b
 *.xlsx
 
 *.backup
+
+LavoriVari/
+
+*.png
+
+*.dic
+
+SciExpeMWorker/edoo.pbs

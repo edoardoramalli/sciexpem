@@ -1,10 +1,12 @@
 from ExperimentManager.exceptions import *
 import ExperimentManager.Models as Models
 from OpenSmoke.OpenSmoke import OpenSmokeParser
+from django.db.models import Count
 
 
 def checkIDT(experiment):
     # TODO check i differenti tipi di ignition definition
+    # TODO manca tutti i check su i tipi di ignition definito vedi valid_ignition_type method
     if experiment.experiment_type == 'ignition delay measurement':
         if experiment.ignition_type is None:
             raise ExperimentConsistencyError('IDT Experiment, ignition type is not defined.')
@@ -39,7 +41,21 @@ def checkProfiles(experiment, profile_list, dg_dict):
         raise ExperimentConsistencyError(
             'Profile data groups is not defined for {} reactor.'.format(experiment.reactor))
 
-    dg_label = [dg_dict[dg_id][0].dg_label for dg_id in dg_dict]
+    dg_label = set([dg_dict[dg_id][0].dg_label for dg_id in dg_dict])
+
+    dg_general = [dg_dict[dg_id][0].dg_label for dg_id in dg_dict]
+
+    initial_condition_len = None
+
+    if profile_list:
+        for dg_id in dg_dict:
+            if dg_dict[dg_id][0].dg_label == 'initial_condition':
+                initial_condition_len = len(dg_dict[dg_id][0].data)
+                break
+
+    # print(dg_label)
+    # print(profile_list)
+    # print(dg_dict)
 
     if profile_list and len(dg_label) > 2:
         raise ExperimentConsistencyError('Too many data groups for an experiment with a profile.')
@@ -57,6 +73,10 @@ def checkProfiles(experiment, profile_list, dg_dict):
     if len(set(profile_type)) > 1:
         raise ExperimentConsistencyError('Profile data groups have different types.')
 
+    # Numero di profili uguale al numero di pointi nelle initial conditions
+    if len(profile_type) / 2 != initial_condition_len and dg_general.count('initial_condition') == 1:
+        raise ExperimentConsistencyError('Number of profiles and initial conditions should be the same.')
+
     profile_coverage = {}
     # I profili dello stesso dg devono avere la stessa coverage
     # Nella coverage di un profilo non ci devono essere elementi duplicati
@@ -73,28 +93,20 @@ def checkProfiles(experiment, profile_list, dg_dict):
                 raise ExperimentConsistencyError('Profiles belonging to the same data group with different coverage')
 
     # Se ho un profilo, tutti i data group devono avere la stessa lunghezza e
+    # TODO implementare il fatto che i data group di dati sperimentali non possono essere in numero di righe maggiori
+    # a quelli delle initial condition. Può accadare che un datagroup sperimentale usi meno punti di profilo
     if profile_list:
-        dg_length = []
-        for dg in dg_dict:
-            for column in dg_dict[dg]:
-                dg_length.append(len(column.data))
+        flat_list = sorted([int(item) for sublist in profile_coverage.values() for item in sublist])
 
-        if len(set(dg_length)) != 1:
+        if len(flat_list) != len(set(flat_list)):
+            raise ExperimentConsistencyError('Multiple profiles for the same initial condition. Check association.')
+
+        desidered_coverage = list(range(1, initial_condition_len + 1))
+
+        if desidered_coverage != flat_list:
             raise ExperimentConsistencyError(
-                'All the data group when there is a profile should have the same data length')
-
-        # Non ci devono essere interesezioni tra i profili
-
-        profile_coverage_frequency = set([])
-        for profile in profile_coverage:
-            if profile_coverage_frequency.intersection(set(profile_coverage[profile])):
-                raise ExperimentConsistencyError('A data point has multiple profiles.')
-            else:
-                profile_coverage_frequency = profile_coverage_frequency.union(set(profile_coverage[profile]))
-
-        if set([str(x) for x in range(1, dg_length[0] + 1)]) != profile_coverage_frequency:
-            raise ExperimentConsistencyError(
-                'A data point has not a profile or there is more coverage than data point.')
+                'Not all data points of the initial condition are covered by a profile. Numeration starts from 1. Missing positions {}.'.format(
+                    set(desidered_coverage) - set(flat_list)))
 
 
 def checkUnique(experiment):
@@ -102,7 +114,11 @@ def checkUnique(experiment):
     possible_equal = Models.Experiment.objects.filter(
         experiment_type=experiment.experiment_type,
         reactor=experiment.reactor,
-        file_paper__reference_doi=experiment.file_paper.reference_doi).exclude(id=experiment.id)
+        file_paper__reference_doi=experiment.file_paper.reference_doi).annotate(num_species=Count('initial_species'),
+                                                                                num_common=Count(
+                                                                                    'common_properties')).filter(
+        num_species=len(experiment.initial_species.all()), num_common=len(experiment.common_properties.all())).exclude(
+        id=experiment.id)
 
     if possible_equal.exists():
         for possible in possible_equal:

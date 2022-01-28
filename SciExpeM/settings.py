@@ -23,8 +23,6 @@ class SettingsReader:
                 self.settings[key] = value
 
 
-
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -86,7 +84,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'SciExpeM.urls'
 
-
+GRAPH_MODELS = {
+    'app_labels': ["ExperimentManager"],
+}
 
 CORS_ORIGIN_ALLOW_ALL = True
 
@@ -127,7 +127,6 @@ DATABASES = {
         'PORT': DATABASE_PORT,
     }
 }
-
 
 # DB BACKUP
 
@@ -212,12 +211,11 @@ GROUP_ACTIVE = not DEBUG
 # CSRF_COOKIE_SECURE = True
 # os.environ['HTTPS'] = "on"
 
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'https://sciexpem.polimi.it'
+
+LOGIN_URL = 'login/'
 
 # Local
 OPTIMAPP_PATH = SettingsReader.settings['OPTIMAPP_PATH']
 ZENODO_ACCESS_TOKEN = SettingsReader.settings['ZENODO_ACCESS_TOKEN']
-
-
-
