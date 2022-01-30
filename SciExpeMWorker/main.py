@@ -48,8 +48,6 @@ def start_job(execution_id):
                                       json={'execution_id': execution_id, 'computer': COMPUTER_NAME},
                                       verify=CONFIG['VERIFY'])
 
-        start_request.raise_for_status()
-
         if start_request.status_code == 200:
 
             info = start_request.json()
@@ -81,7 +79,7 @@ def start_job(execution_id):
                 decrease_active_jobs()
             elif CONFIG['POLICY'] == 'PBS':
                 pbs_file_path = os.path.join(absolute_base_path, 'Execution_{}.pbs'.format(execution_id))
-                utils.enerate_PBS(file_path=pbs_file_path, command=bashCommand)
+                utils.generate_PBS(file_path=pbs_file_path, command=bashCommand)
 
                 process = subprocess.Popen('qsub -Wblock=true {}'.format(pbs_file_path),
                                            shell=True,
@@ -91,6 +89,12 @@ def start_job(execution_id):
             else:
                 decrease_active_jobs()
                 pass
+
+        elif start_request.status_code == 400:
+            print('\nError concurrency starting execution {}'.format(execution_id))
+            print(end='')
+            decrease_active_jobs()
+
     except Exception as e:
         results = {'execution_id': execution_id, 'errors': str(e), 'files': {}, 'automatic': True}
         send = requests.post('{}OpenSmoke/API/collectFiles'.format(CONFIG['IP_PORT']), json=results,
@@ -98,7 +102,8 @@ def start_job(execution_id):
         # TODO che fare se non riesco ad inviare?
 
         decrease_active_jobs()
-        print('\r Error starting execution - {}'.format(str(e)), end='')
+        print('\nError starting execution - {}'.format(str(e)))
+        print(end='')
 
 
 def crawling_jobs():
@@ -111,7 +116,8 @@ def crawling_jobs():
             return crawling_request.json()
 
     except requests.exceptions.ConnectionError:
-        print('\rCrawling Jobs - ConnectionError', end='')
+        print('\nCrawling Jobs - ConnectionError')
+        print(end='')
         return []
 
 
@@ -196,17 +202,17 @@ def checkUpdate():
     files = r.json()
 
     for file in files:
-        with open(os.path.join(cwd, file), 'r') as f:
-            h.update(str.encode(f.read(), encoding='utf-8'))
+        with open(os.path.join(cwd, file), 'r', encoding='utf-8') as f:
+            text = f.read()
+            h.update(text.encode('utf-8'))
             if files[file] != h.hexdigest():
                 r = requests.post(CONFIG['IP_PORT'] + 'OpenSmoke/API/getUpdate', verify=CONFIG['VERIFY'])
                 update_files = r.json()
 
                 for new_files in update_files:
-                    with open(os.path.join(cwd, new_files), 'w') as f_write:
+                    with open(os.path.join(cwd, new_files), 'w', encoding='utf-8') as f_write:
                         f_write.write(update_files[new_files])
 
-                # TODO fondamentale: quando faccio il refresh ACTIVE_JOBS deve essere ripreso
                 os.execv(sys.executable, ['python'] + [sys.argv[0]] + ['-a {}'.format(ACTIVE_JOBS)])
 
 

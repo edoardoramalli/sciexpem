@@ -254,8 +254,11 @@ def pairExecutionExperiment(execution, mapping, consistency):
         x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
 
         if not x_execution_column.exists():
+            print(execution.experiment.id)
+            print(execution.id)
+            print(execution_filter_x)
             # TODO salvare msg errore
-            raise ExecutionColumnError
+            continue
         else:
             x_execution_column = x_execution_column[0]
             # TODO cosa fare se più colonne?
