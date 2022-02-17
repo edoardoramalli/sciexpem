@@ -10,6 +10,26 @@ import sys
 
 import time
 
+from bs4 import BeautifulSoup
+
+import requests
+
+link = 'https://www.polimi.it/docenti-e-staff/bandi-e-concorsi/assegnidiricerca/archivio/?tx_wfqbe_pi1%5Bshowpage%5D%5B112%5D={}'
+
+for i in range(1, 25):
+    print("------- PAGE {} --------".format(i))
+    r = requests.get(link.format(i))
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    for bando in soup.find_all("p"):
+        text = bando.text
+        if "DEIB" in text:
+            print(bando.text.strip())
+
+# print(r.text)
+
+exit()
 time.sleep(1)
 print('ciaooooo', sys.argv[0], sys.argv)
 os.execv(sys.executable, ['python'] + [sys.argv[0]])

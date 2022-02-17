@@ -1,0 +1,19 @@
+- Scrivere meccanismo in database non solo come file
+- ROPA:
+    - Parser input OS come diz / JSON
+    - Aggiungere keyword ROPA
+    - Sistemare DB in modo che salvi più ROPA
+    - Accettare file .xml dal simulatore
+- RCM:
+    - inserire codice tito
+- FE:
+    - Nella validazione inserire target in fuel o meglio che ognuno possa aggiungere quello che vuole, quando vuole
+- Interval Analysis:
+    - C'era un bug che non trovava l'asse X nel pair Execution (o simile), ho messo come patch "continue" nel catch
+- Reindexing del postgres DB
+- Aggiungere comando restart simulation: cancella colonne, mette started = null
+- Tenere d'occhio cluster bovisa, probabilmente memoria insufficiente
+- Per qualche motivo cluster ariatti bloccato, exp. id: 1080, 1081
+- Aggiustare simulazioni errate
+- Worker:
+    - Aggiungere controllo che chiede simulazione se ci sono almeno 1 GB sul disco...

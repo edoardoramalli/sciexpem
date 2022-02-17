@@ -14,6 +14,9 @@ MODULE: ROPA.py
 # Import External ibraries
 import xml.etree.ElementTree as ET
 import numpy as np
+import pandas as pd
+import os
+# import matplotlib.pyplot as plt
 import math
 
 # Import internal modules
@@ -53,6 +56,11 @@ class RateOfProductionAnalysis:
     def ReadOutputXML(self, outputFolder):
         
         outputFile = outputFolder + 'output.xml'
+
+        if not os.path.isfile('feiofjwe.xml'):
+            raise ValueError('FILE NOT EXISTS!')
+
+        # tree = ET.ElementTree(ET.fromstring(string))
         tree_out = ET.parse(outputFile)
         root_out = tree_out.getroot()                                                     
         
