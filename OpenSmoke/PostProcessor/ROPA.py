@@ -14,8 +14,6 @@ MODULE: ROPA.py
 # Import External ibraries
 import xml.etree.ElementTree as ET
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import math
 
 # Import internal modules
@@ -89,23 +87,25 @@ class RateOfProductionAnalysis:
         return matrixReactionRates, time
 
     def ComputeRopa(self, Type: str, region: list=[], localValue: float = 0):
+        
+        def ReturnCoefficients():
+            Production, Consumption = self.CalculateCoefficientsNotNormalized()
+
+            coefficientProduction = self.ComputeCoefficients(matrix = Production)
+            coefficientConsumption = self.ComputeCoefficients(matrix = Consumption)
+
+            threshold = 1e-20
+            C = coefficientConsumption
+            P = coefficientProduction
+            C = [0 if C_ < threshold or C_>= 1 else C_ for C_ in C]
+            P = [0 if P_ < threshold or P_>= 1 else P_ for P_ in P]
+            return C, P
+
         if Type == 'Global':
             """
             Description: TODO
             """
-
-            Production, Consumption = self.CalculateCoefficientsNotNormalized()
-
-            globalProduction = self.ComputeCoefficients(matrix = Production)
-            globalConsumption = self.ComputeCoefficients(matrix = Consumption)
-
-            thresh = 1e-20
-            C = globalConsumption
-            P = globalProduction
-            C = [0 if C_ < thresh or C_>= 1 else C_ for C_ in C]
-            P = [0 if P_ < thresh or P_>= 1 else P_ for P_ in P]
-           
-            return C, P
+            return ReturnCoefficients()
         elif Type == 'Region':
             """
             Description: TODO
@@ -120,25 +120,13 @@ class RateOfProductionAnalysis:
             self.time = self.time[:idxmax+1]
             self.matrixReactionRates = self.matrixReactionRates[:idxmax+1,:]
 
-            Production, Consumption = self.CalculateCoefficientsNotNormalized()
-
-            regionalProduction = self.ComputeCoefficients(matrix = Production)
-            regionalConsumption = self.ComputeCoefficients(matrix = Consumption)
-
-            thresh = 1e-20
-            C = regionalConsumption
-            P = regionalProduction
-            C = [0 if C_ < thresh or C_>= 1 else C_ for C_ in C]
-            P = [0 if P_ < thresh or P_>= 1 else P_ for P_ in P]
-            
-            return C, P
+            return ReturnCoefficients()
         elif Type == 'Local':
             """
             Description: TODO
             """
             timeValue, idx = self.FindNearest(array = self.time, value = localValue)
             self.matrixReactionRates = self.matrixReactionRates[idx]
-            print(self.matrixReactionRates)
             Production, Consumption = self.CalculateLocalCoefficientsNotNormalized()
 
             localProduction = self.ComputeLocalCoefficients(vector= Production)
@@ -221,23 +209,6 @@ class RateOfProductionAnalysis:
             else:
                 continue
         return v1, v2
-
-    def RatesPlot(self, time, matrixOfRates, numberOfReaction):
-
-        plt.plot(time, matrixOfRates[:,numberOfReaction], 'b--')
-        plt.show()
-
-    def PrintMatrix(self, m, name):
-
-        df = pd.DataFrame(m)
-        fileName = name + '.xlsx'
-        df.to_excel(excel_writer = fileName)
-
-    def Print2Matrix(self, m1, m2, name):
-
-        df = pd.DataFrame([m1,m2])
-        fileName = name + '.xlsx'
-        df.to_excel(excel_writer = fileName)
 
     def ComputeCoefficients(self, matrix):
 
