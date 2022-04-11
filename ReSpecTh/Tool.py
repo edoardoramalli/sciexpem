@@ -179,7 +179,7 @@ class Consistency:
         return self.unit[y_name][x_name]
 
 
-def pairExecutionExperiment(execution, mapping, consistency):
+def pairExecutionExperiment(execution, mapping, consistency, target=''):
     """
     Return the experiment and execution curve pair, with the same unit and same transformation
     """
@@ -207,6 +207,9 @@ def pairExecutionExperiment(execution, mapping, consistency):
     # Y EXP
 
     filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name}
+
+    if target:
+        filter_y['label'] = target
 
     y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 

@@ -14,11 +14,12 @@ from sklearn.cluster import *
 import numpy as np
 import pandas as pd
 from statistics import stdev, variance, mean, median, StatisticsError
-
+from FrontEnd.utils import *
 
 class getCluster(View.FrontEndBaseView):
     viewName = __name__
-    paramsType = {'query': dict, 'subject': str}
+    paramsType = {'query': dict, 'subject': str, 'models': list}
+    defaultParams = {'models': []}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -29,7 +30,13 @@ class getCluster(View.FrontEndBaseView):
             except (StatisticsError, ValueError):
                 return None
 
+
+
         new = {'execution_column__execution__experiment__status': 'verified', **self.query}
+
+        models = check_models(self.models)
+        if len(models) > 1:
+            new = {**new, 'execution_column__execution__experiment__id__in': common_execution_experiment_id(models[0], models[1])}
 
         l = []
 

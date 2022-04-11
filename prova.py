@@ -16,8 +16,320 @@ from django.db.models import Q, Count, F, Case, When, IntegerField
 from django.utils import timezone
 import pandas as pd
 import numpy as np
+import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SciExpeM.settings")
 django.setup()
+
+from SciExpeM.settings import BASE_DIR
+from ExperimentManager.Models import *
+
+from OpenSmoke.SimulationSummary.createSummary import create_summary
+from OpenSmoke.SimulationSummary.processSummary import process_summary
+
+
+a = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'], 'execution_column__execution__chemModel__id': 31}
+a_id = 31
+b = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'], 'execution_column__execution__chemModel__id': 24}
+b_id = 24
+
+from statistics import stdev, variance, mean, median, StatisticsError
+
+
+
+def generate_df(diz):
+    ticks = list(diz.keys())
+    result = {'Interval': [], 'Avg': [], 'StDev': [], 'Count': []}
+
+
+    for index in range(0, len(ticks)):
+
+        if len(diz[ticks[index]]) > 0:
+            media = mean(diz[ticks[index]])
+        else:
+            media = 1
+
+        if len(diz[ticks[index]]) > 1:
+            dev = stdev(diz[ticks[index]])
+        else:
+            dev = 0
+
+        result['Interval'].append(ticks[index])
+        result['Avg'].append(media)
+        result['StDev'].append(dev)
+        result['Count'].append(len(diz[ticks[index]]))
+
+    # print(result)
+
+    df = pd.DataFrame.from_dict(result)
+    return df
+
+
+def merge_dict(diz1, diz2):
+    # merfe dict 2 into dict 1
+    for x in diz2:
+        if x not in diz1:
+            diz1[x] = diz2[x]
+        else:
+            for y in diz2[x]:
+                if y not in diz1[x]:
+                    diz1[x][y] = diz2[x][y]
+                else:
+                    diz1[x][y] = {**diz1[x][y], **diz2[x][y]}
+    return diz1
+
+
+
+def interval(query, chem_id):
+
+
+    default = {'execution_column__execution__experiment__status': 'verified'}
+
+    new = {**default, **query}
+
+
+    exps = CurveMatchingResult.objects.filter(**new).values_list(
+        'execution_column__execution__experiment__id', flat=True).distinct()
+
+
+
+    chemModel = ChemModel.objects.get(id=chem_id)
+
+    domains = {chemModel.name: {}}
+
+    details = {}
+
+    r = {}
+
+    # return Response(json.dumps(a), status=HTTP_200_OK)
+
+    for exp_id in exps:
+        # Given an Exp return all the pairs for each simulated model
+        # if exp_id !=1058:
+        #     continue
+
+        current_summary = create_summary(exp_id=exp_id, chemModel=chemModel.name)
+
+        # Dato un exp, restituisce tutte le coppie x, y, di tutti i modelli simulati (o di quello selezionato)
+        current_result = process_summary(exp_id=exp_id, current_summary=current_summary, domain_list=domains)
+
+        r = merge_dict(r, current_result)
+
+        continue
+
+        print(current_result)
+
+        exit()
+
+        for x_name in current_result:
+            if x_name not in details:
+                details[x_name] = {}
+
+            for subject in current_result[x_name]:
+                if subject not in details[x_name]:
+                    details[x_name][subject] = {}
+
+                # print(exp_id, x_name, subject)
+
+                df = current_result[x_name][subject].where(pd.notnull(current_result[x_name][subject]), -1)
+
+
+
+                if subject == 'C2H4_x':
+                    print('ele', exp_id, len(df))
+                    # print(df)
+
+                # df["Area Exp Inter"] = df.Value.astype(float)
+                # df["Area Sim Inter"] = df.Value.astype(float)
+                # df["Weight Exp Inter"] = df.Value.astype(float)
+                # df["Weight Sim Inter"] = df.Value.astype(float)
+                # df["Real"] = df.Real.astype(float)
+                # df["Value"] = df.Value.astype(float)
+
+                df = df.astype({'Area Exp Inter': float,
+                                'Area Sim Inter': float,
+                                'Weight Exp Inter': float,
+                                'Weight Sim Inter': float,
+                                'Real': float,
+                                'Value': float,
+                                })
+
+                # print(df.dtypes)
+
+                df = df.round({'Area Exp Inter': 3,
+                               'Area Sim Inter': 3,
+                               'Weight Exp Inter': 3,
+                               'Weight Sim Inter': 3,
+                               'Real': 3,
+                               'Value': 3,
+                               })
+
+                details[x_name][subject][exp_id] = df.to_dict('records')
+
+
+    print(r)
+
+    exit()
+
+    result = {}
+    # TODO ASSUNZIONE UN SOLO MODELLO ALLA VOLTA
+    current_model = chemModel.name
+
+    for x_name in domains[current_model]:
+        if x_name not in result:
+            result[x_name] = {}
+
+
+        for subject in domains[current_model][x_name]:
+            # print('edooo', subject)
+            if subject not in details[x_name]:
+                continue
+            if subject not in result[x_name]:
+                result[x_name][subject] = {}
+
+            lunghezza = len(domains[current_model][x_name][subject].x_p)
+
+            freq_sovrastima = np.zeros(lunghezza)
+            freq_sottostima = np.zeros(lunghezza)
+
+            ticks_sottostima = np.zeros(lunghezza)
+            ticks_sovrastima = np.zeros(lunghezza)
+
+            # for index, model_name in enumerate(domains):
+            #     # print(domains[domain][subject].x)
+
+            df_sovrastima = generate_df(diz=domains[current_model][x_name][subject].x_p)
+
+            # print('pippo', sum([len(domains[current_model][x_name][subject].x_n[i]) for i in domains[current_model][x_name][subject].x_n]) +  sum([len(domains[current_model][x_name][subject].x_p[i]) for i in domains[current_model][x_name][subject].x_p]))
+
+            df_sottostima = generate_df(diz=domains[current_model][x_name][subject].x_n)
+
+
+
+            # print(chem_id, subject, len(df_sovrastima) + len(df_sottostima))
+
+            if subject == 'C2H4_x':
+                print('FINAL', chem_id, list(domains[current_model][x_name][subject].x_p.values()))
+                print('FINAL', chem_id, list(domains[current_model][x_name][subject].x_n.values()))
+
+            ticks_sovrastima = df_sovrastima['Interval']
+            ticks_sottostima = df_sottostima['Interval']
+
+            freq_sottostima = np.maximum(freq_sottostima, df_sottostima['Count'])
+            freq_sovrastima = np.maximum(freq_sottostima, df_sovrastima['Count'])
+
+            result[x_name][subject]['sovrastima'] = {'x': list(df_sovrastima['Interval']),
+                                                     'y': list(df_sovrastima['Avg']),
+                                                     'error_y': list(df_sovrastima['StDev']),
+                                                     'count': list(freq_sovrastima)}
+
+
+
+            result[x_name][subject]['sottostima'] = {'x': list(df_sottostima['Interval']),
+                                                     'y': list(df_sottostima['Avg']),
+                                                     'error_y': list(df_sottostima['StDev']),
+                                                     'count': list(freq_sottostima)}
+
+            if subject == 'C2H4_x':
+                print('FINAL', chem_id, sum(freq_sottostima) + sum(freq_sovrastima))
+
+            # print(x_name, subject, chem_id, len(list(freq_sottostima)) + len(list(freq_sovrastima)))
+
+            result[x_name][subject]['details'] = details[x_name][subject]
+
+
+interval(a, a_id)
+interval(b, b_id)
+
+exit()
+
+
+exit()
+import subprocess
+
+
+#
+# bashCommand = 'cd edoooo'
+# process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+# output, error = process.communicate()
+# output = output.decode('ascii')
+# error = error.decode('ascii') if error else ''
+
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+
+files = Execution.objects.all()
+
+diz = {}
+
+for e in files:
+    if e.folder_size:
+        if e.folder_size > 100000000:
+            print(e.experiment.id)
+        diz[e.chemModel.id] = diz.get(e.chemModel.id, []) + [e.folder_size]
+
+import statistics
+
+for model in diz:
+    print(model, sizeof_fmt(statistics.mean(diz[model])), sizeof_fmt(max(diz[model])))
+
+# print(diz)
+
+
+exit()
+
+
+def edo(n, k):
+    return ((n * k * 8) + (n * k * (16 * 8)) + (n * (16 * 8)) + (n * 10 * 8) + (263 * 8)) / (1000 * 8)
+
+
+e = '<?xml version="1.0" encoding="utf-8"?><opensmoke version="0.1a"><Type> HomogeneousReactor </Type><additional>6time [s] 2temperature [K] 3pressure [Pa] 4mol-weight [kg/kmol] 5density [kg/m3] 6heat-release [W/m3] 7</additional><t-p-mw>1 2 3</t-p-mw><mass-fractions>'
+
+print(len(e))
+print(edo(365, 609), ' kB')
+
+exit()
+
+# ese = ExecutionFile.objects.filter(case=None).values_list('id', flat=True)
+#
+# for f in ese:
+#     if not f.path.startswith('Execution'):
+#         f.path = 'Execution/' + f.path
+#         f.save()
+
+
+# print(ese.num_files)
+
+
+exit()
+
+exit()
+
+print(BASE_DIR)
+
+models = ChemModel.objects.all()
+
+for model in models:
+    print(model.xml_file_reaction_names_file)
+    exit()
+    # path = os.path.join(BASE_DIR, 'ChemModels', str(model.id))
+    # os.makedirs(path, exist_ok=True)
+    # path_kinetics = os.path.join(path, 'kinetics.xml')
+    # path_reactions = os.path.join(path, 'reaction_names.xml')
+    # with open(path_kinetics, 'w+') as file:
+    #     file.write(model.xml_file_kinetics)
+    # with open(path_reactions, 'w+') as file:
+    #     file.write(model.xml_file_reaction_names)
+    # model.xml_file_kinetics = path_kinetics
+    # model.xml_file_reaction_names = path_reactions
+    # model.save()
+
+exit()
 
 # SciExpeM Import
 from ReSpecTh.Tool import Consistency, resultExecutionVisualization, pairExecutionExperiment, visualizeExecution
@@ -28,6 +340,7 @@ chemModel = ChemModel.objects.get(id=5)
 domains = {chemModel.name: {}}
 
 details = {}
+
 
 # return Response(json.dumps(a), status=HTTP_200_OK)
 
@@ -58,7 +371,8 @@ def generate_df(diz):
     df = pd.DataFrame.from_dict(result)
     return df
 
-exps=[205]
+
+exps = [205]
 
 for exp_id in exps:
     # Given an Exp return all the pairs for each simulated model
@@ -152,10 +466,7 @@ for x_name in domains[current_model]:
                                                  'count': list(freq_sottostima)}
         result[x_name][subject]['details'] = details[x_name][subject]
 
-
 # print(len(exp_dubbi))
-
-
 
 
 exit()
@@ -168,7 +479,6 @@ from OpenSmoke.Tools import create_list_string_profiles
 from OpenSmoke.OpenSmoke import OpenSmokeParser
 
 import pandas as pd
-
 
 # a = CurveMatchingResult.objects.filter(score=-1, execution_column__execution__chemModel__id=24).values_list('execution_column__execution__id', flat=True).distinct()
 #
@@ -183,7 +493,6 @@ e_21 = set(Execution.objects.filter(chemModel__id=24).values_list('experiment__i
 
 print(e_18 - e_21)
 print(e_21 - e_18)
-
 
 exit()
 # e = Execution.objects.get(id=1435)

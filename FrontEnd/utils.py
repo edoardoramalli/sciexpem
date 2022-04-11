@@ -4,6 +4,7 @@ import pandas as pd
 import zipfile
 import os
 import re
+from django.db.models import Q
 
 # def curve_io_formatter(x_column, y_columns, y_names, x_axis, y_axis, log=False):
 #     curves = []
@@ -56,7 +57,7 @@ def zip_folders(f, folders, zipname, remove_trailing=""):
         for fp in folders:
             for root, dirs, files in os.walk(fp):
                 for f in files:
-                    new_name = os.path.relpath(os.path.join(root,f), remove_trailing)
+                    new_name = os.path.relpath(os.path.join(root, f), remove_trailing)
                     myzip.write(os.path.join(root, f), arcname=new_name)
 
 
@@ -82,6 +83,16 @@ def split_header(line):
     index_start = line.find("[")
     index_end = line.rfind("]")
     name = line[: index_start].strip()
-    unit = line[index_start + 1 : index_end].strip()
+    unit = line[index_start + 1: index_end].strip()
     return name, unit
 
+
+def common_execution_experiment_id(modelA_id, modelB_id):
+    e_a = Execution.objects.filter(Q(chemModel__id=modelA_id) & ~Q(execution_end=None) & (Q(execution_error='') | Q(execution_error=None))).values_list('experiment__id', flat=True)
+    e_b = Execution.objects.filter(Q(chemModel__id=modelB_id) & ~Q(execution_end=None) & (Q(execution_error='') | Q(execution_error=None))).values_list('experiment__id', flat=True)
+    return list(set(e_a).intersection(set(e_b)))
+
+
+def check_models(input_models: list):
+    # Assumo che indici validi dell'id del modello siano >=0
+    return [model_id for model_id in input_models if model_id and model_id >= 0]

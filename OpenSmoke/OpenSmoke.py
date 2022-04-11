@@ -15,6 +15,7 @@ from io import StringIO
 import traceback
 import ExperimentManager.Models as Model
 from CurveMatching.CurveMatching import curveMatchingExecution
+from OpenSmoke.exceptions import *
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -54,13 +55,17 @@ def check_Experiment_Model(experiment_id, chemModel_id):
 
     passed = True
 
+    missing = ''
 
     for specie in all_species:
-        names = set(specie.names)  # qui c'è anche preffered key per forza
-        if not names & supported_species: # se l'intersezione tra i names e le supported species è vuota
+        names = set(specie.names)
+        names.add(specie.preferredKey)  # qui c'è anche preffered key per forza
+        if not names & supported_species:  # se l'intersezione tra i names e le supported species è vuota
             passed = False
+            missing = str(names)
             break
-    return passed
+
+    return passed, missing
 
 
 class OpenSmokeParser:
@@ -284,33 +289,52 @@ class OpenSmokeExecutor:
             else:
                 execution.execution_error = '\nNaN values dropped.\n'
             execution.save()
-        list_header = list(dataframe)
-        list_allowed = set([])
+
+        list_needed = set([])
+
+        list_original_header = list(dataframe)
+
         for mapping in execution.experiment.experiment_interpreter.mappings.all():
             if any(map(lambda x: x == 'None' or x == 'none',
                        [mapping.x_sim_name, mapping.y_sim_name, mapping.y_exp_name, mapping.x_exp_name])):
                 continue
-            list_allowed.add(mapping.x_sim_name)
+            list_needed.add(mapping.x_sim_name)
             y_sim_name = mapping.y_sim_name
+
             if y_sim_name == 'composition_x':
                 compositions = Model.DataColumn.objects.filter(experiment=execution.experiment, name='composition')
                 for comp in compositions:
                     list_species = comp.species_object.all()
-                    for species in list_species:
-                        list_allowed.add(species.preferredKey + '_x')
+                    for specie in list_species:
+                        match = False
+                        for possible_name in specie.names:
+                            current_name = possible_name + '_x'
+                            if current_name in list_original_header:
+                                match = True
+                                new_name = specie.preferredKey + '_x'
+                                new_name = new_name
+                                dataframe = dataframe.rename(columns={current_name: new_name})
+                                units[new_name] = units[current_name]
+                                list_needed.add(new_name)
+                                break
+                        if not match:
+                            raise MissingColumnExecution(specie.preferredKey)
             else:
-                list_allowed.add(mapping.y_sim_name)
+                list_needed.add(mapping.y_sim_name.strip())
 
-        list_allowed = list(list_allowed)
+        list_needed = list(list_needed)
 
-        a = set(list_allowed)
-        b = set(list_header)
-        missing = list(a - b)
+        # print(list_header)
 
-        if missing:
-            raise MissingColumnExecution(', '.join(missing))
+        a = set(list_needed)
+        b = set(list(dataframe))
 
-        for header in list_allowed:
+        if not set(list_needed) <= set(list(dataframe)):
+            raise MissingColumnExecution(', '.join(list(a - b)))
+
+        dataframe = dataframe[list_needed]
+
+        for header in list_needed:
             data = Model.ExecutionColumn(label=header,
                                          units=units[header],
                                          data=list(dataframe[header]),

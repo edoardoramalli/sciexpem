@@ -93,6 +93,8 @@ class Domain:
 
         x_axis = [t_x for t_x in domain_x if min(x_axis) <= t_x <= max(x_axis)]
 
+
+
         if len(x_axis) == 1:
             # TODO con la pressione c'è un caso in cui x_domain è [1, 0.660412912, 0.661189387, 0.662152986, 0.662857293, 0.663648498, 0.664526318, 0.665116249, 1]
             print('attenzione')
@@ -105,6 +107,8 @@ class Domain:
 
         def sim(x: float):
             return sim_spline.evaluate(x)
+
+        # print(x_axis)
 
         area_sim_tot, err_sim_tot = integrate.quad(sim, min(x_axis), max(x_axis))
         area_exp_tot, err_exp_tot = integrate.quad(exp, min(x_axis), max(x_axis))
@@ -160,6 +164,7 @@ class Domain:
                     diz_df['Real'].append(ratio)
                 except ZeroDivisionError:
                     ratio = 0
+                    # print('herreee')
                     diz_df['Real'].append(np.NAN)
 
                 # ratio = self.transform(threshold=expected_weight, weight=current_weight_exp, ratio=ratio)
@@ -194,6 +199,9 @@ class Domain:
         # Remove NaN
         NaN_indexes, _ = np.where(df.isna())
 
+
+
+
         if len(NaN_indexes) > 0:
 
             diff = abs(area_sim_tot - area_exp_tot)
@@ -211,26 +219,23 @@ class Domain:
                 elif exp_int == 0:
                     df.iloc[index, df.columns.get_loc('Value')] = guess / sim_int
 
+
+
         for index, row in df.iterrows():
             weight = row['Weight Exp Inter'] if row['Relation'] == '+' else row['Weight Sim Inter']
             if row['Value'] == '':
                 value = self.transform(threshold=expected_weight, weight=weight, ratio=row['Real'])
-                df.loc[index, 'Value'] = float(value)
             else:
                 value = self.transform(threshold=expected_weight, weight=weight, ratio=row['Value'])
-                df.loc[index, 'Value'] = float(value)
-            # print(row['Interval'][0], df.loc[index, 'Value'])
-            self.add_value(x=row['Interval'][0], value=value, relation=row['Relation'])
 
-        # print(df)
+            df.loc[index, 'Value'] = float(value)
+
+            # print(row['Interval'][0], df.loc[index, 'Value'])
+            if exp_id in [939]: #[943, 945, 948, 949, 951, 952, 953]:
+                # print(exp_id, 'edoo', row['Interval'][0], row['Relation'], value)
+                self.add_value(x=row['Interval'][0], value=value, relation=row['Relation'])
+            else:
+                self.add_value(x=row['Interval'][0], value=value, relation=row['Relation'])
+
 
         return df
-
-        # Handle NaN
-
-        # df.to_excel(current_excel, sheet_name=f'{exp_id}', na_rep='NA')
-        # print(len(x_axis))
-        # print(df)
-        # print(sum)
-        # if plot:
-        #     plt.show()

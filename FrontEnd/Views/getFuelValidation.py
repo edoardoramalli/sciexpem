@@ -24,10 +24,10 @@ class getFuelValidation(View.FrontEndBaseView):
 
         for chemModel_id in self.chemModel_list:
             fuels = Models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__id=chemModel_id).values_list('execution_column__execution__experiment__fuels', flat=True).distinct()
-            for e in set([item for sublist in fuels for item in sublist]):
-                flat_set.add(e)
+            for f in fuels:
+                flat_set.add(tuple(f))
 
-        flat_list = list(flat_set)
+        flat_list = [list(x) for x in flat_set]
 
         return Response(json.dumps(flat_list), status=HTTP_200_OK)
 

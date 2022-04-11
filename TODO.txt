@@ -1,19 +1,31 @@
 - Scrivere meccanismo in database non solo come file
-- ROPA:
-    - Parser input OS come diz / JSON
-    - Aggiungere keyword ROPA
-    - Sistemare DB in modo che salvi più ROPA
-    - Accettare file .xml dal simulatore
 - RCM:
     - inserire codice tito
 - FE:
     - Nella validazione inserire target in fuel o meglio che ognuno possa aggiungere quello che vuole, quando vuole
+    - Disaccopiare FE da BE per le API dei plot
 - Interval Analysis:
     - C'era un bug che non trovava l'asse X nel pair Execution (o simile), ho messo come patch "continue" nel catch
 - Reindexing del postgres DB
-- Aggiungere comando restart simulation: cancella colonne, mette started = null
 - Tenere d'occhio cluster bovisa, probabilmente memoria insufficiente
 - Per qualche motivo cluster ariatti bloccato, exp. id: 1080, 1081
 - Aggiustare simulazioni errate
 - Worker:
     - Aggiungere controllo che chiede simulazione se ci sono almeno 1 GB sul disco...
+- API:
+    - controllare API che si possino togliere. tipo frontend/getSpecieList è stata tradotta in filterDataBase stessa cosa si può fare con Experiemtn Table... Controllare che dopo funzuioni da SciExpeM.API python
+- Worker:
+    - Quando faccio query intercettare pulire le entry più vecchie di tot
+- OpenSmoke:
+    - FLux analyis
+    - Plot reaction rate
+- PyPostProcessor:
+    - Fare con tito gestioni codici di ritorno di errore....
+- Specie:
+    - ATTENZIONE negli alternative names nelle ultime specie inserite da tito non c'è il preferred name, ho messo un wrapper in check_Experiment_Model dove faccio add ma non va bene di default ci deve essere in alternative names la
+- ChemModel
+    - Quando lo aggiungo tramite sito web mette il path aboslute invece che quello relativo
+- OptimaPP
+    - Es exp id == 2324, probabilmente nel nostro DB non c'è il cas e optima lo ha e quindi fallisce nel generre il respecth
+- Lanciare Simulazione
+    - ES exp id 2425 con modello DME_LTE_HT_DETAILED, in teoria quella specie che manca c'è ma come alternative names

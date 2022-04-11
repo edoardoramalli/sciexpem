@@ -46,8 +46,8 @@ class downloadFile(View.FrontEndBaseView):
         elif self.model_name == 'ChemModel':
             if self.file == 'model':
                 model = get_object_or_404(Models.ChemModel, pk=self.element_id)
-                xml_file_reaction_names = model.xml_file_reaction_names
-                xml_file_kinetics = model.xml_file_kinetics
+                xml_file_reaction_names = model.xml_file_reaction_names_file
+                xml_file_kinetics = model.xml_file_kinetics_file
 
                 s = BytesIO()
                 zf = zipfile.ZipFile(s, "w")

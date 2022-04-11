@@ -3,7 +3,7 @@ from ExperimentManager.Models import *
 from ReSpecTh.Tool import pairExecutionExperiment, Consistency
 
 
-def create_summary(exp_id, chemModel=''):
+def create_summary(exp_id, chemModel='', target=''):
 
     query = Q(experiment_id=exp_id) & ~Q(execution_end=None) & ~Q(execution_columns=None)
 
@@ -22,7 +22,7 @@ def create_summary(exp_id, chemModel=''):
             'pairs': []
         }
         for mapping in execution.experiment.experiment_interpreter.mappings.all():
-            list_pair = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
+            list_pair = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency, target=target)
             for pair in list_pair:
                 if pair['valid']:
                     x_exp_name = pair['x_dataColumn'].name

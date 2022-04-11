@@ -27,7 +27,9 @@ for x in bar:
             exp = x
             model = ChemModel.objects.get(id=model_id)
 
-            if not check_Experiment_Model(experiment_id=exp.id, chemModel_id=model_id):
+            passed, missing = check_Experiment_Model(experiment_id=exp.id, chemModel_id=model_id)
+
+            if not passed:
                 continue
 
             new_exec = Execution(experiment=exp,

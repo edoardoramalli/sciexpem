@@ -2,7 +2,7 @@ from OpenSmoke.OpenSmoke import OpenSmokeParser
 from OpenSmoke.Tools import create_list_string_profiles
 import ExperimentManager.Models as Model
 import os
-
+import xml.etree.ElementTree as ET
 
 def createFilesSimulation_utils(exec_id, exp_id, chemModel_id):
 
@@ -27,8 +27,8 @@ def createFilesSimulation_utils(exec_id, exp_id, chemModel_id):
 
 
     #  Mandatory fields in the database model. So no empty fields
-    kinetics_file = chemModel.xml_file_kinetics
-    reaction_names_file = chemModel.xml_file_reaction_names
+    kinetics_file = chemModel.xml_file_kinetics_file
+    reaction_names_file = chemModel.xml_file_reaction_names_file
 
     # Must be present to verify and experiment
     open_smoke_input_file = experiment.os_input_file
@@ -65,8 +65,8 @@ def createFolderSimulation_utils(exp_id, chemModel_id, folderPath):
             os_file.close()
 
     #  Mandatory fields in the database model. So no empty fields
-    kinetics_file = chemModel.xml_file_kinetics
-    reaction_names_file = chemModel.xml_file_reaction_names
+    kinetics_file = chemModel.xml_file_kinetics_file
+    reaction_names_file = chemModel.xml_file_reaction_names_file
 
     # Must be present to verify and experiment
     open_smoke_input_file = experiment.os_input_file
@@ -87,3 +87,11 @@ def createFolderSimulation_utils(exp_id, chemModel_id, folderPath):
     os_file = open(os.path.join(folderPath, "input.dic"), "w+")
     os_file.write(open_smoke_input_text)
     os_file.close()
+
+
+def getMapIndexReactionName(reaction_file_path):
+    tree = ET.parse(reaction_file_path)
+    root = tree.getroot()
+    rn = root.findall("reaction-names")[0]
+
+    return {index: line.strip() for index, line in enumerate(rn.text.strip().split('\n'))}

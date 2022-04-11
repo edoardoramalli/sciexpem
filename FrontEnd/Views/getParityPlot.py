@@ -4,18 +4,19 @@ import ExperimentManager.Models as Models
 from FrontEnd.exceptions import ExecutionColumnError
 from ReSpecTh.Tool import Consistency, pairExecutionExperiment
 
-
 # Django import
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 # System import
 import json
+from FrontEnd.utils import *
 
 
 class getParityPlot(View.FrontEndBaseView):
     viewName = __name__
-    paramsType = {'target': str, 'query': dict}
+    paramsType = {'target': str, 'query': dict, 'models': list}
+    defaultParams = {'models': []}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -23,6 +24,12 @@ class getParityPlot(View.FrontEndBaseView):
         new = {**self.query,
                'execution__experiment__status': 'verified',
                'label': self.target}
+
+        models = check_models(self.models)
+        if len(models) > 1:
+            new = {**new,
+                   'execution__experiment__id__in': common_execution_experiment_id(models[0],
+                                                                                   models[1])}
 
         exec_cols = Models.ExecutionColumn.objects.filter(**new).distinct()
 
@@ -59,7 +66,8 @@ class getParityPlot(View.FrontEndBaseView):
                             r[x_dataColumn.name]['data'] = r[x_dataColumn.name]['data'] + [(max(y_exp), max(y_sim))]
                             r[x_dataColumn.name]['info'] = r[x_dataColumn.name]['info'] + [execution.experiment.id]
                         else:
-                            r[x_dataColumn.name] = {'data': [(max(y_exp), max(y_sim))], 'info': [execution.experiment.id]}
+                            r[x_dataColumn.name] = {'data': [(max(y_exp), max(y_sim))],
+                                                    'info': [execution.experiment.id]}
 
             return Response(json.dumps(r), status=HTTP_200_OK)
 

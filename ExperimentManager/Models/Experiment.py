@@ -25,7 +25,7 @@ class Experiment(models.Model):
     reactor = models.CharField(max_length=50)
     experiment_type = models.CharField(max_length=50)  # is checked
     fileDOI = models.CharField(max_length=150, unique=True)  # DOI experiment
-    file_paper = models.ForeignKey(Model.FilePaper, on_delete=models.SET_NULL, default=None, null=True)
+    file_paper = models.ForeignKey(Model.FilePaper, on_delete=models.SET_NULL, default=None, null=True, related_name="experiments")
     ignition_type = models.CharField(max_length=75, blank=True, null=True)
 
     xml_file = models.TextField(blank=True, null=True)
@@ -228,7 +228,8 @@ class Experiment(models.Model):
 
     @property
     def interpreter(self):
-        if self.experiment_interpreter is None and settings.DEBUG:
+        # if self.experiment_interpreter is None and settings.DEBUG:
+        if self.experiment_interpreter is None:
             new_type = self.run_experiment_interpreter()
             if new_type:
                 self.experiment_interpreter = new_type

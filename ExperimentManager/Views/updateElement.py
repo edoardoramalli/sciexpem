@@ -39,7 +39,9 @@ class updateElement(View.ExperimentManagerBaseView):
                 # TODO impedire modifica di alcuni attributi se ho già verificato --> generato doi
                 # TODO se l'elemento modificato è un exp far partire di nuovo il check
                 for prop in self.property_dict:
-                    if prop in element.__dict__:
+                    # print(element.__class__.__dict__)
+                    # print(element.__dict__)
+                    if prop in element.__class__.__dict__:
                         setattr(element, prop, self.property_dict[prop])
                     else:
                         return Response(status=HTTP_400_BAD_REQUEST,

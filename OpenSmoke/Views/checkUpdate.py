@@ -31,7 +31,7 @@ class checkUpdate(View.ExperimentManagerBaseView):
 
     def view_post(self, request):
 
-        files = ['main.py', 'Job.py', 'utils.py', 'template_pbs.pbs']
+        files = ['main_sciexpem_worker.py', 'job_sciexpem_worker.py', 'utils_sciexpem_worker.py', 'template_pbs.pbs']
 
         h = hashlib.md5()
 

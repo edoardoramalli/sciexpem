@@ -53,8 +53,10 @@ def startSimulation(request):
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: ChemModel not exist.")
 
-    if not check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id):
-        return Response('startSimulation. This ChemModel does not support this experiment!',
+    passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
+
+    if not passed:
+        return Response('startSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
                         status=HTTP_400_BAD_REQUEST)
 
     try:
@@ -124,8 +126,10 @@ def initializeSimulation(request):
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: ChemModel not exist.")
 
-    if not check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id):
-        return Response('initializeSimulation. This ChemModel does not support this experiment!',
+    passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
+
+    if not passed:
+        return Response('initializeSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
                         status=HTTP_400_BAD_REQUEST)
 
     try:

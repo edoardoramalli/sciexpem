@@ -11,11 +11,12 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 # System import
 import json
 from collections import defaultdict
-
+from FrontEnd.utils import *
 
 class getPlotsValidation(View.FrontEndBaseView):
     viewName = __name__
-    paramsType = {'target': str, 'query': dict, 'chemModel_ids': list}
+    paramsType = {'target': str, 'query': dict, 'chemModel_ids': list, 'common_experiments': bool}
+    defaultParams = {'common_experiments': False}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -28,6 +29,10 @@ class getPlotsValidation(View.FrontEndBaseView):
             'execution__experiment__status': 'verified',
             'label': self.target,
             'execution__chemModel__id__in': chem_ids}
+
+        models = check_models(self.chemModel_ids)
+        if self.common_experiments and len(models) > 1:
+            new = {**new, 'execution__experiment__id__in': common_execution_experiment_id(models[0], models[1])}
 
         exec_cols = Models.ExecutionColumn.objects.filter(**new).distinct()
 

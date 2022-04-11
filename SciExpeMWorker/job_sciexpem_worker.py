@@ -4,7 +4,13 @@ import time
 import subprocess
 import requests
 import platform
-from utils import read_config
+from utils_sciexpem_worker import read_config
+import glob
+import shutil
+
+
+def is_case(text):
+    return text.startswith('Case')
 
 
 def execute(exec_id, path, solver, files):
@@ -25,7 +31,10 @@ def execute(exec_id, path, solver, files):
             # TODO .....
             return
 
-        process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
+        with open(os.path.join(path, 'run.sh'), 'w') as file:
+            file.write(bashCommand)
+
+        process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = process.communicate()
         output = output.decode('ascii')
 
@@ -33,11 +42,33 @@ def execute(exec_id, path, solver, files):
             output = output[output.find('Fatal error:'):]
             results['errors'] = output[12: output.find('\n')].strip()
         elif process.returncode != 0:
-            results['errors'] = 'Fatal Error'
+            if error:
+                results['errors'] = error.decode('ascii')
+            else:
+                results['errors'] = 'Fatal Error'
         else:
-            tmp = {}
+            tmp = []
             for file in files:
-                tmp[file] = open(os.path.join(path, 'results', '{}.out'.format(file))).read()
+                tmp.append({
+                    'file': file,
+                    'content':  open(os.path.join(path, 'results', '{}.out'.format(file))).read(),
+                    'type': 'result',
+                    'case': None,
+                })
+
+            # ROPA
+            for output_file in glob.glob(os.path.join(path, 'results', '**/Output.xml'), recursive=True):
+                folder_name = os.path.basename(os.path.dirname(output_file))
+                case = None
+                if is_case(folder_name):
+                    #TODO che fare se non riesce a convertire il numero?
+                    case = int(folder_name.replace('Case', ''))
+                tmp.append({
+                    'file': 'Output.xml',
+                    'content': open(output_file, 'r').read(),
+                    'type': 'Output.xml',
+                    'case': case,
+                })
 
             results['files'] = tmp
 
@@ -57,6 +88,9 @@ def execute(exec_id, path, solver, files):
 
                 if send.status_code == 200:
                     sent = True
+                    if CONFIG['KEEP_FOLDER_EXECUTION'] == False:
+                        if not results['errors']:
+                            shutil.rmtree(path, ignore_errors=True)
                 else:
                     send.raise_for_status()
 
@@ -67,6 +101,9 @@ def execute(exec_id, path, solver, files):
             except requests.exceptions.HTTPError as e:
                 response_error_msg = str(e)
                 break
+
+
+        # IL BACKUP si va a farsi fottere, al posto di files dobbiamo metterci una lista di path ed info.....
 
         if not sent:
             with open('./backup_collect.csv', 'a+') as file:

@@ -1,5 +1,6 @@
 from SplinePoliMi import Spline
 import numpy as np
+import pandas as pd
 
 from OpenSmoke.IntervalAnalysis.Domain import Domain
 
@@ -18,6 +19,9 @@ def process_summary(exp_id, current_summary, domain_list):
 
         for pair in model['pairs']:
             subject = pair['y_sim_name']
+
+            # if subject != 'C2H4_x':
+            #     continue
 
             # if subject != 'CO_x':
             #     continue
@@ -52,7 +56,7 @@ def process_summary(exp_id, current_summary, domain_list):
                     domain_list[model_name][x_name][subject] = Domain(x_range=(0, 50), x_tickness=0.5)
                     # print('heeereeeee')
                 else:
-                    raise ValueError(pair['x_exp_name'], pair['y_exp_name'])
+                    raise ValueError('Not implemented', pair['x_exp_name'], pair['y_exp_name'])
 
             # print(subject, pair['x_exp_name'], pair['y_exp_name'])
 
@@ -72,21 +76,34 @@ def process_summary(exp_id, current_summary, domain_list):
             spline_model = Spline(x=x_sim, y=y_sim)
 
             # if plot:
-            x_evaluation = np.linspace(min(x_exp), max(x_exp), 100)
+            # x_evaluation = np.linspace(min(x_exp), max(x_exp), 100)
 
             # plt.show()
 
             df = current_domain.systematic_analysis(exp_spline=spline_exp,
                                                     sim_spline=spline_model,
-                                                    x_axis=x_exp,
-                                                    exp_id=exp_id)
+                                                    x_axis=x_exp, exp_id=exp_id)
+
+            # if subject == 'C2H4_x':
+            #     edo =  {}
+            #     ele = 0
+            #     for i in current_domain.x_p:
+            #         edo[i] = len(current_domain.x_p[i]) + len(current_domain.x_n[i])
+            #         ele = sum(edo.values())
+            #     print(exp_id, ele, edo)
+
+            df = df.where(pd.notnull(df), -1)
+
 
             # print(df)
             if x_name not in results:
                 results[x_name] = {}
 
+            if subject not in results[x_name]:
+                results[x_name][subject] = {}
+
             if df is not None:
-                results[x_name][subject] = df
+                results[x_name][subject][exp_id] = df.to_dict('records')
 
     return results
 

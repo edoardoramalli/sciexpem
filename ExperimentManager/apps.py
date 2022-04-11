@@ -16,4 +16,4 @@ class ExperimentManagerConfig(AppConfig):
     name = 'ExperimentManager'
 
     def ready(self):
-        pass
+        import ExperimentManager.signals

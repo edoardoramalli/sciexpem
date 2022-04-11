@@ -10,8 +10,9 @@ import hashlib
 import os
 import threading
 import argparse
-import utils
+import utils_sciexpem_worker as utils
 import platform
+import random
 
 VERSION = '0.0.0.1'
 
@@ -67,7 +68,7 @@ def start_job(execution_id):
                 with open(os.path.join(absolute_base_path, file), 'w+') as f:
                     f.write(input_files[file])
 
-            bashCommand = 'python Job.py -e {} -p {} -s {} -f {}'.format(execution_id, absolute_base_path, solver,
+            bashCommand = 'python job_sciexpem_worker.py -e {} -p {} -s {} -f {}'.format(execution_id, absolute_base_path, solver,
                                                                          ' '.join(output_files))
 
             # TODO che fare se faccio start ma non sono in grado di lanciare?
@@ -93,7 +94,7 @@ def start_job(execution_id):
         elif start_request.status_code == 400:
             print('\nError concurrency starting execution {}'.format(execution_id))
             print(end='')
-            decrease_active_jobs()
+            # decrease_active_jobs()
 
     except Exception as e:
         results = {'execution_id': execution_id, 'errors': str(e), 'files': {}, 'automatic': True}
@@ -109,11 +110,18 @@ def start_job(execution_id):
 def crawling_jobs():
     try:
         crawling_request = requests.post(CONFIG['IP_PORT'] + 'OpenSmoke/API/getExecutions',
-                                         json={'username_list': CONFIG['USERNAMES']},
+                                         json={'username_list': CONFIG['USERNAMES'],
+                                               'computer': COMPUTER_NAME,
+                                               'free_cores': NUM_FREE_CORES,
+                                               'num_cores': NUM_CORES,
+                                               'max_jobs': CONFIG['MAX_ACTIVE_JOBS'],
+                                               'active_jobs': ACTIVE_JOBS},
                                          verify=CONFIG['VERIFY'])
 
         if crawling_request.status_code == 200:
             return crawling_request.json()
+        else:
+            return []
 
     except requests.exceptions.ConnectionError:
         print('\nCrawling Jobs - ConnectionError')
@@ -136,20 +144,21 @@ def main():
     global WAITING
     global NUM_FREE_CORES
 
-    exec_list = crawling_jobs()
-    WAITING = len(exec_list)
-
     if CONFIG['POLICY'] == 'LOCAL':
         NUM_FREE_CORES = utils.check_available_cpu_cores()
         if NUM_FREE_CORES <= 0:
+            WAITING = 'Undefined'
             return
+
+    exec_list = crawling_jobs()
+    WAITING = len(exec_list)
 
     if len(exec_list) > 0:
         # TODO pensare se qui fare una versione hungry: cerco di svuotare la lista se possibile finchè ho spazio
         # In questo caso però bisogna ogni volta controllare i core liberi
         first = exec_list[0]
         if try_to_start_job():
-            threading.Thread(target=start_job, args=(first,)).start()
+            threading.Thread(target=start_job, args=(first,), daemon=CONFIG['POLICY'] == 'LOCAL').start()
 
 
 def upload():
@@ -199,6 +208,10 @@ def checkUpdate():
     h = hashlib.md5()
 
     r = requests.post(CONFIG['IP_PORT'] + 'OpenSmoke/API/checkUpdate', verify=CONFIG['VERIFY'])
+
+    if r.status_code != 200:
+        return
+
     files = r.json()
 
     for file in files:
@@ -213,7 +226,8 @@ def checkUpdate():
                     with open(os.path.join(cwd, new_files), 'w', encoding='utf-8') as f_write:
                         f_write.write(update_files[new_files])
 
-                os.execv(sys.executable, ['python'] + [sys.argv[0]] + ['-a {}'.format(ACTIVE_JOBS)])
+                # os.execv(sys.executable, ['python'] + [sys.argv[0]] + ['-a {}'.format(ACTIVE_JOBS)])
+                os.execv(sys.executable, ['python'] + [sys.argv[0]])
 
 
 def print_status():
@@ -241,10 +255,12 @@ if __name__ == "__main__":
     NUM_CORES = psutil.cpu_count()
     COMPUTER_NAME = platform.node()
 
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-a', '--active', dest='active', type=int, required=False, help='Do not use it!')
-    args = parser.parse_args()
-    ACTIVE_JOBS = args.active if args.active else 0
+    # parser = argparse.ArgumentParser(description='')
+    # parser.add_argument('-a', '--active', dest='active', type=int, required=False, help='Do not use it!')
+    # args = parser.parse_args()
+    # ACTIVE_JOBS = args.active if args.active else 0
+
+    ACTIVE_JOBS = utils.find_zombie_jobs()
 
     CONFIG = utils.read_config()
     utils.check_config(CONFIG=CONFIG, NUM_CORES=NUM_CORES if CONFIG['POLICY'] == 'LOCAL' else None)
@@ -258,13 +274,18 @@ if __name__ == "__main__":
         print('\t', conf, '=', CONFIG[conf])
     print(end='')
 
+    SLEEP_TIME = CONFIG['TIME_SLEEP'] + random.randint(0, int(CONFIG['TIME_SLEEP'] * 20 / 100))
+
     while True:
         checkUpdate()
 
         print_status()
 
+        if CONFIG['POLICY'] == 'LOCAL':
+            ACTIVE_JOBS = utils.find_zombie_jobs()
+
         if ACTIVE_JOBS < CONFIG['MAX_ACTIVE_JOBS']:
             main()
         else:
             WAITING = '~'
-        time.sleep(CONFIG['TIME_SLEEP'])
+        time.sleep(SLEEP_TIME)

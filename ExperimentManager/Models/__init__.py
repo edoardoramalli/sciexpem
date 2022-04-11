@@ -11,6 +11,7 @@ from .ChemModel import ChemModel
 from .Execution import Execution
 from .ExecutionColumn import ExecutionColumn
 from .CurveMatchingResult import CurveMatchingResult
-
+from .ExecutionFile import ExecutionFile
+from .WorkManager import WorkManager
 
 

@@ -25,8 +25,10 @@ class addExecution(View.FrontEndBaseView):
         if Models.Execution.objects.filter(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id).exists():
             return Response('addExecution. Execution already exists!', status=HTTP_400_BAD_REQUEST)
 
-        if not check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id):
-            return Response('addExecution. This ChemModel does not support this experiment!', status=HTTP_400_BAD_REQUEST)
+        passed, missing = check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id)
+
+        if not passed:
+            return Response('addExecution. This ChemModel does not support this experiment! Missing: ' + missing, status=HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
 
@@ -36,8 +38,8 @@ class addExecution(View.FrontEndBaseView):
 
             chemModel = Models.ChemModel.objects.get(id=self.chemModel_id)
 
-            xml_file_kinetics = chemModel.xml_file_kinetics
-            xml_file_reaction_names = chemModel.xml_file_reaction_names
+            xml_file_kinetics = chemModel.xml_file_kinetics_file
+            xml_file_reaction_names = chemModel.xml_file_reaction_names_file
             open_smoke_input_file = experiment.os_input_file
 
             open_smoke_input_text = OpenSmokeParser.create_output(open_smoke_input_file, './kinetics', '.')

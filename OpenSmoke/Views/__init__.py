@@ -9,3 +9,6 @@ from .getReportEndedWithErrorExecution import getReportEndedWithErrorExecution
 from .getReportEndedWithNoErrorNoColumnsExecution import getReportEndedWithNoErrorNoColumnsExecution
 from .getReportNoCurveMatchingExecution import getReportNoCurveMatchingExecution
 from .getReportNegativeCurveMatchingExecution import getReportNegativeCurveMatchingExecution
+from .getROPA import getROPA
+from .restartExecution import restartExecution
+from .getReportWorkers import getReportWorkers

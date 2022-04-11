@@ -12,11 +12,12 @@ from rest_framework.status import HTTP_200_OK
 import json
 import numpy as np
 from statistics import stdev, variance, mean, median, StatisticsError
-
+from FrontEnd.utils import *
 
 class getWorldDiff(View.FrontEndBaseView):
     viewName = __name__
-    paramsType = {'query': dict, 'subject': str, 'modelA': int, 'modelB': int}
+    paramsType = {'query': dict, 'subject': str, 'modelA': int, 'modelB': int, 'common_experiments': bool}
+    defaultParams = {'common_experiments': False}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -36,6 +37,11 @@ class getWorldDiff(View.FrontEndBaseView):
                   **replaceValueDict(self.query, '$$$', self.modelA)}
         modelB = {'execution_column__execution__experiment__status': 'verified',
                   **replaceValueDict(self.query, '$$$', self.modelB)}
+
+        if self.common_experiments:
+            commons =  common_execution_experiment_id(self.modelA, self.modelB)
+            modelA = {**modelA, 'execution_column__execution__experiment__id__in': commons}
+            modelB = {**modelB, 'execution_column__execution__experiment__id__in': commons}
 
 
         def process_query(query, domain):

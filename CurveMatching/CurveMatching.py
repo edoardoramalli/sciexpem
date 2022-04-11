@@ -14,11 +14,8 @@ running_cm = False
 
 
 def blocking_execute_cm(**kwargs):
-    lock.acquire()
-    CurveMatching.running_cm = True
-    r = executeCurveMatching(**kwargs)
-    CurveMatching.running_cm = False
-    lock.release()
+    with lock:
+        r = executeCurveMatching(**kwargs)
     return r
 
 

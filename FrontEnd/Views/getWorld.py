@@ -12,18 +12,24 @@ from rest_framework.status import HTTP_200_OK
 import json
 import numpy as np
 from statistics import stdev, variance, mean, median, StatisticsError
-
+from FrontEnd.utils import *
 
 
 class getWorld(View.FrontEndBaseView):
     viewName = __name__
-    paramsType = {'query': dict, 'subject': str}
+    paramsType = {'query': dict, 'subject': str, 'models': list}
+    defaultParams = {'models': []}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
         domain = Domain()
 
         new = {'execution_column__execution__experiment__status': 'verified', **self.query}
+
+        models = check_models(self.models)
+        if len(models) > 1:
+            new = {**new, 'execution_column__execution__experiment__id__in': common_execution_experiment_id(models[0],
+                                                                                                            models[1])}
 
         for cm in Models.CurveMatchingResult.objects.filter(**new).distinct():
             value = float(getattr(cm, self.subject))

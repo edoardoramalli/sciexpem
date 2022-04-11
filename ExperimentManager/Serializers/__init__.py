@@ -12,4 +12,5 @@ from .CurveMatchingSerializer import CurveMatchingResultSerializer
 from .ExperimentInterpreterSerializer import ExperimentInterpreterSerializer
 from .MappingInterpreterSerializer import MappingInterpreterSerializer
 from .RuleInterpreterSerializer import RuleInterpreterSerializer
+from .WorkManagerSerializer import WorkManagerSerializer
 

@@ -3,9 +3,18 @@ from django.core import management
 
 
 class Backup(CronJobBase):
-    RUN_EVERY_MINS = 60*24*5
+    RUN_EVERY_MINS = 60 * 24 * 5
     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
     code = 'ExperimentManager.Backup'
 
     def do(self):
         management.call_command('dbbackup')
+
+
+class CleanWorker(CronJobBase):
+    RUN_EVERY_MINS = 60 * 24
+    schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
+    code = 'ExperimentManager.CleanWorker'
+
+    def do(self):
+        management.call_command('purge_worker_db')

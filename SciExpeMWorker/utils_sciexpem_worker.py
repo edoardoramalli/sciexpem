@@ -21,7 +21,8 @@ def read_config():
         'LD_LIBRARY_PATH',
         'OS_PATH',
         'MAX_ATTEMPT',
-        'BACKUP_PATH_FILE']
+        'BACKUP_PATH_FILE',
+        'KEEP_FOLDER_EXECUTION']
     if os.path.isfile(config_file_path):
         with open(config_file_path, 'r') as file:
             config = json.load(file)
@@ -81,3 +82,18 @@ def check_config(CONFIG, NUM_CORES=None):
 
         if CONFIG['MAX_ACTIVE_JOBS'] == NUM_CORES:
             warnings.warn('Dangerous configuration MAX_ACTIVE_JOBS==NUM_OF_CORES')
+
+
+def find_zombie_jobs():
+    var = 0
+
+    for p in psutil.process_iter():
+        try:
+            cmd = p.cmdline()
+            if 'python' in cmd and 'job_sciexpem_worker.py' in cmd:
+                var += 1
+        except psutil.AccessDenied:
+            pass
+        except psutil.NoSuchProcess:
+            pass
+    return var

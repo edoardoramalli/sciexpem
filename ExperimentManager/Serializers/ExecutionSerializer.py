@@ -11,7 +11,7 @@ class ExecutionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Execution
-        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username', 'execution_columns']
+        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username', 'execution_columns', 'num_files', 'folder_size', 'has_error']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

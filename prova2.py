@@ -1,124 +1,28 @@
-# import requests
-# from datetime import datetime
-# from pathlib import Path
-# import os
-# import subprocess
-# import time
-
-import os
-import sys
-
-import time
-
-from bs4 import BeautifulSoup
-
-import requests
-
-link = 'https://www.polimi.it/docenti-e-staff/bandi-e-concorsi/assegnidiricerca/archivio/?tx_wfqbe_pi1%5Bshowpage%5D%5B112%5D={}'
-
-for i in range(1, 25):
-    print("------- PAGE {} --------".format(i))
-    r = requests.get(link.format(i))
-
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    for bando in soup.find_all("p"):
-        text = bando.text
-        if "DEIB" in text:
-            print(bando.text.strip())
-
-# print(r.text)
-
-exit()
-time.sleep(1)
-print('ciaooooo', sys.argv[0], sys.argv)
-os.execv(sys.executable, ['python'] + [sys.argv[0]])
+        Interval  Area Exp Inter  Area Sim Inter  ...      Real  Relation     Value
+0     (900, 925)        0.002114        0.004434  ...  2.097201         +  2.097201
+1     (925, 950)        0.004432        0.004762  ...  1.074494         +  1.074494
+2     (950, 975)        0.005766        0.004772  ...  1.208173         -  1.208173
+3    (975, 1000)        0.005760        0.004683  ...  1.230048         -  1.230048
+4   (1000, 1025)        0.005170        0.004484  ...  1.153178         -  1.153178
+5   (1025, 1050)        0.004283        0.004121  ...  1.039299         -  1.039299
+6   (1050, 1075)        0.003195        0.003595  ...  1.124996         +  1.124996
+7   (1075, 1100)        0.002280        0.002948  ...  1.292576         +  1.292576
+8   (1100, 1125)        0.001496        0.002282  ...  1.524850         +   1.52485
+9   (1125, 1150)        0.000878        0.001685  ...  1.918512         +  1.918512
+10  (1150, 1175)        0.000609        0.001203  ...  1.976408         +  1.976408
+11  (1175, 1200)        0.000555        0.000842  ...  1.517082         +  1.517082
 
 
-
-
-bashCommand = 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/eramalli/opensmoke++suite-0.13.0/lib && '
-bashCommand += ' cd /home/eramalli/Execution_1799 && '
-bashCommand += ' /home/eramalli/.opensmoke/opensmoke++suite-0.15.0/bin/OpenSMOKEpp_BatchReactor.sh --input ./input.dic'
-
-#
-# IP_PORT = 'http://127.0.0.1:8080/'
-#
-# ABSOLUTE_BASE_PATH = '/home/eramalli/'
-#
-# USERNAMES = ['andrea.nobili']
-#
-# TIME_SLEEP = 30
-#
-# POLICY = 'LOCAL'
-#
-# MAX_ACTIVE_PROCESS = 2
-#
-#
-# def main():
-#
-#     while True:
-#
-#         try:
-#             date_time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-#
-#             crawling_request = requests.post(IP_PORT + 'OpenSmoke/API/getExecutions', json={'username_list': USERNAMES})
-#
-#             if crawling_request.status_code == 200:
-#
-#                 exec_list = crawling_request.json()
-#
-#                 print('\r{} - Waiting {} executions...'.format(date_time_str, len(exec_list)), end='')
-#
-#                 if len(exec_list) > 0:
-#
-#                     first = exec_list[0]
-#
-#                     start_request = requests.post(IP_PORT + 'OpenSmoke/API/startExecution',
-#                                                   json={'execution_id': first})
-#
-#                     if start_request.status_code == 200:
-#
-#                         info = start_request.json()
-#
-#                         # Creo folder execution
-#                         absolute_base_path = ABSOLUTE_BASE_PATH + 'Execution_{}'.format(first)
-#                         Path(absolute_base_path).mkdir(parents=True, exist_ok=True)
-#                         Path(os.path.join(absolute_base_path, './kinetics/')).mkdir(parents=True, exist_ok=True)
-#                         Path(os.path.join(absolute_base_path, './profiles/')).mkdir(parents=True, exist_ok=True)
-#                         Path(os.path.join(absolute_base_path, './results/')).mkdir(parents=True, exist_ok=True)
-#
-#                         solver = info.pop('solver')
-#                         input_files = info.pop('input_files')
-#                         output_files = info.pop('output_files')
-#
-#                         for file in input_files:
-#                             with open(os.path.join(absolute_base_path, file), 'w+') as f:
-#                                 f.write(input_files[file])
-#
-#                         bashCommand = 'python Job.py -e {} -p {} -s {} -f {}'.format(first, absolute_base_path, solver,
-#                                                                                      ' '.join(output_files))
-#
-#                         # TODO che fare se faccio start ma non sono in grado di lanciare?
-#                         # Magari annullare start_time ? con API
-#
-#                         if POLICY == 'LOCAL':
-#                             process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE)
-#                             output, error = process.communicate()
-#                         else:
-#                             pass
-#                     else:
-#                         print('\r{} - Error starting execution - {}'.format(date_time_str, start_request.text), end='')
-#             else:
-#                 print('\r{} - Error Retrieving jobs - {}'.format(date_time_str, crawling_request.text), end='')
-#
-#         except requests.exceptions.ConnectionError:
-#             print('\r{} - ConnectionError'.format(date_time_str), end='')
-#
-#         finally:
-#             time.sleep(TIME_SLEEP)
-#
-#
-# if __name__ == "__main__":
-#     print(end='')
-#     main()
+        Interval  Area Exp Inter  Area Sim Inter  ...      Real  Relation     Value
+0     (900, 925)        0.002114        0.003871  ...  1.830698         +  1.830698
+1     (925, 950)        0.004432        0.004437  ...  1.001064         +  1.001064
+2     (950, 975)        0.005766        0.004442  ...  1.297946         -  1.297946
+3    (975, 1000)        0.005760        0.004113  ...  1.400417         -  1.400417
+4   (1000, 1025)        0.005170        0.003538  ...  1.461330         -   1.46133
+5   (1025, 1050)        0.004283        0.002804  ...  1.527729         -  1.527729
+6   (1050, 1075)        0.003195        0.002049  ...  1.559169         -  1.559169
+7   (1075, 1100)        0.002280        0.001409  ...  1.617919         -  1.617919
+8   (1100, 1125)        0.001496        0.000942  ...  1.588049         -  1.588049
+9   (1125, 1150)        0.000878        0.000627  ...  1.400061         -  1.400061
+10  (1150, 1175)        0.000609        0.000421  ...  1.446714         -  1.446714
+11  (1175, 1200)        0.000555        0.000285  ...  1.949467         -  1.949467
