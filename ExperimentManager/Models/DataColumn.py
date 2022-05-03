@@ -57,6 +57,24 @@ class DataColumn(models.Model):
     #             self.species_object.add(specie)  # Non importa fare save dopo many to many add
     #     # self.save()
 
+    @property
+    def is_x(self):
+        mappings = self.experiment.experiment_interpreter.mappings.all()
+        for mapping in mappings:
+            if self.__getattribute__(mapping.x_exp_location) == mapping.x_exp_name:
+                if mapping.x_sim_location and mapping.x_sim_name is not None and mapping.x_sim_name != 'None': # TODO fix it --> None è come stringa non come null
+                    return True
+                return None
+            elif self.__getattribute__(mapping.y_exp_location) == mapping.y_exp_name:
+                if mapping.y_sim_location and mapping.y_sim_name is not None and mapping.y_sim_name != 'None':
+                    return False
+                return None
+        return None
+
+    @property
+    def is_y(self):
+        return not self.is_x if self.is_x is not None else None
+
     def range(self):
         return self.data[0], self.data[-1]
 
@@ -194,7 +212,7 @@ class DataColumn(models.Model):
         return [uncertainty, current] + others if uncertainty else [current] + others
 
     def __str__(self):
-        return "%s %s %s %s %s" % (self.name, self.species, self.units, self.label, self.dg_id)
+        return "DC:[%s %s %s %s %s]" % (self.name, self.species, self.units, self.label, self.dg_id)
 
     def check_fields(self):
         name = self.name

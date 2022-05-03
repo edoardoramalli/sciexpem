@@ -117,7 +117,7 @@ class ChemModel(models.Model):  # TODO Fuel list
 
                 model.save()
 
-                model_path = os.path.join(BASE_DIR, 'ChemModels', str(model.id))
+                model_path = os.path.join(SCIEXPEM_FILESYSTEM_FOLDER, 'ChemModel', str(model.id))
 
                 os.makedirs(model_path, exist_ok=True)
 

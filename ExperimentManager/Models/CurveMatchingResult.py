@@ -18,5 +18,18 @@ class CurveMatchingResult(models.Model):  # TODO nessun campo è controllato
     execution_column = models.OneToOneField(Model.ExecutionColumn, on_delete=models.CASCADE,
                                             related_name="curve_matching_result")
 
+    def get_equivalent(self, chemModel):
+        execution = Model.Execution.objects.get(chemModel=chemModel, experiment=self.execution_column.execution.experiment)
+        execution_column = Model.ExecutionColumn.objects.get(
+            execution=execution,
+            name=self.execution_column.name,
+            label=self.execution_column.label,
+            # species=self.execution_column.species,
+            # species_object=self.execution_column.species_object,
+            file_type=self.execution_column.file_type,
+        )
+
+        return CurveMatchingResult.objects.get(execution_column=execution_column)
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

@@ -25,6 +25,18 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
 
         return self.data[0], self.data[-1]
 
+    @property
+    def is_x(self):
+        mappings = self.execution.experiment.experiment_interpreter.mappings.all()
+        for mapping in mappings:
+            if self.__getattribute__(mapping.x_sim_location) == mapping.x_sim_name:
+                return True
+        return False
+
+    @property
+    def is_y(self):
+        return not self.is_x
+
     def save(self, *args, **kwargs):
         self.check_fields()
         super().save(*args, **kwargs)

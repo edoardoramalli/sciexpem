@@ -8,7 +8,7 @@ from OpenSmoke.SimulationSummary.processSummary import process_summary
 # Django import
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK
-
+from FrontEnd.utils import *
 # System import
 import json
 import numpy as np
@@ -19,6 +19,7 @@ from statistics import stdev, variance, mean, median, StatisticsError
 from scipy import integrate
 
 import math
+
 
 #
 # def zip_order(xx, yy):
@@ -76,7 +77,8 @@ def generate_df(diz):
 
 class getIntervalAnalysis(View.FrontEndBaseView):
     viewName = 'getIntervalAnalysis'
-    paramsType = {'query': dict, 'chemModel_id': int}
+    paramsType = {'query': dict, 'chemModel_id': int, 'models': list}
+    defaultParams = {'models': []}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -87,10 +89,15 @@ class getIntervalAnalysis(View.FrontEndBaseView):
 
         # print(self.query, self.chemModel_id)
 
+        models = check_models(self.models)
+
+        if len(models) > 1:
+            new = {**new,
+                   'execution_column__execution__experiment__id__in': common_execution_experiment_id(models[0],
+                                                                                                     models[1])}
+
         exps = Models.CurveMatchingResult.objects.filter(**new).values_list(
             'execution_column__execution__experiment__id', flat=True).distinct()
-
-
 
         chemModel = Models.ChemModel.objects.get(id=self.chemModel_id)
 
@@ -111,7 +118,6 @@ class getIntervalAnalysis(View.FrontEndBaseView):
             current_result = process_summary(exp_id=exp_id, current_summary=current_summary, domain_list=domains)
 
             r = merge_dict(r, current_result)
-
 
         #     for x_name in current_result:
         #         if x_name not in details:

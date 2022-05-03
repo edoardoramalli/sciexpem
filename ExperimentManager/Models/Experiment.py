@@ -227,6 +227,32 @@ class Experiment(models.Model):
         return result
 
     @property
+    def pairs(self):
+        # TODO da fixare: ho paura che se c'è un profilo lo restituisca
+        # TODO anche da ottimizzare
+        query = self.data_columns.all()
+
+        dg = {}
+
+        for dc in query:
+            dg[dc.dg_id] = dg.get(dc.dg_id, []) + [dc]
+
+        pairs = []
+
+        for dg_id in dg:
+            x = None
+            for dc in dg[dg_id]:
+                if dc.is_x:
+                    x = dc
+                    break
+            dg[dg_id].remove(x)
+            for dc in dg[dg_id]:
+                if dc.is_y:
+                    pairs.append({'x': x, 'y': dc})
+
+        return pairs
+
+    @property
     def interpreter(self):
         # if self.experiment_interpreter is None and settings.DEBUG:
         if self.experiment_interpreter is None:

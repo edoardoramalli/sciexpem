@@ -8,7 +8,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 import json
 from decimal import Decimal
-
+import ExperimentManager.Serializers as Serializers
 
 class requestProperty(View.ExperimentManagerBaseView):
     viewName = 'requestProperty'
