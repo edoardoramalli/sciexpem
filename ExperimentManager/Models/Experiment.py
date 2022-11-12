@@ -9,10 +9,12 @@ from OpenSmoke.OpenSmoke import OpenSmokeParser
 import ExperimentManager.Models.Tool as Tool
 from ExperimentManager.Models import ExperimentInterpreter
 from SciExpeM import settings
+from setfield import SetField
 
 from enum import Enum
 import functools
 import operator
+import ast
 from itertools import chain
 
 validatorProperty = ReSpecThValidProperty()
@@ -38,7 +40,8 @@ class Experiment(models.Model):
     reactor_modes = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
 
     # Meta Data
-    fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
+    # fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
+    fuels = SetField(models.CharField(max_length=40), null=True, blank=True)
 
     status = models.CharField(max_length=50)
 
@@ -208,6 +211,18 @@ class Experiment(models.Model):
             for rule in Model.RuleInterpreter.objects.filter(experiment_interpreter=exp_type):
                 property_name = rule.property_name
                 property_value = rule.property_value
+                if property_name == 'reactor_modes' and self.reactor == 'flame':
+                    rule_value = set(ast.literal_eval(property_value))
+                    tmp_value = getattr(self, property_name)
+                    if tmp_value == None:
+                        continue
+
+                    exp_value = set(tmp_value)
+
+                    if rule_value != exp_value:
+                        break
+                    else:
+                        continue
                 if not getattr(self, property_name) == property_value:
                     break
             else:
@@ -307,3 +322,6 @@ class Experiment(models.Model):
             return all(unique)
         else:
             return False
+
+    def __repr__(self):
+        return "<Experiment ({})>".format(self.id)

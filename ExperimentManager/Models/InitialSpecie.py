@@ -17,6 +17,8 @@ class InitialSpecie(models.Model):
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
 
+    configuration = models.CharField(max_length=20, default='premixed', blank=False, null=False)
+
     source_type = models.CharField(max_length=15)
 
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="initial_species")
@@ -31,9 +33,15 @@ class InitialSpecie(models.Model):
 
         source_type = self.source_type
 
+        configuration = self.configuration
+
         if source_type not in ['reported', 'digitized', 'calculated', 'estimated']:
             raise ConstraintFieldExperimentError(
                 "Name '%s' is not valid for source type in Initial Specie!" % source_type)
+
+        if configuration not in ['premixed', 'fuel', 'oxidizer']:
+            raise ConstraintFieldExperimentError(
+                "Name '%s' is not configuration for Initial Specie!" % configuration)
 
         if float(value) < 0:
             raise ConstraintFieldExperimentError("Value initial specie '%s' must be positive!" % value)
@@ -50,8 +58,9 @@ class InitialSpecie(models.Model):
         units = text_dict['units']
         value = text_dict['value']
         source_type = text_dict['source_type']
+        configuration = text_dict['configuration']
 
-        return InitialSpecie(specie=specie, units=units, value=value, experiment=experiment, source_type=source_type)
+        return InitialSpecie(specie=specie, units=units, value=value, experiment=experiment, source_type=source_type, configuration=configuration)
 
     def save(self, *args, **kwargs):
         self.check_fields()

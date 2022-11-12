@@ -27,7 +27,8 @@ class getFuelValidation(View.FrontEndBaseView):
             for f in fuels:
                 flat_set.add(tuple(f))
 
-        flat_list = [list(x) for x in flat_set]
+        flat_list = set([frozenset(x) for x in flat_set])
+        flat_list = [list(i) for i in flat_list]
 
         return Response(json.dumps(flat_list), status=HTTP_200_OK)
 

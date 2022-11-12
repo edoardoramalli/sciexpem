@@ -71,6 +71,8 @@ class getWorld(View.FrontEndBaseView):
                   'c': r_c,
                   's': r_s}
 
+        print(result)
+
         return Response(json.dumps(result), status=HTTP_200_OK)
 
         # return Response(json.dumps(final_final), status=HTTP_200_OK)

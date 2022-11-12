@@ -13,4 +13,5 @@ from .ExperimentInterpreterSerializer import ExperimentInterpreterSerializer
 from .MappingInterpreterSerializer import MappingInterpreterSerializer
 from .RuleInterpreterSerializer import RuleInterpreterSerializer
 from .WorkManagerSerializer import WorkManagerSerializer
+from .ExperimentBackUpSerializer import ExperimentBackUpSerializer
 

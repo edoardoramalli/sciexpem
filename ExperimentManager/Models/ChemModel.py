@@ -117,18 +117,22 @@ class ChemModel(models.Model):  # TODO Fuel list
 
                 model.save()
 
-                model_path = os.path.join(SCIEXPEM_FILESYSTEM_FOLDER, 'ChemModel', str(model.id))
+                relative_path = os.path.join('ChemModel', str(model.id))
 
-                os.makedirs(model_path, exist_ok=True)
+                absolute_model_path = os.path.join(SCIEXPEM_FILESYSTEM_FOLDER, relative_path)
 
-                new_kinetics_path = os.path.join(model_path, 'kinetics.xml')
-                new_reaction_names_path = os.path.join(model_path, 'reaction_names.xml')
+
+
+                os.makedirs(absolute_model_path, exist_ok=True)
+
+                new_kinetics_path = os.path.join(absolute_model_path, 'kinetics.xml')
+                new_reaction_names_path = os.path.join(absolute_model_path, 'reaction_names.xml')
 
                 os.rename(kinetics_path, new_kinetics_path)
                 os.rename(reaction_names_path, new_reaction_names_path)
 
-                model.xml_file_kinetics = new_kinetics_path
-                model.xml_file_reaction_names = new_reaction_names_path
+                model.xml_file_kinetics = os.path.join(relative_path, 'kinetics.xml')
+                model.xml_file_reaction_names = os.path.join(relative_path, 'reaction_names.xml')
                 model.save()
                 model.create_supported_species()
 

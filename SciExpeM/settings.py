@@ -45,6 +45,8 @@ SENDFILE_BACKEND = 'sendfile.backends.development'
 
 ALLOWED_HOSTS = ['*']
 
+CM_POINTS = 1000
+
 # Application definition
 
 INSTALLED_APPS = [

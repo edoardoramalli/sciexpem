@@ -37,6 +37,17 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
     def is_y(self):
         return not self.is_x
 
+    @property
+    def corresponding_data_column(self):
+        # todo fatto solo per la y
+        mappings = self.execution.experiment.experiment_interpreter.mappings.all()
+        for mapping in mappings:
+            if self.__getattribute__(mapping.y_sim_location) == mapping.y_sim_name:
+                tmp = {mapping.y_exp_location: mapping.y_exp_name}
+                return self.execution.experiment.data_columns.get(**tmp)
+            print(mapping.y_sim_location, mapping.y_sim_name, self.label, self.name)
+        print("corresponding_data_column not found")
+
     def save(self, *args, **kwargs):
         self.check_fields()
         super().save(*args, **kwargs)

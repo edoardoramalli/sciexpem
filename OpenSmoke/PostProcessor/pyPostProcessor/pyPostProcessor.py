@@ -18,6 +18,7 @@ class Setting:
 def load_library(library_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "pyPostProcessor.o")):
     c_library = cdll.LoadLibrary(library_path)
 
+
     c_library.pyPostProcessor.argtypes = [c_char_p,
                                           c_char_p,
                                           c_char_p,

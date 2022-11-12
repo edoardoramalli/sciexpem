@@ -9,7 +9,7 @@ class InitialSpecieSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InitialSpecie
-        fields = ['id', 'specie', 'units', 'value', 'source_type']
+        fields = ['id', 'specie', 'units', 'value', 'source_type', 'configuration']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

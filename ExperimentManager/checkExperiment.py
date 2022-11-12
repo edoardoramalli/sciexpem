@@ -24,15 +24,23 @@ def checkInitialSpecies(experiment):
         return
 
     units_initial_species = set([])
-    value_initial_species = []
+    value_initial_species = {'premixed': [], 'fuel': [], 'oxidizer': []}
     for specie in initial_species:
         units_initial_species.add(specie.units)
-        value_initial_species.append(specie.value)
+        value_initial_species[specie.configuration].append(specie.value)
 
     if len(units_initial_species) != 1 or list(units_initial_species)[0] != 'mole fraction':
         raise ExperimentConsistencyError('Units of initial species are not equal or not expressed in mole fraction.')
-    if sum(value_initial_species) != 1:
-        raise ExperimentConsistencyError('The sum of mole fraction of the initial species is not 1.')
+
+    if experiment.reactor == 'flame' and 'counterflow' in experiment.reactor_modes:
+        if len(value_initial_species['fuel']) == 0 or len(value_initial_species['oxidizer']) == 0:
+            raise ExperimentConsistencyError('In the counterflow flame is missing the fuel or oxidizer initial specie')
+    elif len(value_initial_species['fuel']) != 0 or len(value_initial_species['oxidizer']) != 0:
+        raise ExperimentConsistencyError('Fuel and Oxidizer intial species are possible only for counterflow flames.')
+
+    for config_type in value_initial_species:
+        if sum(value_initial_species[config_type]) != 1 and len(value_initial_species[config_type]) > 0:
+            raise ExperimentConsistencyError('The sum of mole fraction of the {} initial species is not 1.'.format(config_type))
 
 
 def checkProfiles(experiment, profile_list, dg_dict):

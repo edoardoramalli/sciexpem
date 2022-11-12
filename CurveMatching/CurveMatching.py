@@ -25,7 +25,7 @@ def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
     if not os.path.isfile(library_path):
         raise FileNotFoundError('CurveMatching executable not found.')
 
-    if len(x_exp) > 100 or len(x_sim) > 100:
+    if len(x_exp) > settings.CM_POINTS or len(x_sim) > settings.CM_POINTS:
         raise ValueError('Too many values to compute curve matching')
 
     x_exp = [float(e) for e in x_exp]
@@ -49,13 +49,15 @@ def executeCurveMatching(x_exp, y_exp, x_sim, y_sim, uncertainty=[], **kwargs):
 
 def curveMatchingExecution(current_execution):
     try:
-        if current_execution.execution_end is None or current_execution.execution_error is not None:
-            raise ValueError('Execution ({}) not ended or with errors.'.format(current_execution.id))
+        # if current_execution.execution_end is None or current_execution.execution_error is not None:
+        #     raise ValueError('Execution ({}) not ended or with errors.'.format(current_execution.id))
         if len(current_execution.execution_columns.all()) <= 1:
             raise ValueError('Execution ({}) not enough columns.'.format(current_execution.id))
-        if any(ll > 100 for ll in [len(c.data) for c in current_execution.execution_columns.all()]):
-            raise ValueError('createUpdateExecutionCurveMatching: Execution ({}) with too many data.')
+        if any(ll > 1000 for ll in [len(c.data) for c in current_execution.execution_columns.all()]):
+            print('pipppooo')
+            raise ValueError('Compute Curve Matching: Execution ({}) with too many data.')
     except ValueError as e:
+        print('eoooooo', e)
         c_text = current_execution.execution_error
         if c_text:
             c_text += '\n' + str(e)

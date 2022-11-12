@@ -118,6 +118,41 @@ class CurveMatching:
         return result
 
     @staticmethod
+    def intersect_domain(x_exp, y_exp, x_sim, y_sim, uncertainty=[], delta=0.1):
+        min_exp = min(x_exp)
+        max_exp = max(x_exp)
+
+        min_sim = min(x_sim)
+        max_sim = max(x_sim)
+
+        if uncertainty != []:
+            exp = zip(x_exp, y_exp, uncertainty)
+        else:
+            exp = zip(x_exp, y_exp)
+
+        sim = zip(x_sim, y_sim)
+
+        upper_bound = min(max_exp, max_sim)
+        lower_bound = max(min_exp, min_sim)
+
+        delta_upper = upper_bound * delta
+        delta_lower = lower_bound * delta
+
+        # x_outer = sorted(outer, key=lambda k: k[0])
+
+        new_exp = [i for i in exp if lower_bound - delta_lower <= i[0] <= upper_bound + delta_upper]
+        new_sim = [i for i in sim if lower_bound - delta_lower <= i[0] <= upper_bound + delta_upper]
+
+        if uncertainty == []:
+            x_sim, y_sim = zip(*new_exp)
+        else:
+            x_sim, y_sim, uncertainty = zip(*new_exp)
+
+        x_exp, y_exp = zip(*new_sim)
+
+        return x_exp, y_exp, x_sim, y_sim, uncertainty
+
+    @staticmethod
     def execute(x_exp, y_exp, x_sim, y_sim,
                 uncertainty=[],
                 calculate_shift=True,
@@ -129,6 +164,8 @@ class CurveMatching:
             c_library = cdll.LoadLibrary(library_path)
         except OSError:
             raise OSError("Unable to load the system C library")
+
+        x_exp, y_exp, x_sim, y_sim, uncertainty = CurveMatching.intersect_domain(x_exp, y_exp, x_sim, y_sim, uncertainty)
 
         c_library.curveMatching.argtypes = [c_int,
                                             c_int,

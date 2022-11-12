@@ -15,6 +15,7 @@ urlpatterns = [
     path('API/getSimulation', Views.getSimulation.as_view(), name="getSimulation"),
     path('API/getReportSimulation', Views.getReportSimulation.as_view(), name="getReportSimulation"),
     path('API/getAnalytics', Views.getAnalytics.as_view(), name="getAnalytics"),
+    path('API/uploadBackup', Views.uploadBackup.as_view(), name="uploadBackup"),
 
 ]
 

@@ -24,3 +24,5 @@ def delete_file(sender, instance, *args, **kwargs):
         _delete_folder(instance.absolute_folder_path)
     elif sender == ChemModel:
         _delete_folder(instance.absolute_folder_xml_file_kinetics_path)
+    elif sender == ExperimentBackUp:
+        _delete_folder(instance.absolute_folder_path)

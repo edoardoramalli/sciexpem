@@ -220,8 +220,8 @@ class OpenSmokeParser:
                 remainder = ''
                 if len(split_line) > 1:
                     remainder = split_line[1]
-                    print('remainder')
-                    print(remainder)
+                    # print('remainder')
+                    # print(remainder)
 
                 tmp = ''
 
@@ -241,6 +241,9 @@ class OpenSmokeParser:
                         break
                     elif "@ListOfProfiles" in line:
                         tmp += "@ListOfProfiles" + current_space + "$LISTPROFILE$"
+                        break
+                    elif "@Backup" in line:
+                        tmp += "@Backup" + current_space + "$LISTBACKUP$"
                         break
                     # elif "@Profile" in line:
                     #     tmp += "@Profile" + current_space + "$PROFILE$"

@@ -26,9 +26,10 @@ class downloadFile(View.FrontEndBaseView):
 
         response_file = None
 
+        # print(self.element_id, self.file, self.model_name)
+
         if self.model_name == 'Experiment':
             experiment = get_object_or_404(Models.Experiment, pk=self.element_id)
-
             if self.file == 'OpenSMOKEpp':
                 response_file = experiment.os_input_file
             elif self.file == 'ReSpecTh':
@@ -72,6 +73,15 @@ class downloadFile(View.FrontEndBaseView):
                 df = supportGetExecutionColumn(execution)
 
                 response_file = df.to_csv(index=False)
+            else:
+                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                         status=HTTP_400_BAD_REQUEST)
+        elif self.model_name == 'ExperimentBackUp':
+            if self.file == 'backup':
+                obj = get_object_or_404(Models.ExperimentBackUp, pk=self.element_id)
+                file_binary = obj.file_binary
+                response_file = file_binary
+
             else:
                 Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
                          status=HTTP_400_BAD_REQUEST)

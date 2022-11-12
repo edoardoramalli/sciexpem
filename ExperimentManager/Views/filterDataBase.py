@@ -16,6 +16,12 @@ def edo(x):
     except Exception:
         return str(x)
 
+def edo2(x):
+    if x == None:
+        return None
+    else:
+        return int(x)
+
 
 class filterDataBase(View.ExperimentManagerBaseView):
     """
@@ -26,8 +32,8 @@ class filterDataBase(View.ExperimentManagerBaseView):
     Access -> READ Group
     """
     viewName = 'filterDataBase'
-    paramsType = {'model_name': str, 'query': edo, 'fields': tuple}
-    defaultParams = {'fields': []}
+    paramsType = {'model_name': str, 'query': edo, 'fields': tuple, 'order_by': str, 'n_elements': edo2}
+    defaultParams = {'fields': [], 'order_by': '', 'n_elements': None}
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
@@ -49,6 +55,12 @@ class filterDataBase(View.ExperimentManagerBaseView):
                 query_set = model.objects.filter(**query_obj).distinct()
             else:
                 query_set = model.objects.filter(query_obj).distinct()
+
+            if self.order_by:
+                query_set = query_set.order_by(self.order_by)
+
+
+            query_set = query_set[:self.n_elements]
 
             serializer = eval('Serializers.' + self.model_name + 'Serializer')
             for query_result in query_set:

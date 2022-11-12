@@ -13,6 +13,7 @@ import json
 
 # Local Packages
 import CurveMatching
+from SciExpeM import settings
 from SciExpeM.checkPermissionGroup import user_in_group
 from CurveMatching.CurveMatching import blocking_execute_cm, curveMatchingExecution, running_cm
 import ExperimentManager.Models as Models
@@ -75,15 +76,18 @@ def createUpdateExecutionCurveMatching(request):
         else:
             execution = execution[0]
 
-        if execution.execution_end is None or execution.execution_error is not None:
-            return Response(status=HTTP_400_BAD_REQUEST,
-                            data="createUpdateExecutionCurveMatching: Execution ({}) not ended or with errors.".format(execution_id))
+        # if execution.execution_end is None or execution.execution_error is not None:
+        #     return Response(status=HTTP_400_BAD_REQUEST,
+        #                     data="createUpdateExecutionCurveMatching: Execution ({}) not ended or with errors.".format(execution_id))
         if len(execution.execution_columns.all()) <= 1:
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="createUpdateExecutionCurveMatching: Execution ({}) not enough columns.".format(execution_id))
-        if any([ll > 100 for ll in [len(c.data) for c in execution.execution_columns.all()]]):
+        if any([ll > settings.CM_POINTS for ll in [len(c.data) for c in execution.execution_columns.all()]]):
             return Response(status=HTTP_400_BAD_REQUEST,
                             data="createUpdateExecutionCurveMatching: Execution ({}) with too many data.".format(execution_id))
+        # Thread(target=curveMatchingExecution, args=(execution,)).start()
+
+        # curveMatchingExecution(execution)
 
         Thread(target=curveMatchingExecution, args=(execution,)).start()
         return Response(status=HTTP_200_OK)
