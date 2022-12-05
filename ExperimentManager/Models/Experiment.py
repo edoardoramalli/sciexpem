@@ -23,7 +23,31 @@ validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
 
 
+from ExperimentManager.Models.GeneralManager import GeneralManager
+
+
+class ExperimentManager(GeneralManager):
+
+    def filter(self, *args, **kwargs):
+        # super().filter(**query)
+
+        # user = query.pop('user')
+
+        print(args)
+        print()
+
+        return self.get_queryset().filter(*args, **kwargs)
+
+
+
+
+
+
+
 class Experiment(models.Model):
+
+    # objects = ExperimentManager()
+
     reactor = models.CharField(max_length=50)
     experiment_type = models.CharField(max_length=50)  # is checked
     fileDOI = models.CharField(max_length=150, unique=True)  # DOI experiment
@@ -73,6 +97,8 @@ class Experiment(models.Model):
         status = self.status if self.status is not None else None
         username = self.username
 
+        reactor_modes = self.reactor_modes
+
         if not username:
             raise ConstraintFieldExperimentError("Experiment username is not specified!")
 
@@ -97,6 +123,11 @@ class Experiment(models.Model):
 
         if not 0 <= p_inf <= p_sup <= 200:
             raise ConstraintFieldExperimentError("Invalid pressure range profile [bar]: 0 <= p_inf <= p_sup <= 200")
+
+        # if len(reactor_modes) > 1: TODO anche se reactor_m odes è un array la
+        #     print(reactor_modes, len(reactor_modes), type(reactor_modes))
+        #     raise ConstraintFieldExperimentError("Too many reactor modes.")
+
 
     def check_verify(self):
         list_property = ['phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'fuels', 'os_input_file']

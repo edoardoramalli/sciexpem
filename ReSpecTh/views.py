@@ -133,7 +133,6 @@ def convertList(request):
     except DimensionalityError:
         return Response(status=HTTP_400_BAD_REQUEST,
                         data="convertList: It is not possible to convert '{}' to '{}'.".format(unit, desired_unit))
-
     except Exception:
         err_type, value, traceback = sys.exc_info()
         return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,

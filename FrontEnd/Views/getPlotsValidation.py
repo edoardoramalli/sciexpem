@@ -20,6 +20,11 @@ class getPlotsValidation(View.FrontEndBaseView):
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
+        #
+        # print(self.target)
+        # print(self.query)
+        # print(self.chemModel_ids)
+        # print(self.common_experiments)
 
         chem_ids = [i for i in self.chemModel_ids if i != -1]
         r = []
@@ -52,7 +57,7 @@ class getPlotsValidation(View.FrontEndBaseView):
                     if not current:
                         current = consistency
                 r.append(resultExecutionVisualization(current))
-                # print(current.experimental)
+
 
             return Response(json.dumps(r), status=HTTP_200_OK)
 

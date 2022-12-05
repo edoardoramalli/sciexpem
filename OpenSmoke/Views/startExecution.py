@@ -41,8 +41,16 @@ class startExecution(View.ExperimentManagerBaseView):
                 mappings = MappingInterpreter.objects.filter(experiment_interpreter=experiment_interpreter)
                 output_files = list(set([mapping.file for mapping in mappings]))
 
-                input_files = createFilesSimulation_utils(exec_id=ese.id, exp_id=ese.experiment.id,
-                                                          chemModel_id=ese.chemModel.id)
+                backup_chemModel_name = ese.backup_chemModel.name if ese.backup_chemModel else None
+
+                # TODO se per qualche motivo non c'è il file di backup e quindi lancia un file not found bisgona inoltrare l'errore all'uitente  e non un 500
+
+                input_files = createFilesSimulation_utils(exec_id=ese.id,
+                                                          exp_id=ese.experiment.id,
+                                                          chemModel_id=ese.chemModel.id,
+                                                          backup_cheModel_name=backup_chemModel_name)
+
+                # print(input_files.keys())
 
                 return Response({
                     'solver': ese.experiment.experiment_interpreter.solver,

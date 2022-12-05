@@ -4,18 +4,26 @@ import ExperimentManager.Models as Model
 import os
 import xml.etree.ElementTree as ET
 
-def createFilesSimulation_utils(exec_id, exp_id, chemModel_id):
 
+def createFilesSimulation_utils(exec_id, exp_id, chemModel_id, backup_cheModel_name):
     chemModel = Model.ChemModel.objects.get(id=chemModel_id)
     experiment = Model.Experiment.objects.get(id=exp_id)
+
+    if backup_cheModel_name:
+        backup_cheModel = Model.ChemModel.objects.get(name=backup_cheModel_name)
+        backups = Model.ExperimentBackUp.objects.filter(chemModel=backup_cheModel, experiment__id=exp_id).order_by('parameter_value')
+    else:
+        backups = None
 
     results = {}
 
     profile_names = []
 
+    backup_names = []
+
     if experiment.data_columns.filter(dg_label__contains='history').exists():
 
-    # if experiment.reactor == 'rapid compression machine':  # TODO migliorare per altri casi con profili
+        # if experiment.reactor == 'rapid compression machine':  # TODO migliorare per altri casi con profili
 
         # profile_path = os.path.join(folderPath, "profiles")
         # os.makedirs(profile_path, exist_ok=True)
@@ -25,6 +33,12 @@ def createFilesSimulation_utils(exec_id, exp_id, chemModel_id):
             profile_names.append(path_profile)
             results[path_profile] = profile_string
 
+    if backups:
+        # print(backups)
+        for index, back in enumerate(backups):
+            path_backup = './backups/backup_{}.xml'.format(index)
+            backup_names.append(path_backup)
+            results[path_backup] = back.file
 
     #  Mandatory fields in the database model. So no empty fields
     kinetics_file = chemModel.xml_file_kinetics_file
@@ -36,9 +50,11 @@ def createFilesSimulation_utils(exec_id, exp_id, chemModel_id):
     results['./kinetics/kinetics.xml'] = kinetics_file
     results['./kinetics/reaction_names.xml'] = reaction_names_file
 
-    open_smoke_input_text = OpenSmokeParser.create_output(file=open_smoke_input_file, model_path='./kinetics/',
+    open_smoke_input_text = OpenSmokeParser.create_output(file=open_smoke_input_file,
+                                                          model_path='./kinetics/',
                                                           output_path='./results/'.format(exec_id),
-                                                          profiles=' '.join(profile_names))
+                                                          profiles=' '.join(profile_names),
+                                                          backups=' '.join(backup_names))
 
     results['input.dic'] = open_smoke_input_text
 

@@ -24,6 +24,7 @@ def get_dir_size(path):
 
 class Execution(models.Model):
     chemModel = models.ForeignKey(Model.ChemModel, on_delete=models.CASCADE, related_name="executions")
+    backup_chemModel = models.ForeignKey(Model.ChemModel, on_delete=models.SET_NULL, related_name="execution_backups", blank=True, null=True)
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="executions")
     execution_created = models.DateTimeField(blank=False, default=timezone.now)
     execution_start = models.DateTimeField(null=True, blank=True)

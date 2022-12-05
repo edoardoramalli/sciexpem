@@ -59,6 +59,7 @@ def start_job(execution_id):
             Path(os.path.join(absolute_base_path, './kinetics/')).mkdir(parents=True, exist_ok=True)
             Path(os.path.join(absolute_base_path, './profiles/')).mkdir(parents=True, exist_ok=True)
             Path(os.path.join(absolute_base_path, './results/')).mkdir(parents=True, exist_ok=True)
+            Path(os.path.join(absolute_base_path, './backups/')).mkdir(parents=True, exist_ok=True)
 
             solver = info.pop('solver')
             input_files = info.pop('input_files')

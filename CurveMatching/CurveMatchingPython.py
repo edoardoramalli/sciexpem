@@ -144,11 +144,11 @@ class CurveMatching:
         new_sim = [i for i in sim if lower_bound - delta_lower <= i[0] <= upper_bound + delta_upper]
 
         if uncertainty == []:
-            x_sim, y_sim = zip(*new_exp)
+            x_exp, y_exp = zip(*new_exp)
         else:
-            x_sim, y_sim, uncertainty = zip(*new_exp)
+            x_exp, y_exp, uncertainty = zip(*new_exp)
 
-        x_exp, y_exp = zip(*new_sim)
+        x_sim, y_sim = zip(*new_sim)
 
         return x_exp, y_exp, x_sim, y_sim, uncertainty
 
@@ -165,7 +165,7 @@ class CurveMatching:
         except OSError:
             raise OSError("Unable to load the system C library")
 
-        x_exp, y_exp, x_sim, y_sim, uncertainty = CurveMatching.intersect_domain(x_exp, y_exp, x_sim, y_sim, uncertainty)
+        x_exp, y_exp, x_sim, y_sim, uncertainty = CurveMatching.intersect_domain(x_exp=x_exp, y_exp=y_exp, x_sim=x_sim, y_sim=y_sim, uncertainty=uncertainty)
 
         c_library.curveMatching.argtypes = [c_int,
                                             c_int,

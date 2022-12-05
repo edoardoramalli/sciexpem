@@ -341,13 +341,13 @@ class ReSpecThValidProperty:
         self.props.append(prop)
 
     def getSymbol(self, name):
-        name = name.lower()
+        name = name.lower().strip()
         for prop in self.props:
             if name in prop.names:
                 return prop.symbols[0]
 
     def isValidName(self, name):
-        name = name.lower()
+        name = name.lower().strip()
         for prop in self.props:
             if name in prop.names:
                 return True
@@ -367,6 +367,7 @@ class ReSpecThValidProperty:
         return False
 
     def isValid(self, unit, symbol=None, name=None):
+        name = name.strip()
         if symbol is None and name is None:
             return False
         elif symbol is not None and name is not None:

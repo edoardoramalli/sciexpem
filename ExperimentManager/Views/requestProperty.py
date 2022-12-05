@@ -40,7 +40,9 @@ class requestProperty(View.ExperimentManagerBaseView):
                 return Response(property_object, status=HTTP_200_OK)
             elif property_object_type is bool:
                 return Response(property_object, status=HTTP_200_OK)
-            elif property_object_type is list:
+            elif property_object_type is list or set:
+                if property_object_type is set:
+                    property_object = list(property_object)
                 test = property_object[0]
                 if type(test) is Decimal:
                     return Response(json.dumps([float(x) for x in property_object]), status=HTTP_200_OK)

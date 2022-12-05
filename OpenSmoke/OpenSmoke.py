@@ -73,10 +73,12 @@ class OpenSmokeParser:
         pass
 
     @staticmethod
-    def create_output(file, model_path, output_path, profiles=None):
+    def create_output(file, model_path, output_path, profiles=None, backups=None):
         output_file = file.replace("$PATHKINETICFOLDER$", model_path).replace("$PATHOUTPUTFOLDER$", output_path)
         if profiles:
             output_file = output_file.replace("$LISTPROFILE$", profiles)
+        if backups:
+            output_file = output_file.replace("$LISTBACKUP$", backups)
         return output_file
 
     @staticmethod
@@ -226,7 +228,7 @@ class OpenSmokeParser:
                 tmp = ''
 
                 for index_split, split in enumerate(line):
-                    current_space = first_inner_space * (buffer_space - len(split))
+                    current_space = first_inner_space * max([(buffer_space - len(split)), 5])
                     if "@KineticsFolder" in split:
                         kinetics = True
                         tmp += "@KineticsFolder" + current_space + "$PATHKINETICFOLDER$"

@@ -8,8 +8,16 @@ u_reg.load_definitions(os.path.join(settings.BASE_DIR, "Files/unit"))
 
 
 def convert_list(my_list: list, unit: str, desired_unit: str) -> list:
-    unit = unit.replace(' ', '')
-    desired_unit = desired_unit.replace(' ', '')
+    if unit == 'mole fraction':
+        unit = 'molefraction'
+    if desired_unit == 'mole fraction':
+        desired_unit = 'molefraction'
+    unit = unit.replace(' ', '*')
+    desired_unit = desired_unit.replace(' ', '*')
+
+    unit = unit.replace('-', '**-')
+    desired_unit = desired_unit.replace('-', '**-')
+
     tmp = [float(y) for y in my_list] * u_reg(unit)
     return [x.to(u_reg(desired_unit)).magnitude for x in tmp]
 

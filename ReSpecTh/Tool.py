@@ -5,6 +5,7 @@ from FrontEnd.exceptions import ExecutionColumnError
 
 
 def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:
+    print(plotscale)
     if plotscale == 'lin':
         list_a = [float(x) for x in my_list]
     elif plotscale == 'log' or plotscale == 'log10':
@@ -224,7 +225,10 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
             x_dataColumn = Models.DataColumn.objects.get(**filter_x)
         except Models.DataColumn.DoesNotExist:
             # TODO
-            print(x_dataColumn)
+            # print(x_dataColumn)
+            continue
+
+
 
         # For each experimental data in the same config add the units of the axis
         consistency.add_unit(x_name=x_dataColumn.name,
@@ -257,10 +261,11 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
         x_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_x)
 
         if not x_execution_column.exists():
-            print(execution.experiment.id)
-            print(execution.id)
-            print(execution_filter_x)
+            # print(execution.experiment.id)
+            # print(execution.id)
+            # print(execution_filter_x)
             # TODO salvare msg errore
+            print('nooooooooooo')
             continue
         else:
             x_execution_column = x_execution_column[0]
@@ -340,7 +345,9 @@ def visualizeExecution(execution, consist=None, target=None) -> dict:
 
     consistency = Consistency() if consist is None else consist
 
-    for mapping in execution.experiment.experiment_interpreter.mappings.all():
+    mappings = execution.experiment.experiment_interpreter.mappings.all()
+
+    for mapping in mappings:
         results = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
 
         for result in results:

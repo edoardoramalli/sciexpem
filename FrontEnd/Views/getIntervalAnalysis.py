@@ -82,6 +82,9 @@ class getIntervalAnalysis(View.FrontEndBaseView):
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
+        # print(self.query)
+        # print(self.chemModel_id)
+        # print(self.models)
 
         default = {'execution_column__execution__experiment__status': 'verified'}
 
@@ -116,6 +119,8 @@ class getIntervalAnalysis(View.FrontEndBaseView):
             current_summary = create_summary(exp_id)
 
             current_result = process_summary(exp_id=exp_id, current_summary=current_summary, domain_list=domains)
+
+            print(current_result)
 
             r = merge_dict(r, current_result)
 

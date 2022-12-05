@@ -20,23 +20,9 @@ def process_summary(exp_id, current_summary, domain_list):
         for pair in model['pairs']:
             subject = pair['y_sim_name']
 
-            # if subject != 'C2H4_x':
-            #     continue
-
-            # if subject != 'CO_x':
-            #     continue
-
-            # print(subject)
-
             if pair['x_exp_name'] == 'pressure':
                 # TODO da rivedere! Suprattuto so ho lo stesso subject ma una volta con la t ed una volta con la p la x_domain non torna
                 continue
-
-            # if pair['y_unit'] != 'us':
-            #     print('NOOOOOO', pair['y_unit'])
-            #     # exit()
-
-            # # If the Domain Object does not exist, create it
 
             x_name = pair['x_exp_name']
 
@@ -55,8 +41,11 @@ def process_summary(exp_id, current_summary, domain_list):
                 elif pair['x_exp_name'] == 'equivalence ratio' and pair['y_exp_name'] == 'laminar burning velocity':
                     domain_list[model_name][x_name][subject] = Domain(x_range=(0, 50), x_tickness=0.5)
                     # print('heeereeeee')
+                # elif pair['x_exp_name'] == 'distance' and pair['y_exp_name'] == 'primary particle diameter':
+                #     domain_list[model_name][x_name][subject] = Domain(x_range=(0, 50), x_tickness=0.5)
+                #     # print('heeereeeee')
                 else:
-                    raise ValueError('Not implemented', pair['x_exp_name'], pair['y_exp_name'])
+                    raise ValueError('Interval analysis Not implemented. X {} - Y {}'.format(pair['x_exp_name'], pair['y_exp_name']))
 
             # print(subject, pair['x_exp_name'], pair['y_exp_name'])
 

@@ -52,6 +52,8 @@ class Specie(models.Model):
     SMILES = models.CharField(max_length=150, blank=True, null=True)
     chemName = models.CharField(max_length=150, blank=True, null=True)
 
+    # fuel = models.BooleanField(default=False)
+
     # TODO caratteri consentiti, tutto in uppercase? cosa deve essere unique?
 
     @staticmethod

@@ -106,6 +106,7 @@ def initializeSimulation(request):
     try:
         model_id = params['chemModel']
         experiment_id = params['experiment']
+        backup_model_id = int(params['backup_chemModel']) if 'backup_chemModel' in params else None
 
         if not model_id or not experiment_id:
             return Response(status=HTTP_400_BAD_REQUEST,
@@ -126,6 +127,15 @@ def initializeSimulation(request):
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: ChemModel not exist.")
 
+    if backup_model_id and not ChemModel.objects.filter(id=backup_model_id).exists():
+        return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: ChemModel for BackUp not exist.")
+
+    if backup_model_id and not ExperimentBackUp.objects.filter(experiment_id=experiment_id, chemModel_id=backup_model_id).exists():
+        return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: BackUp with ChemModel not exist.")
+
+    if backup_model_id and backup_model_id == model_id:
+        return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: BackUp and ChemModel are the same.")
+
     passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
 
     if not passed:
@@ -141,11 +151,15 @@ def initializeSimulation(request):
                 try:
                     exp = query_exp[0]
                     model = ChemModel.objects.get(id=model_id)
+                    if backup_model_id:
+                        backup = ChemModel.objects.get(id=backup_model_id)
+                    else:
+                        backup = None
                 except ObjectDoesNotExist:
                     return Response(status=HTTP_400_BAD_REQUEST,
                                     data="initializeSimulation: ID Error.")
 
-                new_exec = Execution(experiment=exp, chemModel=model, username=username)
+                new_exec = Execution(experiment=exp, chemModel=model, username=username, backup_chemModel=backup)
                 new_exec.save()
 
                 # solver = exp.experiment_interpreter.solver

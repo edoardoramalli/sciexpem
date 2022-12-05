@@ -1,17 +1,181 @@
+
+
+
+
+
+
+a = [1, 2, 3, 4, 5]
+
+
+a = a[:None]
+
+print(a)
+
+
+
+
+
+
+
+
+
+
+
+exit()
+# To get a random integer number between 0 and 100
+from random import randint
+
+random_number = randint(0, 100)
+
+# Exercise 1 (Beginner)
+# Given L = [42, 38, 64, 38, 21, 97, 90, 38, 55, 71] return a list of only even number
+L = [42, 38, 64, 38, 21, 97, 90, 38, 55, 71]
+L = [e for e in L if e % 2 == 0]
+
+# Exercise 2 (Beginner)
+# Write a function called generate_random_list that takes as argument N, A, B.
+# The function return a list of N random number between A and B
+def gen_list(N, A, B):
+    return [randint(A, B) for _ in range(N)]
+
+# Exercise 3 (Beginner)
+# Write a function that given a list return the reverse list
+# Example: [12, 2, 4, 1, 90] -> [90, 1, 4, 2, 12]
+def reverse_list(l):
+    return l[-1::-1]
+
+# Exercise 4 (Beginner)
+# Given D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
+# return a dictionary in which each key in D is associated with the mean value of the corresponding values (a list) in D
+import statistics
+D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
+D = {k: statistics.mean(D[k]) for k in D}
+
+# Exercise 5 (Beginner)
+# Create a list of 50 random integer even values from 0 to 100
+
+L = []
+
+while len(L) < 50:
+    current = randint(0, 100)
+    if current % 2 == 0:
+        L.append(current)
+
+# Exercise 6 (Intermediate)
+# Create a pandas dataframe from D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
+# Where the columns are A, B, C
+import pandas as pd
+D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
+
+df = pd.DataFrame(D)
+
+print(df)
+
+
+# Exercise 7 (Intermediate)
+# Given the previous dataframe create a new column D = A + 2 * B
+
+df['D'] = df['A'] + 2 * df['B']
+
+print(df)
+
+# Exercise 8 (Intermediate)
+# Write a function that given as input a list of integer return a dictionary that specify the frequency of each value
+# present in the list
+
+L = [randint(0, 50) for _ in range(1000)]
+
+freq = {}
+
+for e in L:
+    freq[e] = freq.get(e, 0) + 1
+
+print(freq)
+
+
+# Exercise 9 (Intermediate)
+# Write a program that at each iteration extract a random integer number from 0 to 100. All the even
+# number extracted are stored in a variable X, the odd in Y. The program stop extracting numbers when X contains all the
+# possible even number between 0 to 100 and Y contains all the possible odd numbers between 0 to 100
+
+X = set([])
+Y = set([])
+
+while len(X) != 51 and len(Y) != 50:
+    current = randint(0, 100)
+
+    if current % 2 == 0:
+        X.add(current)
+    else:
+        Y.add(current)
+
+print(X)
+print(Y)
+
+
+# Exercise 10 (Advance)
+# Write a function that given a list of integer return the corresponding ordered list without using the sorted() built-in function
+
+def my_sort(l):
+    tmp = []
+    for _ in range(len(l)):
+        current_min = min(l)
+        tmp.append(current_min)
+        l.remove(current_min)
+    return tmp
+
+print(my_sort([123, 432432, 54,12 ,432, 432, 5, 0]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit()
 import os
 import sys
 import argparse
 import psutil
 
-# import platform
-# print(platform.node())
-#
-#
-#
-#
-#
-# exit()
+import requests
+
+
 import django
+import random
 from django.db.models import Q, Count, F, Case, When, IntegerField
 from django.utils import timezone
 import pandas as pd
@@ -27,20 +191,410 @@ from ExperimentManager.Models import *
 from OpenSmoke.SimulationSummary.createSummary import create_summary
 from OpenSmoke.SimulationSummary.processSummary import process_summary
 
+from FrontEnd.utils import *
 
-a = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'], 'execution_column__execution__chemModel__id': 31}
+# dcs = DataColumn.objects.filter(~Q(uncertainty_reference=None))
+# dcs = DataColumn.objects.filter(Q(uncertainty_kind='relative'))
+#
+#
+# uu = set([])
+#
+# for dc in dcs:
+#     u = [float(d) for d in dc.data][0]
+#     u = round(u, 2)
+#     print(u)
+#
+# print(len(dcs))
+#
+# exit()
+
+# 358
+
+
+
+cms = CurveMatchingResult.objects.filter(execution_column__execution__chemModel__id=24).values_list('score', flat=True)
+
+cms = [float(x) for x in cms]
+
+import numpy as np
+a = np.array(cms)
+p = np.percentile(a, 25)
+
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# # matplotlib histogram
+# plt.hist(cms, color = 'blue', edgecolor = 'black',
+#          bins = int(180/5))
+
+# seaborn histogram
+sns.distplot(cms, hist=True, kde=False, bins=int(180/5), color='blue', hist_kws={'edgecolor': 'black'})
+
+plt.axvline(p, linestyle='--', color='red', label='25th Percentile')
+
+# Add labels
+plt.xlabel('Curve Matching Score')
+plt.ylabel('Count')
+
+plt.legend()
+
+# plt.show()
+
+plt.savefig('Validation.pdf', format='pdf')
+
+
+plt.show()
+
+print(cms)
+
+
+
+
+
+exit()
+
+exp_ids = list(Execution.objects.filter(chemModel__id=24, experiment__status='verified').values_list('experiment__id', flat=True))
+
+
+tsv = []
+
+for e in exp_ids:
+    c_exp = Experiment.objects.get(id=e)
+    e_id = 'ID:' + str(c_exp.id)
+    e_reactor = c_exp.reactor
+    e_exp_type = c_exp.experiment_type
+    e_y = c_exp.file_paper.year if c_exp.file_paper else 'NoYear'
+
+    dcs = c_exp.data_columns.filter(~Q(uncertainty_reference=None))
+
+    if len(dcs) > 0:
+        u = round(float([dc.uncertainty_reference.data[0] for dc in dcs][0]), 2)
+    else:
+        u = random.choice([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+
+    tsv.append('{}\t{}\tU_{}'.format(e_id, 'has_uncertainty', u))
+    tsv.append('{}\t{}\tY_{}'.format(e_id, 'of_year', e_y))
+    tsv.append('{}\t{}\tTY_{}'.format(e_id, 'of_type', e_exp_type))
+    tsv.append('{}\t{}\tR_{}'.format(e_id, 'of_reactor', e_reactor))
+    # tsv.append('{}\t{}\tAuthor{}'.format(e_id, 'has_author', u))
+
+    cms = CurveMatchingResult.objects.filter(execution_column__execution__experiment_id=e)
+
+    for cm in cms:
+        t = cm.execution_column.label.replace('_x', '')
+        tsv.append('{}\t{}\tT_{}'.format(e_id, 'of_target', t))
+        tsv.append('{}\t{}\tS_{}'.format(e_id, 'has_similarity', round(float(cm.score), 1)))
+
+
+with open('SciExpeM_1.tsv', 'w+') as f:
+    for i in tsv:
+        f.write(i + '\n')
+
+
+exit()
+
+
+
+
+
+
+
+
+
+
+cms = CurveMatchingResult.objects.filter(execution_column__execution__id=1850)
+
+chemModel1 = ChemModel.objects.get(id=24)
+chemModel2 = ChemModel.objects.get(id=31)
+
+common_exp = common_execution_experiment_id(chemModel1.id, chemModel2.id)
+
+tot = 0
+
+fuels = {}
+
+targets = {}
+
+years ={}
+
+for e_id in common_exp:
+    e = Experiment.objects.get(id=e_id)
+    f = tuple(sorted(e.fuels))
+    fuels[f] = fuels.get(f, 0) + 1
+    if e.file_paper:
+        y = e.file_paper.year
+    else:
+        y = -1
+    years[y] = years.get(y, 0) + 1
+    for p in e.pairs:
+        c = p['y']
+        if c.name == 'evaluated standard deviation':
+            print(e.id, p['y'], p['x'])
+        t = c.name if c.name != 'composition' else c.species_object.all()[0].preferredKey
+        targets[t] = targets.get(t, 0) + 1
+
+
+print(fuels)
+print(targets)
+print(years)
+
+exit()
+
+
+
+obj_exec = Execution.objects.filter(id__in=common_exp)
+
+exps = [e.experiment for e in obj_exec]
+
+fuels = list(set([tuple(e.fuels) for e in exps]))
+
+reactors = list(set([e.reactor for e in exps]))
+
+exp_types = list(set([e.experiment_type for e in exps]))
+
+targets = set()
+
+for e in obj_exec:
+    ec = e.execution_columns.all()
+    for c in ec:
+        if c.is_y:
+            targets.add(c.label)
+
+targets = list(targets)
+
+print(fuels)
+print(reactors)
+print(exp_types)
+print(targets)
+
+from statistics import mean, median, stdev, variance
+
+def edo(ll, digits=3):
+    ll = list(ll)
+    edo = ''
+    if len(ll) > 0:
+        # edo += '({}) [{}, {}] - '.format(len(ll), round(min(ll), digits), round(max(ll), digits))
+        # edo += 'M:{} Me:{} '.format(round(mean(ll), digits), round(median(ll), digits))
+        # edo += '{} | {} '.format(round(mean(ll), digits), round(median(ll), digits))
+
+        edo += '{}#{}#{}#{}#'.format(round(min(ll), digits), round(max(ll), digits), round(mean(ll), digits), round(median(ll), digits))
+    if len(ll) > 1:
+        # edo += 'StDev:{} V:{}'.format(round(stdev(ll), digits), round(variance(ll), digits))
+        edo += '{}#{}#'.format(round(stdev(ll), digits), round(variance(ll), digits))
+
+    return edo
+
+
+def analyze_model(model):
+    print('Analyzing model {}'.format(model.name))
+    for type in exp_types:
+        c = CurveMatchingResult.objects.filter(
+            execution_column__execution__experiment__experiment_type=type,
+            execution_column__execution__chemModel=model,
+            execution_column__execution__experiment__id__in=common_exp,
+        ).values_list('score', flat=True)
+
+        print(type, edo(c))
+
+        for r in reactors:
+            c_r = CurveMatchingResult.objects.filter(
+                execution_column__execution__experiment__experiment_type=type,
+                execution_column__execution__experiment__reactor=r,
+                execution_column__execution__chemModel=model,
+                execution_column__execution__experiment__id__in=common_exp,
+            ).values_list('score', flat=True)
+
+            print('\t', r, edo(c_r)) if len(c_r) > 0 else None
+
+            for f in fuels:
+                c_f = CurveMatchingResult.objects.filter(
+                    execution_column__execution__experiment__experiment_type=type,
+                    execution_column__execution__experiment__reactor=r,
+                    execution_column__execution__chemModel=model,
+                    execution_column__execution__experiment__fuels=f,
+                    execution_column__execution__experiment__id__in=common_exp,
+                ).values_list('score', flat=True)
+
+                print('\t\t', f, edo(c_f)) if len(c_f) > 0 else None
+
+                for t in targets:
+                    c_t = CurveMatchingResult.objects.filter(
+                        execution_column__execution__experiment__experiment_type=type,
+                        execution_column__execution__experiment__reactor=r,
+                        execution_column__execution__chemModel=model,
+                        execution_column__execution__experiment__fuels=f,
+                        execution_column__label=t,
+                        execution_column__execution__experiment__id__in=common_exp,
+                    ).values_list('score', flat=True)
+
+                    print('\t\t\t', t, edo(c_t)) if len(c_t) > 0 else None
+
+
+def diff_model(model1, model2):
+    print('Comparing model {} and {}'.format(model1.name, model2.name))
+    for type in sorted(exp_types):
+        c = CurveMatchingResult.objects.filter(
+            execution_column__execution__experiment__experiment_type=type,
+            execution_column__execution__chemModel=model1,
+            execution_column__execution__experiment__id__in=common_exp,
+        )
+
+        cc_p = []
+        cc_n = []
+
+        for cm in c:
+            v = cm.score - cm.get_equivalent(model2).score
+            if v > 0:
+                cc_p.append(v)
+            else:
+                cc_n.append(v)
+
+        print(type, edo(cc_n))
+
+        for r in sorted(reactors):
+            c_r = CurveMatchingResult.objects.filter(
+                execution_column__execution__experiment__experiment_type=type,
+                execution_column__execution__experiment__reactor=r,
+                execution_column__execution__chemModel=model1,
+                execution_column__execution__experiment__id__in=common_exp,
+            )
+
+            cc_r_p = []
+            cc_r_n = []
+
+            for cm in c_r:
+                v = cm.score - cm.get_equivalent(model2).score
+                if v > 0:
+                    cc_r_p.append(v)
+                else:
+                    cc_r_n.append(v)
+
+            print('\t', r, edo(cc_r_n)) if len(cc_r_p) > 0 or len(cc_r_n) > 0 else None
+
+            for f in sorted(fuels):
+                c_f = CurveMatchingResult.objects.filter(
+                    execution_column__execution__experiment__experiment_type=type,
+                    execution_column__execution__experiment__reactor=r,
+                    execution_column__execution__chemModel=model1,
+                    execution_column__execution__experiment__fuels=f,
+                    execution_column__execution__experiment__id__in=common_exp,
+                )
+
+                cc_f_p = []
+                cc_f_n = []
+
+                for cm in c_f:
+                    v = cm.score - cm.get_equivalent(model2).score
+                    if v > 0:
+                        cc_f_p.append(v)
+                    else:
+                        cc_f_n.append(v)
+
+                print('\t\t', f, edo(cc_f_n)) if len(cc_f_p) > 0 or len(cc_f_n) > 0 else None
+
+                for t in sorted(targets):
+                    c_t = CurveMatchingResult.objects.filter(
+                        execution_column__execution__experiment__experiment_type=type,
+                        execution_column__execution__experiment__reactor=r,
+                        execution_column__execution__chemModel=model1,
+                        execution_column__execution__experiment__fuels=f,
+                        execution_column__label=t,
+                        execution_column__execution__experiment__id__in=common_exp,
+                    )
+
+                    cc_t_p = []
+                    cc_t_n = []
+
+                    for cm in c_t:
+                        v = cm.score - cm.get_equivalent(model2).score
+                        if v > 0:
+                            cc_t_p.append(v)
+                        else:
+                            cc_t_n.append(v)
+
+                    print('\t\t\t', t, edo(cc_t_n)) if len(cc_t_p) > 0 or len(cc_t_n) > 0 else None
+
+
+diff_model(chemModel1, chemModel2)
+
+# analyze_model(chemModel1)
+#
+# analyze_model(chemModel2)
+
+exit()
+# 4212 3708
+
+exp = Experiment.objects.filter(id=2384)[0]
+
+dcs = exp.data_columns.all()
+
+exec = Execution.objects.get(id=4212)
+
+exec_dcs = exec.execution_columns.all()
+
+exec2 = Execution.objects.get(id=3708)
+
+exec2_dcs = exec2.execution_columns.all()
+
+x_exp = [float(i) for i in dcs[1].data]
+y_exp = [float(i) for i in dcs[0].data]
+
+x_sim_1 = [float(i) for i in exec_dcs[1].data]
+y_sim_1 = [float(i) for i in exec_dcs[0].data]
+
+x_sim_2 = [float(i) for i in exec2_dcs[1].data]
+y_sim_2 = [float(i) for i in exec2_dcs[0].data]
+
+import matplotlib.pyplot as plt
+
+
+def conver_x(x_l):
+    return [1000 / i for i in x_l]
+
+
+def conver_y(y_l):
+    import math
+    return [math.log10(i) for i in y_l]
+
+
+# plt.plot(conver_x(x_exp), conver_y(y_exp), 'o', label='Experiment')
+# plt.plot(conver_x(x_sim_1), conver_y(y_sim_1), '--', label='Simulation 1')
+# plt.plot(conver_x(x_sim_2), conver_y(y_sim_2), '.-', label='Simulation 2')
+
+plt.plot(conver_x(x_exp), y_exp, 'o', label='Experiment')
+plt.plot(conver_x(x_sim_1), y_sim_1, '--', label='Simulation 1')
+plt.plot(conver_x(x_sim_2), y_sim_2, '.-', label='Simulation 2')
+plt.yscale('log', base=10)
+
+# plt.show()
+
+
+from CurveMatching.CurveMatching import curveMatchingExecution
+
+print(conver_x(x_exp))
+print(conver_y(y_exp))
+print(conver_x(x_sim_1))
+print(conver_y(y_sim_1))
+
+curveMatchingExecution(exec)
+
+exit()
+
+a = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'],
+     'execution_column__execution__chemModel__id': 31}
 a_id = 31
-b = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'], 'execution_column__execution__chemModel__id': 24}
+b = {'execution_column__label': 'H2O_x', 'execution_column__execution__experiment__fuels__contains': ['H2'],
+     'execution_column__execution__chemModel__id': 24}
 b_id = 24
 
 from statistics import stdev, variance, mean, median, StatisticsError
 
 
-
 def generate_df(diz):
     ticks = list(diz.keys())
     result = {'Interval': [], 'Avg': [], 'StDev': [], 'Count': []}
-
 
     for index in range(0, len(ticks)):
 
@@ -79,19 +633,13 @@ def merge_dict(diz1, diz2):
     return diz1
 
 
-
 def interval(query, chem_id):
-
-
     default = {'execution_column__execution__experiment__status': 'verified'}
 
     new = {**default, **query}
 
-
     exps = CurveMatchingResult.objects.filter(**new).values_list(
         'execution_column__execution__experiment__id', flat=True).distinct()
-
-
 
     chemModel = ChemModel.objects.get(id=chem_id)
 
@@ -133,8 +681,6 @@ def interval(query, chem_id):
 
                 df = current_result[x_name][subject].where(pd.notnull(current_result[x_name][subject]), -1)
 
-
-
                 if subject == 'C2H4_x':
                     print('ele', exp_id, len(df))
                     # print(df)
@@ -166,7 +712,6 @@ def interval(query, chem_id):
 
                 details[x_name][subject][exp_id] = df.to_dict('records')
 
-
     print(r)
 
     exit()
@@ -178,7 +723,6 @@ def interval(query, chem_id):
     for x_name in domains[current_model]:
         if x_name not in result:
             result[x_name] = {}
-
 
         for subject in domains[current_model][x_name]:
             # print('edooo', subject)
@@ -204,8 +748,6 @@ def interval(query, chem_id):
 
             df_sottostima = generate_df(diz=domains[current_model][x_name][subject].x_n)
 
-
-
             # print(chem_id, subject, len(df_sovrastima) + len(df_sottostima))
 
             if subject == 'C2H4_x':
@@ -222,8 +764,6 @@ def interval(query, chem_id):
                                                      'y': list(df_sovrastima['Avg']),
                                                      'error_y': list(df_sovrastima['StDev']),
                                                      'count': list(freq_sovrastima)}
-
-
 
             result[x_name][subject]['sottostima'] = {'x': list(df_sottostima['Interval']),
                                                      'y': list(df_sottostima['Avg']),
@@ -242,7 +782,6 @@ interval(a, a_id)
 interval(b, b_id)
 
 exit()
-
 
 exit()
 import subprocess

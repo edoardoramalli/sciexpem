@@ -14,4 +14,6 @@ from .CurveMatchingResult import CurveMatchingResult
 from .ExecutionFile import ExecutionFile
 from .WorkManager import WorkManager
 from .ExperimentBackUp import ExperimentBackUp
+from .ResearchGroup import ResearchGroup
+from .Affiliation import Affiliation
 

@@ -14,6 +14,19 @@ import base64
 import os
 
 
+def custom_float_cast(val):
+    if val is None:
+        return None
+    else:
+        return float(val)
+
+
+def custom_str_cast(val):
+    if val is None:
+        return None
+    else:
+        return str(val)
+
 class uploadBackup(View.ExperimentManagerBaseView):
     """
     Scope  ->
@@ -22,19 +35,6 @@ class uploadBackup(View.ExperimentManagerBaseView):
     Method ->
     Access ->
     """
-    @staticmethod
-    def custom_float_cast(val):
-        if val is None:
-            return None
-        else:
-            return float(val)
-
-    @staticmethod
-    def custom_str_cast(val):
-        if val is None:
-            return None
-        else:
-            return str(val)
 
     viewName = 'uploadBackup'
     paramsType = {'experiment_id': int, 'chemModel_id': int, 'file_byte': str, 'file_name': str,

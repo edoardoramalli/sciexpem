@@ -54,15 +54,16 @@ class filterDataBase(View.ExperimentManagerBaseView):
             if type(query_obj) == dict:
                 query_set = model.objects.filter(**query_obj).distinct()
             else:
+                print(query_obj)
                 query_set = model.objects.filter(query_obj).distinct()
 
             if self.order_by:
                 query_set = query_set.order_by(self.order_by)
 
-
             query_set = query_set[:self.n_elements]
 
             serializer = eval('Serializers.' + self.model_name + 'Serializer')
+
             for query_result in query_set:
                 result.append(serializer(query_result, fields=ser_fields).data)
 

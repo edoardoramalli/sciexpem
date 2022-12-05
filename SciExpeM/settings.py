@@ -150,6 +150,7 @@ DBBACKUP_STORAGE_OPTIONS = {
 
 CRON_CLASSES = [
     "ExperimentManager.admin.Backup",
+    "ExperimentManager.admin.CleanWorker",
 ]
 
 # Password validation

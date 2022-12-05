@@ -54,10 +54,8 @@ def curveMatchingExecution(current_execution):
         if len(current_execution.execution_columns.all()) <= 1:
             raise ValueError('Execution ({}) not enough columns.'.format(current_execution.id))
         if any(ll > 1000 for ll in [len(c.data) for c in current_execution.execution_columns.all()]):
-            print('pipppooo')
             raise ValueError('Compute Curve Matching: Execution ({}) with too many data.')
     except ValueError as e:
-        print('eoooooo', e)
         c_text = current_execution.execution_error
         if c_text:
             c_text += '\n' + str(e)
@@ -97,32 +95,44 @@ def curveMatchingExecution(current_execution):
             else:
                 uncertainty_data = []
 
-            indexes = blocking_execute_cm(x_exp=x_exp, y_exp=y_exp,
-                                          x_sim=x_sim, y_sim=y_sim,
-                                          uncertainty=uncertainty_data,
-                                          numberOfBootstrapVariations=80,
-                                          possibleNegativeOrdinates=True)
 
-            values = {'score': indexes['score'],
-                      'error': indexes['error'],
-                      'd0L2': indexes['d0L2'],
-                      'd1L2': indexes['d1L2'],
-                      'd0Pe': indexes['d0Pe'],
-                      'd1Pe': indexes['d1Pe'],
-                      'shift': indexes['shift']}
+            try:
 
-            # Attenzione stiamo sbagliando la media:
-            # Se un dato sperimentale della composizione è la somma di due o più specie
-            # ma il modello li da singoli, noi dobbiamo fare la somma e poi fare il cm con questa
-            # ma dopo a chi lo do il cm? il cm viene associato ad una executionColumn.
-            # La mia policy è che lo stesso valore è associato a tutte le colonne execution coinvolte però falsi
-            # le indagini statistiche in qualche modo però anche il fatto che loro misurano più specie insieme
-            # è falsato
-            # Diciamo che il numero di cmresults per una singola esecuzione può essere maggiore rispetto al numero di
-            # datacolumns
-            for exec_column in y_execution_column:
-                cm_result, created = Model.CurveMatchingResult.objects.update_or_create(defaults=values,
-                                                                                        execution_column=exec_column)
+                indexes = blocking_execute_cm(x_exp=x_exp, y_exp=y_exp,
+                                              x_sim=x_sim, y_sim=y_sim,
+                                              uncertainty=uncertainty_data,
+                                              numberOfBootstrapVariations=80,
+                                              possibleNegativeOrdinates=True)
+
+                values = {'score': indexes['score'],
+                          'error': indexes['error'],
+                          'd0L2': indexes['d0L2'],
+                          'd1L2': indexes['d1L2'],
+                          'd0Pe': indexes['d0Pe'],
+                          'd1Pe': indexes['d1Pe'],
+                          'shift': indexes['shift']}
+
+                # Attenzione stiamo sbagliando la media:
+                # Se un dato sperimentale della composizione è la somma di due o più specie
+                # ma il modello li da singoli, noi dobbiamo fare la somma e poi fare il cm con questa
+                # ma dopo a chi lo do il cm? il cm viene associato ad una executionColumn.
+                # La mia policy è che lo stesso valore è associato a tutte le colonne execution coinvolte però falsi
+                # le indagini statistiche in qualche modo però anche il fatto che loro misurano più specie insieme
+                # è falsato
+                # Diciamo che il numero di cmresults per una singola esecuzione può essere maggiore rispetto al numero di
+                # datacolumns
+                for exec_column in y_execution_column:
+                    cm_result, created = Model.CurveMatchingResult.objects.update_or_create(defaults=values,
+                                                                                            execution_column=exec_column)
+            except Exception as e:
+                c_text = current_execution.execution_error
+                if c_text:
+                    c_text += '\n' + str(e)
+                else:
+                    c_text = str(e)
+                current_execution.execution_error = c_text
+                current_execution.save()
+                return
 
             #sleep(0.5)  # qualche volta da errore in malloc forse perchè è troppo veloce a rilasciare la memoria?
 

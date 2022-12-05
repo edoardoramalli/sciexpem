@@ -8,10 +8,12 @@ class ExecutionSerializer(serializers.ModelSerializer):
     chemModel = Serializers.ChemModelSerializer()
     experiment = Serializers.ExperimentSerializer()
     execution_columns = Serializers.ExecutionColumnSerializer(many=True)
+    backup_chemModel = Serializers.ChemModelSerializer()
 
     class Meta:
         model = Execution
-        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username', 'execution_columns', 'num_files', 'folder_size', 'has_error']
+        fields = ['id', 'chemModel', 'experiment', 'execution_start', 'execution_end', 'username', 'execution_columns',
+                  'num_files', 'folder_size', 'has_error', 'backup_chemModel']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

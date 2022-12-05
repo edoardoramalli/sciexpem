@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+from SciExpeM import settings
 
 import inspect
 
@@ -12,6 +13,7 @@ from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, 
     ReSpecThAtomSpecie
 from ReSpecTh.FuelValid import ValidFuel
 from ReSpecTh.phi_to_mol_frac import GetMoleFractionsFromEquivalenceRatio
+from ExperimentManager.Models.GeneralManager import GeneralManager
 
 validatorProperty = ReSpecThValidProperty()
 # validatorSpecie = ReSpecThValidSpecie()
@@ -19,8 +21,34 @@ validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
 
 
+class DataColumnManager(GeneralManager):
+
+    def filter(self, **query):
+
+        super().filter(**query)
+
+        user = query.pop('user')
+
+        username = user.username
+
+
+
+
+
+        print('ciaooo')
+
+        print(query)
+
+        # lookups = Q(title__icontains=query) | Q(content__icontains=query)
+
+        return self.get_queryset().filter(**{'experiment__username': username, **query})
+
+
 # More data columns represent the data of an experiment
 class DataColumn(models.Model):
+
+    # objects = DataColumnManager()
+
     # Mandatory - Checked
     name = models.CharField(max_length=100)
     units = models.CharField(max_length=50)
