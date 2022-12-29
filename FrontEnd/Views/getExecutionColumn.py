@@ -19,6 +19,8 @@ def supportGetExecutionColumn(execution):
 
     for mapping in execution.experiment.experiment_interpreter.mappings.all():
         file = mapping.file
+        if file not in result:
+            result[file] = {}
         y_sim_name = mapping.y_sim_name
         y_sim_location = mapping.y_sim_location
         x_sim_name = mapping.x_sim_name
@@ -54,13 +56,11 @@ def supportGetExecutionColumn(execution):
                 raise ValueError('Execution columns with different lengths')
             y_sim_units = y.units
             y_sim_label = y.label
-            result[y_sim_label + '[' + y_sim_units + ']'] = y_sim_data
+            result[file][y_sim_label + '[' + y_sim_units + ']'] = y_sim_data
 
-        result[x_sim_label + '[' + x_sim_units + ']'] = x_sim_data
+        result[file][x_sim_label + '[' + x_sim_units + ']'] = x_sim_data
 
-
-
-    return pd.DataFrame.from_dict(result)
+    return {f: pd.DataFrame.from_dict(result[f]) for f in result}
 
 
 class getExecutionColumn(View.FrontEndBaseView):
@@ -74,18 +74,27 @@ class getExecutionColumn(View.FrontEndBaseView):
         if not execution.execution_end:
             return Response('getExecutionColumn. Execution is not ended yet.', status=HTTP_400_BAD_REQUEST)
 
-        df = supportGetExecutionColumn(execution)
+        df_dict = supportGetExecutionColumn(execution)
 
-        cols = df.columns.tolist()
+        result = {}
 
-        if 'T0[K]' in cols:
-            cols.remove('T0[K]')
-            cols = ['T0[K]'] + cols
+        for file in df_dict:
 
-        df = df[cols]
+            df = df_dict[file]
 
-        df = df.where(pd.notnull(df), None)
+            cols = df.columns.tolist()
 
-        df = df.sort_values(by=df.columns[0])
+            # TODO ordere precedenza colonne x da estendere
+            if 'T0[K]' in cols:
+                cols.remove('T0[K]')
+                cols = ['T0[K]'] + cols
 
-        return Response(df.to_dict(orient="records"), HTTP_200_OK)
+            df = df[cols]
+
+            df = df.where(pd.notnull(df), None)
+
+            df = df.sort_values(by=df.columns[0])
+
+            result[file] = df.to_dict(orient="records")
+
+        return Response(result, HTTP_200_OK)

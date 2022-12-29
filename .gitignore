@@ -61,3 +61,13 @@ LavoriVari/
 *.dic
 
 SciExpeMWorker/edoo.pbs
+
+templates/registration/login_demo.html
+
+*.edo
+
+prova.py
+
+prova2.py
+
+varie.py

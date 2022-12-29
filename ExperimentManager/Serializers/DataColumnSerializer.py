@@ -16,7 +16,7 @@ class DataColumnSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
-
+        self.user = kwargs.pop('user', None)
         req = ['uncertainty_reference', 'species_object']
 
         if fields is None:

@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from SciExpeM import settings
-
+from django.db.models import Q
 import inspect
 
 import ExperimentManager.Models.Tool as Tool
@@ -14,6 +14,7 @@ from ReSpecTh.ReSpecThParser import ReSpecThValidSpecie, ReSpecThValidProperty, 
 from ReSpecTh.FuelValid import ValidFuel
 from ReSpecTh.phi_to_mol_frac import GetMoleFractionsFromEquivalenceRatio
 from ExperimentManager.Models.GeneralManager import GeneralManager
+from ExperimentManager.Models.Tool import *
 
 validatorProperty = ReSpecThValidProperty()
 # validatorSpecie = ReSpecThValidSpecie()
@@ -23,38 +24,50 @@ validatorFuel = ValidFuel()
 
 class DataColumnManager(GeneralManager):
 
-    def filter(self, **query):
+    def filter(self, *args, **kwargs):
 
-        super().filter(**query)
+        # super().filter(**kwargs)
 
-        user = query.pop('user')
+        print(args)
+        print(kwargs)
 
-        username = user.username
+        if args:
+            raise ValueError('Data Column Manager case not handled!')
+
+        if not kwargs:
+            raise ValueError('Data Column Manager case not handled kwargs!')
+
+        if kwargs and 'user' not in kwargs:
+            raise ValueError('Data Column Manager missing User!')
+
+        user = kwargs.pop('user')
+
+        my_friends = get_friends(user=user)
+
+        # print(my_groups)
+        print(my_friends)
 
 
+        # exit()
 
+        current_query = Q(**kwargs)
 
+        current_query = current_query & Q(**{'experiment__username__in': my_friends})
 
-        print('ciaooo')
-
-        print(query)
-
-        # lookups = Q(title__icontains=query) | Q(content__icontains=query)
-
-        return self.get_queryset().filter(**{'experiment__username': username, **query})
+        return self.get_queryset().filter(current_query)
 
 
 # More data columns represent the data of an experiment
 class DataColumn(models.Model):
 
-    # objects = DataColumnManager()
+    objects = DataColumnManager()
 
     # Mandatory - Checked
     name = models.CharField(max_length=100)
     units = models.CharField(max_length=50)
     data = ArrayField(models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES))
     dg_id = models.CharField(max_length=10, null=False)
-    dg_label = models.CharField(max_length=20, default='experimental_data')
+    dg_label = models.CharField(max_length=25, default='experimental_data')
     source_type = models.CharField(max_length=15)
 
     # Optional - Checked
@@ -118,6 +131,7 @@ class DataColumn(models.Model):
         # Optional
         label = text_dict.get('label')
         dg_label = text_dict.get('dg_label')
+
         species = text_dict.get('species')
         species_object = text_dict.get('species_object')
         data_group_profile = text_dict.get('data_group_profile')
@@ -259,7 +273,7 @@ class DataColumn(models.Model):
         dg_label = self.dg_label  # For sure is not empty
 
         if dg_label not in ['V-t history', 'p-t history', 'T-t history', 'T-l history', 'experimental_data',
-                            'initial_condition']:
+                            'initial_condition', 'distribution_position']:
             raise ConstraintFieldExperimentError("Data Group Label not valid")
         if uncertainty:
             if bool(uncertainty_kind) != bool(uncertainty_bound):

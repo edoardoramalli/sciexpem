@@ -22,9 +22,59 @@ from ReSpecTh.GetReactor import GetReactor
 # Logging
 import logging
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
-logger = logging.getLogger("ReSpecTh")
-logger.addHandler(ReSpecTh.apps.logger_handler)
-logger.setLevel(logging.INFO)
+from ReSpecTh.ReSpecThConverter import ReSpecThConverter
+
+
+@api_view(['POST'])
+def executeReSpecThConverter(request):
+    params = request.data
+
+    try:
+        exp_id = int(params['exp_id'])
+        #
+        # exp = Models.Experiment.objects.get(id=id)
+        #
+        # txt = TranslatorOptimaPP.create_OptimaPP_txt(experiment=exp,
+        #                                              data_groups=exp.data_columns.all(),
+        #                                              initial_species=exp.initial_species.all(),
+        #                                              common_properties=exp.common_properties.all(),
+        #                                              file_paper=exp.file_paper)
+        #
+        # result, error = OptimaPP.txt_to_xml(txt)
+        #
+        # if result:
+        #     return Response(data=result, status=HTTP_200_OK)
+        # else:
+        #     return Response(data=error, status=HTTP_400_BAD_REQUEST)
+
+        exp = Models.Experiment.objects.get(id=exp_id)
+
+        if exp.xml_file:
+
+            result, error = ReSpecThConverter.convert(exp.xml_file)
+
+        else:
+
+            return Response(data='executeReSpecThConverter: Experiment without ReSpecTh file.', status=HTTP_400_BAD_REQUEST)
+
+        if result:
+            return Response(data=result, status=HTTP_200_OK)
+        else:
+            return Response(data=error, status=HTTP_400_BAD_REQUEST)
+
+
+
+
+    except KeyError:
+        return Response(status=HTTP_400_BAD_REQUEST,
+                        data="executeReSpecThConverter: KeyError in HTTP parameters. Missing parameter.")
+
+    except Exception:
+        err_type, value, traceback = sys.exc_info()
+        return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
+                        data="executeReSpecThConverter: Generic error. " + str(err_type.__name__) + " : " + str(value))
+
+
 
 @api_view(['POST'])
 def executeOptimaPPExperiment(request):

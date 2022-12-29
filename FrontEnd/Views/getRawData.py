@@ -51,7 +51,7 @@ class getRawData(View.FrontEndBaseView):
         else:
             return Response(self.viewName + ": Type not valid.", status=HTTP_400_BAD_REQUEST)
 
-        data_columns = DataColumn.objects.filter(experiment__id=self.experiment_id, dg_label__in=dg_label)
+        data_columns = DataColumn.objects.filter(experiment__id=self.experiment_id, dg_label__in=dg_label, user=request.user)
 
         columns_dg = {}
         headers_dg = {}

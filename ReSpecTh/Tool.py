@@ -5,7 +5,6 @@ from FrontEnd.exceptions import ExecutionColumnError
 
 
 def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:
-    print(plotscale)
     if plotscale == 'lin':
         list_a = [float(x) for x in my_list]
     elif plotscale == 'log' or plotscale == 'log10':
@@ -26,9 +25,12 @@ def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> 
     return list_a
 
 
-def visualizeSingleDataGroup(data_group, mapping_list, experiment):
+def visualizeSingleDataGroup(data_group, mapping_list, experiment, user):
     result = []
     info = {}
+
+    log_dist = ['particle size distribution', 'primary particle size distribution', 'particle diameter']
+
     for mapping in mapping_list:
         x_exp_name = mapping.x_exp_name
         x_exp_location = mapping.x_exp_location
@@ -43,13 +45,21 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
         if x_sim_name == 'None' or y_sim_name == 'None':
             continue
 
-        filter_x = {'experiment': experiment, x_exp_location: x_exp_name, 'dg_id': data_group}
+        filter_x = {'experiment': experiment, x_exp_location: x_exp_name, 'dg_id': data_group, 'user': user}
 
-        x_dataColumn = Models.DataColumn.objects.get(**filter_x)
+        x_dataColumn = Models.DataColumn.objects.filter(**filter_x)
 
-        x = applyTransformation(list(x_dataColumn.data), x_transformation)
+        if x_dataColumn.exists():
+            x_dataColumn = x_dataColumn[0]
+        else:
+            continue
 
-        filter_y = {'experiment': experiment, y_exp_location: y_exp_name, 'dg_id': data_group}
+        if x_dataColumn.name not in log_dist:
+            x = applyTransformation(list(x_dataColumn.data), x_transformation)
+        else:
+            x = applyTransformation(list(x_dataColumn.data), 'lin')
+
+        filter_y = {'experiment': experiment, y_exp_location: y_exp_name, 'dg_id': data_group, 'user': user}
 
         y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
@@ -68,11 +78,6 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                     # C'è da applicare le transformation
                     pass
 
-            if experiment.experiment_type != 'ignition delay measurement':
-                y = applyTransformation(list(y_element.data), y_transformation)
-            else:
-                y = applyTransformation(list(y_element.data), 'lin')
-
             x_unit_name = x_dataColumn.units if x_transformation != 'inv' else '1000/' + x_dataColumn.units
             x_name = ' [{}] ({})'.format(x_unit_name, x_transformation)
             info['xaxis'] = {
@@ -82,6 +87,9 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 'mirror': True
             }
 
+            if x_dataColumn.name in log_dist:
+                info['xaxis']['type'] = 'log'
+
             y_unit_name = y_element.units if y_transformation != 'inv' else '1000/' + y_element.units
             y_name = ' [{}] ({})'.format(y_unit_name, y_transformation)
             info['yaxis'] = {
@@ -90,8 +98,12 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 'linewidth': 2,
                 'mirror': True
             }
-            if experiment.experiment_type == 'ignition delay measurement':
+
+            if experiment.experiment_type != 'ignition delay measurement' or y_element.name in log_dist:
+                y = applyTransformation(list(y_element.data), y_transformation)
+            else:
                 info['yaxis']['type'] = 'log'
+                y = applyTransformation(list(y_element.data), 'lin')
 
             if y_element.name == 'composition':
                 name = '+'.join([specie.preferredKey for specie in y_element.species_object.all()])
@@ -113,7 +125,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
     return info, result
 
 
-def visualizeExperiment(experiment) -> dict:
+def visualizeExperiment(experiment, user) -> dict:
     #  experiment status is assumed to be managed
     experiment_interpreter = experiment.interpreter
 
@@ -123,14 +135,13 @@ def visualizeExperiment(experiment) -> dict:
 
     info_dg = {}
 
-    columns_list = Models.DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data")
+    columns_list = Models.DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data", user=user)
 
     columns_list_dg = {column.dg_id for column in columns_list}
 
     for dg in columns_list_dg:
-        info_dg['Data Group ({})'.format(dg)], result_dg['Data Group ({})'.format(dg)] = visualizeSingleDataGroup(dg,
-                                                                                                                  mapping_list,
-                                                                                                                  experiment)
+        info_dg['Data Group ({})'.format(dg)], result_dg['Data Group ({})'.format(dg)] = visualizeSingleDataGroup(
+            data_group=dg, mapping_list=mapping_list, experiment=experiment, user=user)
 
     return {'data': result_dg, 'info': info_dg}
 
@@ -166,7 +177,7 @@ class Consistency:
             if x_name not in self.unit[y_name]:
                 self.unit[y_name][x_name] = (x_unit, y_unit)
 
-    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict, title: str =None):
+    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict, title: str = None):
         if y_name not in self.info:
             self.info[y_name] = {x_name: {'xaxis': x_axis, 'yaxis': y_axis}}
         else:
@@ -180,7 +191,7 @@ class Consistency:
         return self.unit[y_name][x_name]
 
 
-def pairExecutionExperiment(execution, mapping, consistency, target=''):
+def pairExecutionExperiment(execution, mapping, consistency, user, target=''):
     """
     Return the experiment and execution curve pair, with the same unit and same transformation
     """
@@ -207,7 +218,7 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
 
     # Y EXP
 
-    filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name}
+    filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name, 'user': user}
 
     if target:
         filter_y['label'] = target
@@ -220,15 +231,14 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
 
         # X EXP
 
-        filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id}
+        filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id,
+                    'user': user}
         try:
             x_dataColumn = Models.DataColumn.objects.get(**filter_x)
         except Models.DataColumn.DoesNotExist:
             # TODO
             # print(x_dataColumn)
             continue
-
-
 
         # For each experimental data in the same config add the units of the axis
         consistency.add_unit(x_name=x_dataColumn.name,
@@ -340,7 +350,7 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
     return result
 
 
-def visualizeExecution(execution, consist=None, target=None) -> dict:
+def visualizeExecution(execution, user, consist=None, target=None) -> dict:
     #  experiment status is assumed to be managed
 
     consistency = Consistency() if consist is None else consist
@@ -348,7 +358,7 @@ def visualizeExecution(execution, consist=None, target=None) -> dict:
     mappings = execution.experiment.experiment_interpreter.mappings.all()
 
     for mapping in mappings:
-        results = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
+        results = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency, user=user)
 
         for result in results:
             if not result['valid']:
@@ -413,7 +423,7 @@ def visualizeExecution(execution, consist=None, target=None) -> dict:
     return consistency
 
 
-def visualizeAllExecution(experiment):
+def visualizeAllExecution(experiment, user):
     execution_list = Models.Execution.objects.filter(experiment=experiment)
     #  experiment status is assumed to be managed
 
@@ -421,7 +431,7 @@ def visualizeAllExecution(experiment):
 
     # For cycle with the same consistency means 'consistency' and aggregate results
     for execution in execution_list:
-        visualizeExecution(execution=execution, consist=consistency)
+        visualizeExecution(execution=execution, consist=consistency, user=user)
 
     return consistency
 

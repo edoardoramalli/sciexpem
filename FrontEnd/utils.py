@@ -20,8 +20,10 @@ def curve_io_formatter(curves, x_axis, y_axis, logY=False):
     return {"curves": curves, "x_axis": x_axis, "y_axis": y_axis, "logY": logY}
 
 
-def extract_experiment_table(exp_id, units_row=False, units_brackets=True, reorder=True):
-    dc = DataColumn.objects.filter(experiment_id=exp_id)
+def extract_experiment_table(exp_id, user, units_row=False, units_brackets=True, reorder=True):
+    dc = DataColumn.objects.filter(experiment_id=exp_id, user=user)
+
+    print(dc)
 
     # dict: name -> (units, data)
     column_names_units_data = {d.name if d.species is None else ",".join(d.species): (d.units, d.data) for d in dc}

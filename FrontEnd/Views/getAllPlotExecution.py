@@ -20,7 +20,7 @@ class getAllPlotExecution(View.FrontEndBaseView):
     def view_post(self, request):
         try:
             experiment = Models.Experiment.objects.get(id=self.element_id)
-            consistency = visualizeAllExecution(experiment)
+            consistency = visualizeAllExecution(experiment, user=request.user)
             results = resultExecutionVisualization(consistency)
             return Response(json.dumps(results), status=HTTP_200_OK)
         except ExecutionColumnError as e:

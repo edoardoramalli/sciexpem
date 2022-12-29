@@ -6,6 +6,16 @@ MAX_DIGITS = 42
 DECIMAL_PLACES = 10
 
 
+def get_friends(user):
+    my_affiliations = user.affiliations.all().values_list('group', flat=True)
+
+    my_groups = Model.ResearchGroup.objects.filter(id__in=my_affiliations)
+
+    my_friends = Model.Affiliation.objects.filter(group__in=my_groups).values_list('user__username', flat=True)
+
+    return list(set(list(my_friends) + [user.username]))
+
+
 # def generic_save(*args, **kwargs):
 #     if 'username' in kwargs and 'object' in kwargs:
 #         username = kwargs.pop('username')

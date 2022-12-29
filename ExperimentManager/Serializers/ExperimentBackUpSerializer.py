@@ -15,10 +15,10 @@ class ExperimentBackUpSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
+        self.user = kwargs.pop('user', None)
+        req = ['chemModel', 'experiment']
 
-        # req = ['chemModel']
-
-        req = []
+        # req = []
 
         if fields is None:
             fields = tuple(req)

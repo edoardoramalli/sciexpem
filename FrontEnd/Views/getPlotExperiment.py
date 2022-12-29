@@ -20,7 +20,7 @@ class getPlotExperiment(View.FrontEndBaseView):
         experiment = Models.Experiment.objects.get(id=self.exp_id)
         if experiment.interpreter is None:
             return Response(status=HTTP_400_BAD_REQUEST, data="getPlotExperiment: Experiment is not managed.")
-        results = visualizeExperiment(experiment)
+        results = visualizeExperiment(experiment, user=request.user)
         return Response(results, status=HTTP_200_OK)
 
 

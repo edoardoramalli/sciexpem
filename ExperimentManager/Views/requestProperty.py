@@ -25,8 +25,14 @@ class requestProperty(View.ExperimentManagerBaseView):
 
         try:
             element = model.objects.get(id=self.element_id)
-            property_object = getattr(element, self.property_name)
-            property_object_type = type(property_object)
+            private_properties = getattr(model, 'private')
+            if self.property_name not in private_properties:
+                property_object = getattr(element, self.property_name)
+                property_object_type = type(property_object)
+            else:
+                print(request.user.username)
+                property_object = getattr(element, 'get_' + self.property_name)(user=request.user)
+                property_object_type = type(property_object)
 
             if property_object is None:
                 return Response('', status=HTTP_200_OK)

@@ -1,9 +1,10 @@
+from .private_field_meta import PrivateFieldsMeta
 from .FilePaper import FilePaper
 from .Specie import Specie
 from .ExperimentInterpreter import ExperimentInterpreter
 from .RuleInterpreter import RuleInterpreter
 from .MappingInterpreter import MappingInterpreter
-from .Experiment import Experiment
+from .Experiment import Experiment, ExperimentProxy
 from .DataColumn import DataColumn
 from .CommonProperty import CommonProperty
 from .InitialSpecie import InitialSpecie
@@ -16,4 +17,3 @@ from .WorkManager import WorkManager
 from .ExperimentBackUp import ExperimentBackUp
 from .ResearchGroup import ResearchGroup
 from .Affiliation import Affiliation
-

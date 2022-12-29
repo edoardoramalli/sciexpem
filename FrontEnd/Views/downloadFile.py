@@ -35,15 +35,20 @@ class downloadFile(View.FrontEndBaseView):
             elif self.file == 'ReSpecTh':
                 response_file = experiment.xml_file
             elif self.file == 'excel':
-                df = utils.extract_experiment_table(self.element_id, units_brackets=True, reorder=True)
-                output = io.BytesIO()
-                writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df.to_excel(writer, index=False)
-                writer.save()
-                response_file = output.getvalue()
+                df = utils.extract_experiment_table(exp_id=self.element_id, units_brackets=True, reorder=True,
+                                                    user=request.user)
+                if df:
+                    output = io.BytesIO()
+                    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                    df.to_excel(writer, index=False)
+                    writer.save()
+                    response_file = output.getvalue()
+                else:
+                    return Response(data=self.viewName + ": You don't have the permission.",
+                                    status=HTTP_400_BAD_REQUEST)
             else:
-                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
-                         status=HTTP_400_BAD_REQUEST)
+                return Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                                status=HTTP_400_BAD_REQUEST)
         elif self.model_name == 'ChemModel':
             if self.file == 'model':
                 model = get_object_or_404(Models.ChemModel, pk=self.element_id)
@@ -60,8 +65,8 @@ class downloadFile(View.FrontEndBaseView):
                 response_file = s.getvalue()
 
             else:
-                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
-                         status=HTTP_400_BAD_REQUEST)
+                return Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                                status=HTTP_400_BAD_REQUEST)
         elif self.model_name == 'Execution':
             if self.file == 'rawData':
 
@@ -70,12 +75,18 @@ class downloadFile(View.FrontEndBaseView):
                 if not execution.execution_end:
                     return Response('getExecutionColumn. Execution is not ended yet.', status=HTTP_400_BAD_REQUEST)
 
-                df = supportGetExecutionColumn(execution)
+                df_dict = supportGetExecutionColumn(execution)
 
-                response_file = df.to_csv(index=False)
+                s = BytesIO()
+
+                with zipfile.ZipFile(s, "w") as zf:
+                    for file in df_dict:
+                        zf.writestr(zinfo_or_arcname=file + '.csv', data=df_dict[file].to_csv(index=False))
+
+                response_file = s.getvalue()
             else:
-                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
-                         status=HTTP_400_BAD_REQUEST)
+                return Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                                status=HTTP_400_BAD_REQUEST)
         elif self.model_name == 'ExperimentBackUp':
             if self.file == 'backup':
                 obj = get_object_or_404(Models.ExperimentBackUp, pk=self.element_id)
@@ -83,11 +94,11 @@ class downloadFile(View.FrontEndBaseView):
                 response_file = file_binary
 
             else:
-                Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
-                         status=HTTP_400_BAD_REQUEST)
+                return Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
+                                status=HTTP_400_BAD_REQUEST)
         else:
-            Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong model name.",
-                     status=HTTP_400_BAD_REQUEST)
+            return Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong model name.",
+                            status=HTTP_400_BAD_REQUEST)
 
         if not response_file:
             return Response('File Not Found!', status=HTTP_400_BAD_REQUEST)
@@ -95,5 +106,3 @@ class downloadFile(View.FrontEndBaseView):
         response = HttpResponse(response_file)
         response['Content-Disposition'] = 'attachment; filename= {}'.format(self.element_id)
         return response
-
-

@@ -9,6 +9,7 @@ class ExperimentSerializer(serializers.ModelSerializer):
     initial_species = Serializers.InitialSpecieSerializer(many=True, read_only=True)
     file_paper = Serializers.FilePaperSerializer(read_only=True)
     data_columns = Serializers.DataColumnSerializer(many=True)
+    xml_file = serializers.SerializerMethodField(method_name='edo')
 
     class Meta:
         model = Experiment
@@ -18,8 +19,14 @@ class ExperimentSerializer(serializers.ModelSerializer):
                   'reactor_modes']
         read_only = ['id']
 
+    def edo(self, obj):
+        return obj.get_xml_file(self.user)
+
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
+        self.user = kwargs.pop('user', None)
+
+        print('edooooo')
 
         req = ['common_properties', 'initial_species', 'data_columns', 'common_properties', 'file_paper']
 

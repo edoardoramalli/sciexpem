@@ -11,7 +11,7 @@ class FilePaperSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
-
+        self.user = kwargs.pop('user', None)
         super(FilePaperSerializer, self).__init__(*args, **kwargs)
 
         Tool.drop_fields(self, fields)

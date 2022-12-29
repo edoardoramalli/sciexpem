@@ -11,7 +11,7 @@ class SpecieSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
-
+        self.user = kwargs.pop('user', None)
         req = ['id', 'preferredKey']
 
         if fields is None:

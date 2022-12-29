@@ -13,7 +13,7 @@ class CurveMatchingResultSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
-
+        self.user = kwargs.pop('user', None)
         req = ['error', 'score', 'execution_column']
 
         if fields is None:

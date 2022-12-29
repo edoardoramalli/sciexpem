@@ -12,7 +12,7 @@ class WorkManagerSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
-
+        self.user = kwargs.pop('user', None)
         req = ['last_contact', 'computer', 'free_cores', 'num_cores', 'max_jobs', 'active_jobs']
 
         if fields is None:
