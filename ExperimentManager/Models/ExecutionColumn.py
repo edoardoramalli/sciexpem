@@ -23,8 +23,6 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
         if len(data) == 0:
             raise ConstraintFieldExperimentError("Execution Data field is empty")
 
-        return self.data[0], self.data[-1]
-
     @property
     def is_x(self):
         mappings = self.execution.experiment.experiment_interpreter.mappings.all()

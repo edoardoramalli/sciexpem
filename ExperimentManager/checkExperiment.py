@@ -159,6 +159,45 @@ def check_OS_input_file(experiment, profile_list):
         raise ExperimentConsistencyError('Inconsistency between the profile data and OS input profile keyword.')
 
 
+def checkDistribution(experiment, distribution_position, dg_dict):
+    if distribution_position:
+        if len(distribution_position) > 1:
+            raise ExperimentConsistencyError('More than 1 distribution_position data group')
+
+        # if 'initial_condition' in dg_dict:
+        #     raise ExperimentConsistencyError('No initial_condition data group with distribution_position')
+
+        number_of_distribution = len(distribution_position[0].data)
+
+        if len(dg_dict) < number_of_distribution:
+            raise ExperimentConsistencyError('Inconsistency between number of distribution_position and number of distribution')
+
+        taken = set([])
+
+        for dg_id in dg_dict:
+            # if len(dg_dict[dg_id]) != 2:
+            #     raise ExperimentConsistencyError('A distribution needs two columns, given {}'.format(len(dg_dict[dg_id])))
+            association_row = set([])
+            for column in dg_dict[dg_id]:
+                if column.data_group_profile:
+                    if len(dg_dict[dg_id]) != 2:
+                        raise ExperimentConsistencyError('A distribution experiment needs two column for the distribution data')
+                    if len(column.data_group_profile) != 1:
+                        raise ExperimentConsistencyError(
+                            'A distribution can be associated only to one value')
+                    association_row.add(column.data_group_profile[0])
+            if len(association_row) > 1:
+                raise ExperimentConsistencyError('Distribution data group not consistent with association row')
+            if association_row:
+                taken.add(association_row.pop())
+
+        theoretical = set([str(i) for i in range(1, number_of_distribution + 1)])
+
+        if theoretical != taken:
+            raise ExperimentConsistencyError(
+                'A distribution position is not associated. Missing {}'.format(theoretical - taken))
+
+
 def checkExperiment(experiment, opensmoke=True):
     # ---> Unique: if different experiment_type, reactor, or paper doi. Then check initial species and common property
     checkUnique(experiment=experiment)
@@ -182,6 +221,7 @@ def checkExperiment(experiment, opensmoke=True):
     # TODO migliorare: ci può essere solo una x e questa deve essere unica
     uncertainty_list = []
     profile_list = []
+    distribution_position = []
     dg_dict = {}
 
     # TODO data group sperimentali tra loro consistenti
@@ -190,9 +230,11 @@ def checkExperiment(experiment, opensmoke=True):
     for column in data_columns:
         if column.uncertainty_kind:
             uncertainty_list.append(column)
-        elif column.data_group_profile or column.dg_label in ['V-t history', 'p-t history', 'T-t history',
+        elif column.data_group_profile and column.dg_label in ['V-t history', 'p-t history', 'T-t history',
                                                               'T-l history']:
             profile_list.append(column)
+        elif column.dg_label in ['distribution_position']:
+            distribution_position.append(column)
         else:
             if column.dg_id not in dg_dict:
                 dg_dict[column.dg_id] = [column]
@@ -201,7 +243,9 @@ def checkExperiment(experiment, opensmoke=True):
 
     checkProfiles(experiment=experiment, profile_list=profile_list, dg_dict=dg_dict)
 
-    if opensmoke:
+    checkDistribution(experiment=experiment, distribution_position=distribution_position, dg_dict=dg_dict)
+
+    if opensmoke and experiment.os_input_file:
         check_OS_input_file(experiment=experiment, profile_list=profile_list)
 
     # Uncertainty length and units must be the same of the referred property. If relative 0 <= x <= 1.

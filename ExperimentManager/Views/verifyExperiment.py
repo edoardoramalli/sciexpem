@@ -4,6 +4,7 @@ from ExperimentManager.Models import *
 from ExperimentManager.exceptions import *
 from ReSpecTh.OptimaPP import TranslatorOptimaPP, OptimaPP
 from ReSpecTh.zenodo import *
+from ReSpecTh.ReSpecThConverter import ReSpecThConverter
 
 # Django import
 from rest_framework.response import Response
@@ -47,6 +48,17 @@ class verifyExperiment(View.ExperimentManagerBaseView):
                             raise OptimaPPError(error)
                         else:
                             exp.xml_file = xml
+
+                            # generate OS if not exist
+
+                            if not exp.os_input_file:
+                                input_os, error_convert = ReSpecThConverter.convert(exp.xml_file)
+
+                                if error_convert:
+                                    raise ReSpecThConvertError(error_convert)
+                                else:
+                                    exp.os_input_file = input_os
+
                             upload_respecth(file_string=xml, doi=doi, bucket_url=bucket_url)
                             publish_doi(publish_url)
                     except FileNotFoundError:

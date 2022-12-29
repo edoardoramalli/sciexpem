@@ -109,6 +109,9 @@ class OpenSmokeParser:
                 else:
                     unit = "unitless"
             prop[name] = unit
+
+        print(list_names)
+
         try:
             # seen = set()
             # dupes = [x for x in list_names if x in seen or seen.add(x)]
@@ -284,8 +287,8 @@ class OpenSmokeExecutor:
     def createExecutionColumn(dataframe, units, file_name, execution):
         dataframe = dataframe.drop_duplicates()
         # Be sure that the execution has not any execution columns:
-        if execution.execution_columns.all():
-            execution.execution_columns.all().delete()
+        if execution.execution_columns.filter(file_type=file_name).exists():
+            execution.execution_columns.filter(file_type=file_name).delete()
 
         if dataframe.isnull().values.any():
             dataframe = dataframe.dropna()
@@ -299,7 +302,7 @@ class OpenSmokeExecutor:
 
         list_original_header = list(dataframe)
 
-        for mapping in execution.experiment.experiment_interpreter.mappings.all():
+        for mapping in execution.experiment.experiment_interpreter.mappings.filter(file=file_name):
             if any(map(lambda x: x == 'None' or x == 'none',
                        [mapping.x_sim_name, mapping.y_sim_name, mapping.y_exp_name, mapping.x_exp_name])):
                 continue
@@ -323,7 +326,7 @@ class OpenSmokeExecutor:
                                 list_needed.add(new_name)
                                 break
                         if not match:
-                            raise MissingColumnExecution(specie.preferredKey)
+                            raise MissingColumnExecution(specie.preferredKey + str('in {}'.format(file_name)))
             else:
                 list_needed.add(mapping.y_sim_name.strip())
 

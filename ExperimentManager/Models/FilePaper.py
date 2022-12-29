@@ -31,7 +31,7 @@ class FilePaper(models.Model):
         author = text_dict.get('author')
         title = text_dict.get('title')
         volume = text_dict.get('volume')
-        year = int(text_dict.get('year'))
+        year = int(text_dict.get('year')) if text_dict.get('year') else None
         page = text_dict.get('page')
         journal = text_dict.get('journal')
 
@@ -51,6 +51,7 @@ class FilePaper(models.Model):
 
     def check_fields(self):
         reference_doi = self.reference_doi
+        year = self.year
 
         if reference_doi and not reference_doi.startswith("10."):
             raise ConstraintFieldExperimentError("DOI {} is not valid.".format(reference_doi))

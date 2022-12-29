@@ -23,9 +23,13 @@ def execute(exec_id, path, solver, files):
             bashCommand = 'export LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH && '.format(CONFIG['LD_LIBRARY_PATH'])
             bashCommand += ' cd {} && '.format(path)
             bashCommand += ' echo | {}/OpenSMOKEpp_{}.sh --input ./input.dic'.format(CONFIG['OS_PATH'], solver)
+            if CONFIG['KEEP_LOG_EXECUTION']:
+                bashCommand += ' &> log.out '
         elif OS_SYSTEM == 'Windows':
             bashCommand = ' cd {} && '.format(path)
             bashCommand += ' echo | {}\OpenSMOKEpp_{}.exe --input ./input.dic'.format(CONFIG['OS_PATH'], solver)
+            if CONFIG['KEEP_LOG_EXECUTION']:
+                bashCommand += ' > log.out 2>&1 '
         else:
             print('ERROR!!!!')
             # TODO .....

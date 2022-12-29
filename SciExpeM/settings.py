@@ -37,7 +37,7 @@ SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 SCIEXPEM_FILESYSTEM_FOLDER = SettingsReader.settings['SCIEXPEM_FILESYSTEM_FOLDER']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 COMPRESS_ENABLED = True
 
@@ -132,6 +132,8 @@ DATABASES = {
     }
 }
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # DB BACKUP
 
 # DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
@@ -223,4 +225,5 @@ LOGIN_URL = 'login/'
 
 # Local
 OPTIMAPP_PATH = SettingsReader.settings['OPTIMAPP_PATH']
+RESPECTH_CONVERTER_PATH = SettingsReader.settings['RESPECTH_CONVERTER_PATH']
 ZENODO_ACCESS_TOKEN = SettingsReader.settings['ZENODO_ACCESS_TOKEN']

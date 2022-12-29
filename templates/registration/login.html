@@ -321,13 +321,12 @@
             </div>
             <form class="login" method="post" action="{% url 'loginUser' %}">
                 {% csrf_token %}
-                <tr>
-                    Username: demo
-                    Password: demo
+
+{#                    Username: <b>demo</b>#}
+{#                    Password: <b>demo_demo</b>#}
                     <td><label for="username"></label><input type="text" id="username" class="fadeIn second"
-                                                             name="username" placeholder="username edooooooooo">
+                                                             name="username" placeholder="username">
                     </td>
-                </tr>
                 <label for="password"></label><input type="password" id="password" class="fadeIn third" name="password"
                                                      placeholder="password">
                 <input type="submit" class="fadeIn fourth" value="Login">

@@ -3,9 +3,6 @@ import json
 import psutil
 import glob
 import warnings
-import subprocess
-from typing import Any, Dict, List, Mapping, Optional, TextIO
-import pathlib
 
 
 def read_config():
@@ -21,13 +18,27 @@ def read_config():
         'LD_LIBRARY_PATH',
         'OS_PATH',
         'MAX_ATTEMPT',
-        'BACKUP_PATH_FILE',
-        'KEEP_FOLDER_EXECUTION']
+        'BACKUP_PATH_FILE']
+
+    OPTIONAL = {
+        'KEEP_FOLDER_EXECUTION': False,
+        'KEEP_LOG_EXECUTION': False
+    }
+
     if os.path.isfile(config_file_path):
         with open(config_file_path, 'r') as file:
             config = json.load(file)
-            if set(MANDATORY) != set(config.keys()):
+            if not(set(MANDATORY) <= set(config.keys())):
                 raise ValueError('Missing settings: {}'.format(set(MANDATORY) - set(config.keys())))
+
+            for option in OPTIONAL:
+                if option not in config:
+                    config[option] = OPTIONAL[option]
+
+            # Consistency rules
+            if config['KEEP_LOG_EXECUTION']:
+                config['KEEP_FOLDER_EXECUTION'] = True
+
             return config
     else:
         raise ValueError('Impossible to read config file')

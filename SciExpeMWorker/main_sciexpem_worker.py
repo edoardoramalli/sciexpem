@@ -1,5 +1,4 @@
 import psutil
-import requests
 from datetime import datetime
 from pathlib import Path
 import subprocess
@@ -9,7 +8,6 @@ import requests
 import hashlib
 import os
 import threading
-import argparse
 import utils_sciexpem_worker as utils
 import platform
 import random
@@ -278,7 +276,7 @@ if __name__ == "__main__":
     SLEEP_TIME = CONFIG['TIME_SLEEP'] + random.randint(0, int(CONFIG['TIME_SLEEP'] * 20 / 100))
 
     while True:
-        checkUpdate()
+        # checkUpdate()
 
         print_status()
 

@@ -46,7 +46,7 @@ class insertElement(View.ExperimentManagerBaseView):
 
                     list_objects = getattr(model, 'create' + self.model_name)(self.property_dict)
 
-                except MandatoryFieldError as e:
+                except (MandatoryFieldError, ConstraintFieldExperimentError) as e:
                     return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
 
                 current_exp = None
@@ -66,6 +66,7 @@ class insertElement(View.ExperimentManagerBaseView):
         except (ExperimentConsistencyError, ConstraintFieldExperimentError, ChemModelError) as e:
             return Response(self.viewName + ": " + str(e), status=HTTP_400_BAD_REQUEST)
         except DatabaseError as e:
+            print(e)
             return Response(self.viewName + ": " + str(e.__cause__), status=HTTP_400_BAD_REQUEST)
 
         return Response("{} element inserted successfully.".format(self.model_name), status=HTTP_200_OK)

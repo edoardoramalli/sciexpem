@@ -106,7 +106,7 @@ def initializeSimulation(request):
     try:
         model_id = params['chemModel']
         experiment_id = params['experiment']
-        backup_model_id = int(params['backup_chemModel']) if 'backup_chemModel' in params else None
+        backup_model_id = int(params['backup_chemModel']) if type(params['backup_chemModel']) != type(None) else None if 'backup_chemModel' in params else None
 
         if not model_id or not experiment_id:
             return Response(status=HTTP_400_BAD_REQUEST,

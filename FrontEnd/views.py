@@ -52,28 +52,28 @@ def create_header(column):
     return text
 
 
-@api_view(['POST'])
-def get_experiment_data_columns(request, pk):
-    try:
-        data_group = request.data['params']['type']
-        data_columns = Model.DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
-        if data_columns.exists():
-            header = [create_header(column) for column in data_columns]
-
-            data = [list(map(lambda x: float(x), column.data)) for column in data_columns]
-
-            df = pd.DataFrame(dict(zip(header, data)))
-
-            columns = list(df.columns)
-            content = df.to_dict(orient="records")
-            print(columns, content)
-        else:
-            columns = None
-            content = None
-    except Exception as ex:
-        print(ex, file=sys.stderr)
-
-    return JsonResponse({"header": columns, "data": content})
+# @api_view(['POST'])
+# def get_experiment_data_columns(request, pk):
+#     try:
+#         data_group = request.data['params']['type']
+#         data_columns = Model.DataColumn.objects.filter(experiment__pk=pk, dg_id=data_group)
+#         if data_columns.exists():
+#             header = [create_header(column) for column in data_columns]
+#
+#             data = [list(map(lambda x: float(x), column.data)) for column in data_columns]
+#
+#             df = pd.DataFrame(dict(zip(header, data)))
+#
+#             columns = list(df.columns)
+#             content = df.to_dict(orient="records")
+#             print(columns, content)
+#         else:
+#             columns = None
+#             content = None
+#     except Exception as ex:
+#         print(ex, file=sys.stderr)
+#
+#     return JsonResponse({"header": columns, "data": content})
 
 
 @api_view(['GET'])

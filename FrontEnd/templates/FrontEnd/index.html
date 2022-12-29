@@ -2,16 +2,43 @@
 <html lang="en">
 {% load static %}
 <head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.16.13/antd.min.css" integrity="sha512-mMUp3hoGatkf0K+rYJvTnDq03NjZgWJIwXdxS5zgvDgJo0jsPefQkX8rvpk8dZ+BygXslwbO+Lv2CvQtBWB0Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"
             integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ=="
             crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/danfojs@1.0.2/lib/bundle.min.js"></script>
     <title>SciExpeM</title>
+    <style>
+      @keyframes spinner {
+        0% {
+          transform: translate3d(-50%, -50%, 0) rotate(0deg);
+        }
+        100% {
+          transform: translate3d(-50%, -50%, 0) rotate(360deg);
+        }
+      }
+      .spin::before {
+        animation: 1.5s linear infinite spinner;
+        animation-play-state: inherit;
+        border: solid 5px #cfd0d1;
+        border-bottom-color: #1c87c9;
+        border-radius: 50%;
+        content: "";
+        height: 40px;
+        width: 40px;
+        position: absolute;
+        top: 10%;
+        left: 10%;
+        transform: translate3d(-50%, -50%, 0);
+        will-change: transform;
+      }
+    </style>
 </head>
+
 <body>
-<div id="root"></div>
+<div id="root">
+    <div class="spin"></div>
+</div>
 </body>
 <script src="{% static "FrontEnd/Main/main.js" %}"></script>
 </html>

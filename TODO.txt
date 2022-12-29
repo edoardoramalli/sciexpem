@@ -1,9 +1,10 @@
 - Scrivere meccanismo in database non solo come file
-- RCM:
-    - inserire codice tito
 - FE:
     - Nella validazione inserire target in fuel o meglio che ognuno possa aggiungere quello che vuole, quando vuole
     - Disaccopiare FE da BE per le API dei plot
+    - Plot
+- BE:
+    - rivedere come la trasformazione degli idt (log10) viene fatta : --> Cm è sensibile alle unità di misura più traslazione verticale probabilmente sputtana
 - Interval Analysis:
     - C'era un bug che non trovava l'asse X nel pair Execution (o simile), ho messo come patch "continue" nel catch
 - Reindexing del postgres DB
@@ -23,8 +24,6 @@
     - Fare con tito gestioni codici di ritorno di errore....
 - Specie:
     - ATTENZIONE negli alternative names nelle ultime specie inserite da tito non c'è il preferred name, ho messo un wrapper in check_Experiment_Model dove faccio add ma non va bene di default ci deve essere in alternative names la
-- ChemModel
-    - Quando lo aggiungo tramite sito web mette il path aboslute invece che quello relativo
 - OptimaPP
     - Es exp id == 2324, probabilmente nel nostro DB non c'è il cas e optima lo ha e quindi fallisce nel generre il respecth
 - Lanciare Simulazione

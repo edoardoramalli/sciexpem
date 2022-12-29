@@ -39,7 +39,7 @@ class InitialSpecie(models.Model):
             raise ConstraintFieldExperimentError(
                 "Name '%s' is not valid for source type in Initial Specie!" % source_type)
 
-        if configuration not in ['premixed', 'fuel', 'oxidizer']:
+        if configuration is not None and configuration not in ['premixed', 'fuel', 'oxidizer']:
             raise ConstraintFieldExperimentError(
                 "Name '%s' is not configuration for Initial Specie!" % configuration)
 
