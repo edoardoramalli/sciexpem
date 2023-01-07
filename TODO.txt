@@ -5,6 +5,7 @@
     - Plot
 - BE:
     - rivedere come la trasformazione degli idt (log10) viene fatta : --> Cm è sensibile alle unità di misura più traslazione verticale probabilmente sputtana
+    - unique experiment non funziona!!!!!!
 - Interval Analysis:
     - C'era un bug che non trovava l'asse X nel pair Execution (o simile), ho messo come patch "continue" nel catch
 - Reindexing del postgres DB

@@ -44,6 +44,8 @@ class getRawData(View.FrontEndBaseView):
     required_groups = {'POST': ['READ']}
 
     def view_post(self, request):
+        user = request.user
+
         if self.type == 'data':
             dg_label = ['experimental_data', 'initial_condition']
         elif self.type == 'profile':
@@ -51,7 +53,7 @@ class getRawData(View.FrontEndBaseView):
         else:
             return Response(self.viewName + ": Type not valid.", status=HTTP_400_BAD_REQUEST)
 
-        data_columns = DataColumn.objects.filter(experiment__id=self.experiment_id, dg_label__in=dg_label, user=request.user)
+        data_columns = DataColumn.objects.filter(experiment__id=self.experiment_id, dg_label__in=dg_label)
 
         columns_dg = {}
         headers_dg = {}
@@ -59,11 +61,11 @@ class getRawData(View.FrontEndBaseView):
 
         for column in data_columns:
             if column.dg_id not in columns_dg:
-                columns_dg[column.dg_id] = [list(map(lambda x: float(x), column.data))]
+                columns_dg[column.dg_id] = [list(map(lambda x: float(x), column.get_data(user=user)))]
                 headers_dg[column.dg_id] = [create_header(column)]
                 type_dg[column.dg_id] = column.dg_label
             else:
-                columns_dg[column.dg_id].append(list(map(lambda x: float(x), column.data)))
+                columns_dg[column.dg_id].append(list(map(lambda x: float(x), column.get_data(user=user))))
                 headers_dg[column.dg_id].append(create_header(column))
 
         result_dg = {}

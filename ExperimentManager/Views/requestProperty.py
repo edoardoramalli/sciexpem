@@ -25,12 +25,11 @@ class requestProperty(View.ExperimentManagerBaseView):
 
         try:
             element = model.objects.get(id=self.element_id)
-            private_properties = getattr(model, 'private')
+            private_properties = object.__getattribute__(model, 'read_private')
             if self.property_name not in private_properties:
                 property_object = getattr(element, self.property_name)
                 property_object_type = type(property_object)
             else:
-                print(request.user.username)
                 property_object = getattr(element, 'get_' + self.property_name)(user=request.user)
                 property_object_type = type(property_object)
 
@@ -49,14 +48,18 @@ class requestProperty(View.ExperimentManagerBaseView):
             elif property_object_type is list or set:
                 if property_object_type is set:
                     property_object = list(property_object)
-                test = property_object[0]
-                if type(test) is Decimal:
-                    return Response(json.dumps([float(x) for x in property_object]), status=HTTP_200_OK)
-                elif type(test) is str:
-                    return Response(json.dumps([str(x) for x in property_object]), status=HTTP_200_OK)
+                if len(property_object) != 0:
+                    test = property_object[0]
+                    if type(test) is Decimal:
+                        return Response(json.dumps([float(x) for x in property_object]), status=HTTP_200_OK)
+                    elif type(test) is str:
+                        return Response(json.dumps([str(x) for x in property_object]), status=HTTP_200_OK)
+                    else:
+                        return Response(status=HTTP_400_BAD_REQUEST,
+                                        data=self.viewName + ": Data type List not supported.")
                 else:
-                    return Response(status=HTTP_400_BAD_REQUEST,
-                                    data=self.viewName + ": Data type List not supported.")
+                    return Response(json.dumps([]), status=HTTP_200_OK)
+
             else:
                 return Response(status=HTTP_400_BAD_REQUEST,
                                 data=self.viewName + ": Data type not supported.")

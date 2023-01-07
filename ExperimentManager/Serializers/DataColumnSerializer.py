@@ -7,12 +7,16 @@ from ExperimentManager.Serializers import SpecieSerializer
 class DataColumnSerializer(serializers.ModelSerializer):
     uncertainty_reference = serializers.SerializerMethodField()
     species_object = SpecieSerializer(read_only=True, many=True)
+    data = serializers.SerializerMethodField(method_name='data_fun')
 
     class Meta:
         model = DataColumn
         fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'uncertainty_reference', 'species_object',
                   'is_x', 'is_y']
         read_only = ['id']
+
+    def data_fun(self, obj):
+        return obj.get_data(self.user)
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)

@@ -57,6 +57,8 @@ class Experiment(models.Model):
 
     reactor_modes = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
 
+    visible = models.BooleanField(null=False, blank=False, default=False)
+
     # Meta Data
     # fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
     fuels = SetField(models.CharField(max_length=40), null=True, blank=True)
@@ -76,6 +78,27 @@ class Experiment(models.Model):
 
     experiment_interpreter = models.ForeignKey(ExperimentInterpreter, on_delete=models.SET_NULL, default=None,
                                                null=True)
+
+    read_private = ['xml_file']
+
+    def get_xml_file(self, user):
+        if self.visible or user.username == 'root':
+            return object.__getattribute__(self, 'xml_file')
+        else:
+            return Tool.general_get(obj=self, attr='xml_file', user=user, owner=self.username, default_negative=None)
+
+    def __getattribute__(self, attr):
+        if attr not in object.__getattribute__(self, 'read_private') or object.__getattribute__(self, 'visible'):
+            return object.__getattribute__(self, attr)
+        else:
+            raise ValueError('Private Attribute "{}"'.format(attr))
+
+    def i_can_see_it(self, user):
+        if user.username != "root":
+            my_friends = Tool.get_friends(user=user)
+            return self.username in my_friends
+        else:
+            return True
 
     def check_fields(self):
         # TODO add check on reactor_modes
@@ -352,21 +375,3 @@ class Experiment(models.Model):
 
     def __repr__(self):
         return "<Experiment ({})>".format(self.id)
-
-
-class ExperimentProxy(Experiment):
-    class Meta:
-        proxy = True
-
-    private = ['xml_file']
-
-    @property
-    def xml_file(self):
-        raise ValueError('Private Attribute')
-
-    def get_xml_file(self, user):
-        my_friends = Tool.get_friends(user=user)
-        if self.username in my_friends:
-            return self.xml_file
-        else:
-            return None

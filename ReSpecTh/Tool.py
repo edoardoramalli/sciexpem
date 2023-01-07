@@ -45,7 +45,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment, user):
         if x_sim_name == 'None' or y_sim_name == 'None':
             continue
 
-        filter_x = {'experiment': experiment, x_exp_location: x_exp_name, 'dg_id': data_group, 'user': user}
+        filter_x = {'experiment': experiment, x_exp_location: x_exp_name, 'dg_id': data_group}
 
         x_dataColumn = Models.DataColumn.objects.filter(**filter_x)
 
@@ -55,11 +55,11 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment, user):
             continue
 
         if x_dataColumn.name not in log_dist:
-            x = applyTransformation(list(x_dataColumn.data), x_transformation)
+            x = applyTransformation(list(x_dataColumn.get_data(user=user)), x_transformation)
         else:
-            x = applyTransformation(list(x_dataColumn.data), 'lin')
+            x = applyTransformation(list(x_dataColumn.get_data(user=user)), 'lin')
 
-        filter_y = {'experiment': experiment, y_exp_location: y_exp_name, 'dg_id': data_group, 'user': user}
+        filter_y = {'experiment': experiment, y_exp_location: y_exp_name, 'dg_id': data_group}
 
         y_dataColumn = Models.DataColumn.objects.filter(**filter_y)
 
@@ -73,7 +73,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment, user):
                 uncertainty_dict['visible'] = True
                 if uncertainty.uncertainty_kind == 'relative':
                     uncertainty_dict['type'] = 'percent'
-                    uncertainty_dict['array'] = [float(x) * 100 for x in uncertainty.data]
+                    uncertainty_dict['array'] = [float(x) * 100 for x in uncertainty.get_data(user=user)]
                 else:
                     # C'è da applicare le transformation
                     pass
@@ -100,10 +100,10 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment, user):
             }
 
             if experiment.experiment_type != 'ignition delay measurement' or y_element.name in log_dist:
-                y = applyTransformation(list(y_element.data), y_transformation)
+                y = applyTransformation(list(y_element.get_data(user=user)), y_transformation)
             else:
                 info['yaxis']['type'] = 'log'
-                y = applyTransformation(list(y_element.data), 'lin')
+                y = applyTransformation(list(y_element.get_data(user=user)), 'lin')
 
             if y_element.name == 'composition':
                 name = '+'.join([specie.preferredKey for specie in y_element.species_object.all()])
@@ -135,7 +135,7 @@ def visualizeExperiment(experiment, user) -> dict:
 
     info_dg = {}
 
-    columns_list = Models.DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data", user=user)
+    columns_list = Models.DataColumn.objects.filter(experiment=experiment, dg_label="experimental_data")
 
     columns_list_dg = {column.dg_id for column in columns_list}
 
@@ -218,7 +218,7 @@ def pairExecutionExperiment(execution, mapping, consistency, user, target=''):
 
     # Y EXP
 
-    filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name, 'user': user}
+    filter_y = {'experiment': execution.experiment, y_exp_location: y_exp_name}
 
     if target:
         filter_y['label'] = target
@@ -231,8 +231,7 @@ def pairExecutionExperiment(execution, mapping, consistency, user, target=''):
 
         # X EXP
 
-        filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id,
-                    'user': user}
+        filter_x = {'experiment': execution.experiment, x_exp_location: x_exp_name, 'dg_id': current_y.dg_id}
         try:
             x_dataColumn = Models.DataColumn.objects.get(**filter_x)
         except Models.DataColumn.DoesNotExist:
@@ -249,14 +248,14 @@ def pairExecutionExperiment(execution, mapping, consistency, user, target=''):
         # It is not necessary to convert the experimental data. They impose the unit !
         # But we need to apply the transformation, and to keep consistency we do anyway
         x_exp = applyTransformation(
-            my_list=Unit.convert_list(my_list=list(x_dataColumn.data),
+            my_list=Unit.convert_list(my_list=list(x_dataColumn.get_data(user=user)),
                                       unit=x_dataColumn.units,
                                       desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
                                                                         y_name=current_y.name)[0]),
             plotscale=x_transformation,
             threshold=threshold)
         y_exp = applyTransformation(
-            my_list=Unit.convert_list(my_list=list(current_y.data),
+            my_list=Unit.convert_list(my_list=list(current_y.get_data(user=user)),
                                       unit=current_y.units,
                                       desired_unit=consistency.get_unit(x_name=x_dataColumn.name,
                                                                         y_name=current_y.name)[1]),
@@ -396,7 +395,7 @@ def visualizeExecution(execution, user, consist=None, target=None) -> dict:
 
             exp_name = execution.experiment.fileDOI if y_dataColumn.name != 'composition' else execution.experiment.fileDOI + ' ' + y_dataColumn.label
 
-            x_exp, y_exp = zip(*sorted(zip(x_exp, y_exp)))
+            x_exp, y_exp = zip(*sorted(zip(x_exp, y_exp))) if len(x_exp) > 0 else [], []
 
             consistency.add_experimental(x_name=x_dataColumn.name,
                                          y_name=y_dataColumn.name,
