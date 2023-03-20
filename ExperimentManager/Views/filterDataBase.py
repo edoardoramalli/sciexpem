@@ -63,8 +63,14 @@ class filterDataBase(View.ExperimentManagerBaseView):
 
             serializer = eval('Serializers.' + self.model_name + 'Serializer')
 
+            c_user = request.user
+
+            # from django.contrib.auth.models import User
+            #
+            # c_user = User.objects.get(username='root')
+
             for query_result in query_set:
-                result.append(serializer(query_result, fields=ser_fields, user=request.user).data)
+                result.append(serializer(query_result, fields=ser_fields, user=c_user).data)
 
             return Response(result, status=HTTP_200_OK)
         except FieldError:

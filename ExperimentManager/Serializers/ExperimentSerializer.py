@@ -9,24 +9,26 @@ class ExperimentSerializer(serializers.ModelSerializer):
     initial_species = Serializers.InitialSpecieSerializer(many=True, read_only=True)
     file_paper = Serializers.FilePaperSerializer(read_only=True)
     data_columns = Serializers.DataColumnSerializer(many=True)
-    xml_file = serializers.SerializerMethodField(method_name='edo')
+    xml_file = serializers.SerializerMethodField(method_name='xml_file_fun')
+    i_can_see_it = serializers.SerializerMethodField(method_name='i_can_see_it_fun')
 
     class Meta:
         model = Experiment
         fields = ['id', 'reactor', 'experiment_type', 'fileDOI', 'file_paper', 'ignition_type', 'xml_file',
                   'os_input_file', 'comment', 'fuels', 'status', 'common_properties', 'initial_species', 'data_columns',
                   'phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'username', 'interpreter_name', 'notes',
-                  'reactor_modes']
+                  'reactor_modes', 'visible', 'i_can_see_it']
         read_only = ['id']
 
-    def edo(self, obj):
+    def i_can_see_it_fun(self, obj):
+        return obj.i_can_see_it(self.user)
+
+    def xml_file_fun(self, obj):
         return obj.get_xml_file(self.user)
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
         self.user = kwargs.pop('user', None)
-
-        print('edooooo')
 
         req = ['common_properties', 'initial_species', 'data_columns', 'common_properties', 'file_paper']
 

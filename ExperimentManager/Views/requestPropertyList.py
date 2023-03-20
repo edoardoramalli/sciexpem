@@ -24,9 +24,9 @@ class requestPropertyList(View.ExperimentManagerBaseView):
 
         results = serializer(element, fields=self.fields, user=request.user).data
 
-        print(self.fields)
-
-        print(results)
+        # print(self.fields)
+        #
+        # print(results)
 
         return Response(json.dumps(results), status=HTTP_200_OK)
 

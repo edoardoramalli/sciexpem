@@ -16,6 +16,17 @@ def get_friends(user):
     return list(set(list(my_friends) + [user.username]))
 
 
+def general_get(obj, attr, user, owner, default_negative=None):
+    if user:
+        my_friends = get_friends(user=user)
+        if owner in my_friends:
+            return object.__getattribute__(obj, attr)
+        else:
+            return default_negative
+    else:
+        return object.__getattribute__(obj, attr)
+
+
 # def generic_save(*args, **kwargs):
 #     if 'username' in kwargs and 'object' in kwargs:
 #         username = kwargs.pop('username')

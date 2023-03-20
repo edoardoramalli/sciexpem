@@ -60,7 +60,7 @@ class DataColumnManager(GeneralManager):
 # More data columns represent the data of an experiment
 class DataColumn(models.Model):
 
-    objects = DataColumnManager()
+    # objects = DataColumnManager()
 
     # Mandatory - Checked
     name = models.CharField(max_length=100)
@@ -98,6 +98,20 @@ class DataColumn(models.Model):
     #             self.species_object.add(specie)  # Non importa fare save dopo many to many add
     #     # self.save()
 
+    read_private = ['data']
+
+    def get_data(self, user):
+        if self.experiment.visible or user.username == 'root':
+            return object.__getattribute__(self, 'data')
+        else:
+            return Tool.general_get(obj=self, attr='data', user=user, owner=self.experiment.username, default_negative=[])
+
+    def __getattribute__(self, attr):
+        if attr not in object.__getattribute__(self, 'read_private'):
+            return object.__getattribute__(self, attr)
+        else:
+            raise ValueError('Private Attribute "{}"'.format(attr))
+
     @property
     def is_x(self):
         mappings = self.experiment.experiment_interpreter.mappings.all()
@@ -115,9 +129,6 @@ class DataColumn(models.Model):
     @property
     def is_y(self):
         return not self.is_x if self.is_x is not None else None
-
-    def range(self):
-        return self.data[0], self.data[-1]
 
     @staticmethod
     def createDataColumn(text_dict, experiment):
@@ -262,7 +273,7 @@ class DataColumn(models.Model):
         unit = self.units
         species = list(self.species) if self.species is not None else None
         dg_id = self.dg_id
-        data = self.data
+        data = self.get_data(user=None)
         source_type = self.source_type
         if hasattr(self, 'uncertainty'):
             uncertainty = self.uncertainty
@@ -307,6 +318,8 @@ class DataColumn(models.Model):
         # if species and not validatorSpecie.isValid(species):
         #     raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
         # Without next if data could be negative
+        if len(data) < 1:
+            raise ConstraintFieldExperimentError("Data column is empty!")
         if not all(float(x) >= 0 for x in data):
             raise ConstraintFieldExperimentError("Amount data column '%s' must be positive!" % str(data))
 

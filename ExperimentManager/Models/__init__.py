@@ -4,7 +4,7 @@ from .Specie import Specie
 from .ExperimentInterpreter import ExperimentInterpreter
 from .RuleInterpreter import RuleInterpreter
 from .MappingInterpreter import MappingInterpreter
-from .Experiment import Experiment, ExperimentProxy
+from .Experiment import Experiment
 from .DataColumn import DataColumn
 from .CommonProperty import CommonProperty
 from .InitialSpecie import InitialSpecie
