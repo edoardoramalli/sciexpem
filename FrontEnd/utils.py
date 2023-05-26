@@ -21,35 +21,47 @@ def curve_io_formatter(curves, x_axis, y_axis, logY=False):
 
 
 def extract_experiment_table(exp_id, units_row=False, units_brackets=True, reorder=True):
-    dc = DataColumn.objects.filter(experiment_id=exp_id)
+    # TODO ci deve essere in tutto sciexpem UNA SINGOLA funzione che dato un exp telo trasforma in una lista di df
+    # uno per dg. e può contenere o meno i profili. incertezze con le giuste info etc....
+    dgs = sorted([x[0] for x in set(DataColumn.objects.filter(experiment_id=exp_id).values_list('dg_id'))]) # TODO non funziona il sort. sorta le string e non i numeri nella stringa...
 
-    # dict: name -> (units, data)
-    column_names_units_data = {d.name if d.species is None else ",".join(d.species): (d.units, d.data) for d in dc}
+    sheets = {}
 
-    column_names = list(column_names_units_data.keys())
+    for dg in dgs:
+        dc = DataColumn.objects.filter(experiment_id=exp_id, dg_id=dg)
 
-    # we can freely reorder names
-    # if reorder:
-    #     e = models.Experiment.objects.get(pk=exp_id)
-    #     # if (
-    #     #         e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement") or e.reactor == "stirred reactor":
-    #     #     column_names.remove("temperature")
-    #     #     column_names.insert(0, "temperature")
+        # dict: name -> (units, data)
+        column_names_units_data = {d.name if not d.species_object.all().exists() else ",".join([s.preferredKey for s in d.species_object.all()]): (d.units, d.data) for d in dc}
 
-    # units and data are taken as a consequence of the reordered names
-    column_units = [column_names_units_data[cn][0] for cn in column_names]
-    column_data = [[float(i) for i in column_names_units_data[cn][1]] for cn in
-                   column_names]  # decimal to float (for excel seeing it as a number)
+        column_names = list(column_names_units_data.keys())
 
-    if units_row:
-        column_data = [[i] + j for i, j in zip(column_units, column_data)]
+        # we can freely reorder names
+        # if reorder:
+        #     e = models.Experiment.objects.get(pk=exp_id)
+        #     # if (
+        #     #         e.reactor == "shock tube" and e.experiment_type == "ignition delay measurement") or e.reactor == "stirred reactor":
+        #     #     column_names.remove("temperature")
+        #     #     column_names.insert(0, "temperature")
 
-    if units_brackets:
-        column_names = ["{} [{}]".format(i, j) for i, j in zip(column_names, column_units)]
+        # units and data are taken as a consequence of the reordered names
+        column_units = [column_names_units_data[cn][0] for cn in column_names]
+        column_data = [[float(i) for i in column_names_units_data[cn][1]] for cn in
+                       column_names]  # decimal to float (for excel seeing it as a number)
 
-    r = pd.DataFrame(dict(zip(column_names, column_data)))
+        if units_row:
+            column_data = [[i] + j for i, j in zip(column_units, column_data)]
 
-    return r
+        if units_brackets:
+            column_names = ["{} [{}]".format(i, j) for i, j in zip(column_names, column_units)]
+
+        # print(dict(zip(column_names, column_data)))
+        # print(len(column_names[0]))
+        # print(len(column_data[0]), len(column_data[1]))
+        # print(column_names)
+
+        sheets[dg] = pd.DataFrame(dict(zip(column_names, column_data)))
+
+    return sheets
 
 
 def zip_folders(f, folders, zipname, remove_trailing=""):

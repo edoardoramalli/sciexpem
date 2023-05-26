@@ -50,8 +50,18 @@ class getParityPlot(View.FrontEndBaseView):
 
                         x_exp = result['x_exp']
                         y_exp = result['y_exp']
+
+                        max_x_exp = max(x_exp)
+
                         x_sim = result['x_sim']
                         y_sim = result['y_sim']
+
+                        xy_sim = zip(x_sim, y_sim)
+                        xy_sim = [xy for xy in xy_sim if xy[0] <= max_x_exp]
+                        x_sim, y_sim = zip(*xy_sim)
+
+
+
                         x_dataColumn = result['x_dataColumn']
                         y_dataColumn = result['y_dataColumn']
                         x_execution_column = result['x_execution_column']

@@ -24,7 +24,7 @@ class insertElement(View.ExperimentManagerBaseView):
         username = request.user.username
         # username = 'pippo'
 
-        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment', 'Specie']
+        supported_models = ['ExperimentInterpreter', 'ChemModel', 'Experiment', 'Specie', 'FilePaper']
 
         self.property_dict = json.loads(self.property_dict)
 

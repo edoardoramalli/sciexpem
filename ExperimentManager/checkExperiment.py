@@ -200,7 +200,7 @@ def checkDistribution(experiment, distribution_position, dg_dict):
 
 def checkExperiment(experiment, opensmoke=True):
     # ---> Unique: if different experiment_type, reactor, or paper doi. Then check initial species and common property
-    checkUnique(experiment=experiment)
+    # checkUnique(experiment=experiment)
 
     # ---> IDT Experiment
     checkIDT(experiment=experiment)

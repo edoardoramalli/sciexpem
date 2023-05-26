@@ -5,7 +5,6 @@ from FrontEnd.exceptions import ExecutionColumnError
 
 
 def applyTransformation(my_list: list, plotscale: str, threshold: float = 1) -> list[float]:
-    print(plotscale)
     if plotscale == 'lin':
         list_a = [float(x) for x in my_list]
     elif plotscale == 'log' or plotscale == 'log10':
@@ -60,13 +59,12 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
             uncertainty_dict = {}
 
             if uncertainty:
-                uncertainty_dict['visible'] = True
                 if uncertainty.uncertainty_kind == 'relative':
-                    uncertainty_dict['type'] = 'percent'
-                    uncertainty_dict['array'] = [float(x) * 100 for x in uncertainty.data]
+                    uncertainty_dict['array'] = [float(x) * float(y_element.data[index]) for index, x in enumerate(uncertainty.data)]
                 else:
-                    # C'è da applicare le transformation
-                    pass
+                    uncertainty_dict['array'] = [float(x) for index, x in enumerate(uncertainty.data)]
+                uncertainty_dict['type'] = 'data'
+                uncertainty_dict['visible'] = True
 
             if experiment.experiment_type != 'ignition delay measurement':
                 y = applyTransformation(list(y_element.data), y_transformation)

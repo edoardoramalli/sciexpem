@@ -7,7 +7,7 @@ from FrontEnd.Views.getExecutionColumn import supportGetExecutionColumn
 
 # Django import
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
 from django.http import HttpResponse
 
 # System import
@@ -20,9 +20,9 @@ from io import BytesIO
 class downloadFile(View.FrontEndBaseView):
     viewName = 'downloadFile'
     paramsType = {'element_id': int, 'file': str, 'model_name': str}
-    required_groups = {'GET': ['READ']}
+    required_groups = {'POST': []}
 
-    def view_get(self, request):
+    def view_post(self, request):
 
         response_file = None
 
@@ -31,14 +31,15 @@ class downloadFile(View.FrontEndBaseView):
         if self.model_name == 'Experiment':
             experiment = get_object_or_404(Models.Experiment, pk=self.element_id)
             if self.file == 'OpenSMOKEpp':
-                response_file = experiment.os_input_file
+                response_file = bytes(experiment.os_input_file, 'utf-8')
             elif self.file == 'ReSpecTh':
-                response_file = experiment.xml_file
+                response_file = bytes(experiment.xml_file, 'utf-8')
             elif self.file == 'excel':
-                df = utils.extract_experiment_table(self.element_id, units_brackets=True, reorder=True)
+                sheets = utils.extract_experiment_table(self.element_id, units_brackets=True, reorder=True)
                 output = io.BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df.to_excel(writer, index=False)
+                for sheet in sheets:
+                    sheets[sheet].to_excel(writer, sheet_name=sheet, index=False)
                 writer.save()
                 response_file = output.getvalue()
             else:
@@ -72,7 +73,7 @@ class downloadFile(View.FrontEndBaseView):
 
                 df = supportGetExecutionColumn(execution)
 
-                response_file = df.to_csv(index=False)
+                response_file = bytes(df.to_csv(index=False), 'utf-8')
             else:
                 Response(data=self.viewName + ": KeyError in HTTP parameters. Wrong file type.",
                          status=HTTP_400_BAD_REQUEST)
@@ -92,8 +93,10 @@ class downloadFile(View.FrontEndBaseView):
         if not response_file:
             return Response('File Not Found!', status=HTTP_400_BAD_REQUEST)
 
-        response = HttpResponse(response_file)
-        response['Content-Disposition'] = 'attachment; filename= {}'.format(self.element_id)
-        return response
+        # response = HttpResponse(response_file)
+        # response['Content-Disposition'] = 'attachment; filename= {}'.format(self.element_id)
+        # return response
+        # print(type(response_file), self.model_name, self.file)
+        return Response({'data_bytes': response_file.hex()},  status=HTTP_200_OK)
 
 

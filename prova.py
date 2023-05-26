@@ -1,171 +1,3 @@
-
-
-
-
-
-
-a = [1, 2, 3, 4, 5]
-
-
-a = a[:None]
-
-print(a)
-
-
-
-
-
-
-
-
-
-
-
-exit()
-# To get a random integer number between 0 and 100
-from random import randint
-
-random_number = randint(0, 100)
-
-# Exercise 1 (Beginner)
-# Given L = [42, 38, 64, 38, 21, 97, 90, 38, 55, 71] return a list of only even number
-L = [42, 38, 64, 38, 21, 97, 90, 38, 55, 71]
-L = [e for e in L if e % 2 == 0]
-
-# Exercise 2 (Beginner)
-# Write a function called generate_random_list that takes as argument N, A, B.
-# The function return a list of N random number between A and B
-def gen_list(N, A, B):
-    return [randint(A, B) for _ in range(N)]
-
-# Exercise 3 (Beginner)
-# Write a function that given a list return the reverse list
-# Example: [12, 2, 4, 1, 90] -> [90, 1, 4, 2, 12]
-def reverse_list(l):
-    return l[-1::-1]
-
-# Exercise 4 (Beginner)
-# Given D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
-# return a dictionary in which each key in D is associated with the mean value of the corresponding values (a list) in D
-import statistics
-D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
-D = {k: statistics.mean(D[k]) for k in D}
-
-# Exercise 5 (Beginner)
-# Create a list of 50 random integer even values from 0 to 100
-
-L = []
-
-while len(L) < 50:
-    current = randint(0, 100)
-    if current % 2 == 0:
-        L.append(current)
-
-# Exercise 6 (Intermediate)
-# Create a pandas dataframe from D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
-# Where the columns are A, B, C
-import pandas as pd
-D = {'A': [1, 123, 231321], 'B': [342, 432, 1231], 'C': [5443, 123, 432]}
-
-df = pd.DataFrame(D)
-
-print(df)
-
-
-# Exercise 7 (Intermediate)
-# Given the previous dataframe create a new column D = A + 2 * B
-
-df['D'] = df['A'] + 2 * df['B']
-
-print(df)
-
-# Exercise 8 (Intermediate)
-# Write a function that given as input a list of integer return a dictionary that specify the frequency of each value
-# present in the list
-
-L = [randint(0, 50) for _ in range(1000)]
-
-freq = {}
-
-for e in L:
-    freq[e] = freq.get(e, 0) + 1
-
-print(freq)
-
-
-# Exercise 9 (Intermediate)
-# Write a program that at each iteration extract a random integer number from 0 to 100. All the even
-# number extracted are stored in a variable X, the odd in Y. The program stop extracting numbers when X contains all the
-# possible even number between 0 to 100 and Y contains all the possible odd numbers between 0 to 100
-
-X = set([])
-Y = set([])
-
-while len(X) != 51 and len(Y) != 50:
-    current = randint(0, 100)
-
-    if current % 2 == 0:
-        X.add(current)
-    else:
-        Y.add(current)
-
-print(X)
-print(Y)
-
-
-# Exercise 10 (Advance)
-# Write a function that given a list of integer return the corresponding ordered list without using the sorted() built-in function
-
-def my_sort(l):
-    tmp = []
-    for _ in range(len(l)):
-        current_min = min(l)
-        tmp.append(current_min)
-        l.remove(current_min)
-    return tmp
-
-print(my_sort([123, 432432, 54,12 ,432, 432, 5, 0]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-exit()
 import os
 import sys
 import argparse
@@ -192,6 +24,35 @@ from OpenSmoke.SimulationSummary.createSummary import create_summary
 from OpenSmoke.SimulationSummary.processSummary import process_summary
 
 from FrontEnd.utils import *
+
+
+a = 5
+b = [1, 2, 3]
+
+
+print([a] * len(b))
+
+x = zip([a] * len(b), b)
+
+print(x)
+
+
+# exit()
+
+
+exp = Experiment.objects.get(id=3134)
+
+print(exp.data_pairs_objects)
+
+
+
+
+
+exit()
+
+
+
+
 
 # dcs = DataColumn.objects.filter(~Q(uncertainty_reference=None))
 # dcs = DataColumn.objects.filter(Q(uncertainty_kind='relative'))

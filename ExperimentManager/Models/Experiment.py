@@ -121,8 +121,8 @@ class Experiment(models.Model):
         if not 0 <= t_inf <= t_sup <= 3500:
             raise ConstraintFieldExperimentError("Invalid temperature range profile [K]: 0 <= t_inf <= t_sup <= 3500")
 
-        if not 0 <= p_inf <= p_sup <= 200:
-            raise ConstraintFieldExperimentError("Invalid pressure range profile [bar]: 0 <= p_inf <= p_sup <= 200")
+        if not 0 <= p_inf <= p_sup <= 1200:
+            raise ConstraintFieldExperimentError("Invalid pressure range profile [bar]: 0 <= p_inf <= p_sup <= 1200")
 
         # if len(reactor_modes) > 1: TODO anche se reactor_m odes è un array la
         #     print(reactor_modes, len(reactor_modes), type(reactor_modes))
@@ -297,6 +297,41 @@ class Experiment(models.Model):
                     pairs.append({'x': x, 'y': dc})
 
         return pairs
+
+
+    @property
+    def data_pairs_objects(self):
+        # TODO da fixare: ho paura che se c'è un profilo lo restituisca
+        # TODO anche da ottimizzare
+        query = self.data_columns.filter(dg_label='experimental_data')
+
+        dg = {}
+
+        for dc in query:
+            dg[dc.dg_id] = dg.get(dc.dg_id, []) + [dc]
+
+        pairs = []
+
+        for dg_id in dg:
+            x = None
+            ys = []
+            for dc in dg[dg_id]:
+                if dc.is_x:
+                    x = dc
+                else:
+                    ys.append(dc)
+
+            if x is not None:
+                pairs += [{'x': e[0], 'y': e[1]} for e in zip([x] * len(ys), ys)]
+            else:
+                raise ValueError('None Error pairing')
+
+        return pairs
+
+
+    @property
+    def data_pairs_raw(self):
+        pairs = self.data_pairs_objects
 
     @property
     def interpreter(self):
