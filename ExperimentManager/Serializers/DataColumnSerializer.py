@@ -11,7 +11,7 @@ class DataColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataColumn
         fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'uncertainty_reference', 'species_object',
-                  'is_x', 'is_y']
+                  'is_x', 'is_y', 'transformation']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

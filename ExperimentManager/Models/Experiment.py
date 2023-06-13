@@ -22,7 +22,6 @@ validatorSpecie = ReSpecThValidSpecie()
 validatorExperiment = ReSpecThValidExperimentType()
 validatorFuel = ValidFuel()
 
-
 from ExperimentManager.Models.GeneralManager import GeneralManager
 
 
@@ -39,19 +38,14 @@ class ExperimentManager(GeneralManager):
         return self.get_queryset().filter(*args, **kwargs)
 
 
-
-
-
-
-
 class Experiment(models.Model):
-
     # objects = ExperimentManager()
 
     reactor = models.CharField(max_length=50)
     experiment_type = models.CharField(max_length=50)  # is checked
     fileDOI = models.CharField(max_length=150, unique=True)  # DOI experiment
-    file_paper = models.ForeignKey(Model.FilePaper, on_delete=models.SET_NULL, default=None, null=True, related_name="experiments")
+    file_paper = models.ForeignKey(Model.FilePaper, on_delete=models.SET_NULL, default=None, null=True,
+                                   related_name="experiments")
     ignition_type = models.CharField(max_length=75, blank=True, null=True)
 
     xml_file = models.TextField(blank=True, null=True)
@@ -128,7 +122,6 @@ class Experiment(models.Model):
         #     print(reactor_modes, len(reactor_modes), type(reactor_modes))
         #     raise ConstraintFieldExperimentError("Too many reactor modes.")
 
-
     def check_verify(self):
         list_property = ['phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'fuels', 'os_input_file']
         for prop in list_property:
@@ -179,7 +172,6 @@ class Experiment(models.Model):
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
                          phi_sup=phi_sup, phi_inf=phi_inf, fuels=fuels, status='unverified', file_paper=paper,
                          comment=comment, username=username, reactor_modes=reactor_modes)
-
 
         paper.save()
         exp.save()
@@ -298,7 +290,6 @@ class Experiment(models.Model):
 
         return pairs
 
-
     @property
     def data_pairs_objects(self):
         # TODO da fixare: ho paura che se c'è un profilo lo restituisca
@@ -328,10 +319,16 @@ class Experiment(models.Model):
 
         return pairs
 
-
     @property
     def data_pairs_raw(self):
         pairs = self.data_pairs_objects
+
+        result = []
+
+        for pair in pairs:
+            result.append({'x': pair['x'].get_raw_dataColumn, 'y': pair['y'].get_raw_dataColumn})
+
+        return result
 
     @property
     def interpreter(self):
@@ -362,9 +359,11 @@ class Experiment(models.Model):
         if prop == 'InitialSpecie':
             list_element_other = other.initial_species.all()
             list_element = self.initial_species.all()
-            dict_element_other = [{'specie': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+            dict_element_other = [{'specie': element.specie.InChI, 'units': element.units, 'value': element.value} for
+                                  element in
                                   list_element_other]
-            dict_element = [{'name': element.specie.InChI, 'units': element.units, 'value': element.value} for element in
+            dict_element = [{'name': element.specie.InChI, 'units': element.units, 'value': element.value} for element
+                            in
                             list_element]
         elif prop == 'CommonProperty':
             list_element_other = other.common_properties.all()

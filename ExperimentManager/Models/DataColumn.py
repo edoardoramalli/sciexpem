@@ -24,16 +24,11 @@ validatorFuel = ValidFuel()
 class DataColumnManager(GeneralManager):
 
     def filter(self, **query):
-
         super().filter(**query)
 
         user = query.pop('user')
 
         username = user.username
-
-
-
-
 
         print('ciaooo')
 
@@ -46,7 +41,6 @@ class DataColumnManager(GeneralManager):
 
 # More data columns represent the data of an experiment
 class DataColumn(models.Model):
-
     # objects = DataColumnManager()
 
     # Mandatory - Checked
@@ -77,6 +71,15 @@ class DataColumn(models.Model):
     # Foreign Key
     experiment = models.ForeignKey(Model.Experiment, on_delete=models.CASCADE, related_name="data_columns")
 
+    _is_x_data = models.BooleanField(null=True, blank=True)
+    _is_y_data = models.BooleanField(null=True, blank=True)
+
+    _x_dataColumn = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name="_ys_columns")
+
+    _mapping = models.ForeignKey(Model.MappingInterpreter, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="_data_columns")
+
     # def __init__(self, *args, species_object=[], **kwargs):
     #     super(DataColumn, self).__init__(*args, **kwargs)
     #     self.save()
@@ -85,23 +88,95 @@ class DataColumn(models.Model):
     #             self.species_object.add(specie)  # Non importa fare save dopo many to many add
     #     # self.save()
 
-    @property
-    def is_x(self):
+    def what_am_i(self):
+        # TODO si può fare solo    experiment_interpreter esiste!!!!
         mappings = self.experiment.experiment_interpreter.mappings.all()
+        my_mapping = None
+        is_x = None
         for mapping in mappings:
             if self.__getattribute__(mapping.x_exp_location) == mapping.x_exp_name:
-                if mapping.x_sim_location and mapping.x_sim_name is not None and mapping.x_sim_name != 'None': # TODO fix it --> None è come stringa non come null
-                    return True
-                return None
+                if mapping.x_sim_location and mapping.x_sim_name is not None and mapping.x_sim_name != 'None':  # TODO fix it --> None è come stringa non come null
+                    my_mapping = mapping
+                    is_x = True
+                    return is_x, my_mapping
+                return is_x, my_mapping
             elif self.__getattribute__(mapping.y_exp_location) == mapping.y_exp_name:
                 if mapping.y_sim_location and mapping.y_sim_name is not None and mapping.y_sim_name != 'None':
-                    return False
-                return None
-        return None
+                    my_mapping = mapping
+                    is_x = False
+                    return is_x, my_mapping
+                return is_x, my_mapping
+        return is_x, my_mapping
+
+    @property
+    def is_x(self):
+        if self._is_x_data is None:
+            new_is_x, new_mapping = self.what_am_i()
+
+            self._is_x_data = new_is_x
+            self._mapping = new_mapping
+            if self._is_x_data is not None:
+                self._is_y_data = not new_is_x
+
+                if not new_is_x:
+                    query_set = self.experiment.data_columns.filter(dg_id=self.dg_id, _is_x_data=True)
+                    if len(query_set) > 1:
+                        raise ValueError('Error more than one x for data group!')
+                    if query_set.exists():
+                        self._x_dataColumn = query_set[0]
+                else:
+                    query_set = self.experiment.data_columns.filter(dg_id=self.dg_id, _x_dataColumn=None,
+                                                                    _is_y_data=True)
+
+                    for dc in query_set:
+                        dc._x_dataColumn = self
+                        dc.save()
+
+                # TODO aggiornare _x_dataColumn_id
+
+            self.save()
+
+            return new_is_x
+        else:
+            return self._is_x_data
 
     @property
     def is_y(self):
-        return not self.is_x if self.is_x is not None else None
+        if self._is_y_data is None:
+            self.is_x
+        return self._is_y_data
+
+    @property
+    def transformation(self):
+        if self._mapping:
+            return self._mapping.x_transformation if self.is_x else self._mapping.y_transformation
+        else:
+            return None
+
+    @property
+    def get_raw_dataColumn(self):
+        from ExperimentManager.Serializers import DataColumnSerializer
+        return DataColumnSerializer(self, fields=('id', 'name', 'units', 'data', 'dg_id', 'label',
+                                                  'uncertainty_reference', 'species_object',
+                                                  'is_x', 'is_y', 'transformation')).data
+
+    # @property
+    # def is_x(self):
+    #     mappings = self.experiment.experiment_interpreter.mappings.all()
+    #     for mapping in mappings:
+    #         if self.__getattribute__(mapping.x_exp_location) == mapping.x_exp_name:
+    #             if mapping.x_sim_location and mapping.x_sim_name is not None and mapping.x_sim_name != 'None': # TODO fix it --> None è come stringa non come null
+    #                 return True
+    #             return None
+    #         elif self.__getattribute__(mapping.y_exp_location) == mapping.y_exp_name:
+    #             if mapping.y_sim_location and mapping.y_sim_name is not None and mapping.y_sim_name != 'None':
+    #                 return False
+    #             return None
+    #     return None
+
+    # @property
+    # def is_y(self):
+    #     return not self.is_x if self.is_x is not None else None
 
     def range(self):
         return self.data[0], self.data[-1]
@@ -295,6 +370,20 @@ class DataColumn(models.Model):
         # Without next if data could be negative
         if not all(float(x) >= 0 for x in data):
             raise ConstraintFieldExperimentError("Amount data column '%s' must be positive!" % str(data))
+
+        if self._is_x_data and self._is_y_data:
+            raise ConstraintFieldExperimentError("A data column could be only an x or a y!")
+
+        if self._is_x_data and (self._x_dataColumn is not None):
+            raise ConstraintFieldExperimentError("A x-data column could not have an x data column!")
+
+        if self._is_y_data and (self._x_dataColumn is None):
+            raise ConstraintFieldExperimentError("A y-data column need to have an x data column!")
+
+        if (self._is_x_data or self._is_y_data) and (self._mapping is None):
+            raise ConstraintFieldExperimentError("A x or y data column could not have a None mapping!")
+
+        # TODO consistency check, per ogni data group c'è solo una x!
 
     def save(self, *args, **kwargs):
         # self.check_fields()

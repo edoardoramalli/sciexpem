@@ -26,23 +26,15 @@ from OpenSmoke.SimulationSummary.processSummary import process_summary
 from FrontEnd.utils import *
 
 
-a = 5
-b = [1, 2, 3]
+exp = Experiment.objects.get(id=201)
 
+print(exp.data_pairs_raw)
 
-print([a] * len(b))
+dcs = exp.data_columns.all()[0]
 
-x = zip([a] * len(b), b)
+print(dcs.get_raw_dataColumn)
 
-print(x)
-
-
-# exit()
-
-
-exp = Experiment.objects.get(id=3134)
-
-print(exp.data_pairs_objects)
+# print(exp.da)
 
 
 
