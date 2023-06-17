@@ -11,7 +11,7 @@ class DataColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataColumn
         fields = ['id', 'name', 'units', 'data', 'dg_id', 'label', 'species', 'uncertainty_reference', 'species_object',
-                  'is_x', 'is_y', 'transformation']
+                  'is_x', 'is_y', 'transformation', 'uncertainty_kind', 'uncertainty_bound']
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):
@@ -28,7 +28,7 @@ class DataColumnSerializer(serializers.ModelSerializer):
 
     def get_uncertainty_reference(self, obj):
         if obj.uncertainty_reference is not None:
-            return DataColumnSerializer(obj.uncertainty_reference).data
+            return DataColumnSerializer(obj.uncertainty_reference, fields=('uncertainty_kind', 'data', 'uncertainty_bound')).data
         else:
             return None
 

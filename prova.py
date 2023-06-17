@@ -26,13 +26,18 @@ from OpenSmoke.SimulationSummary.processSummary import process_summary
 from FrontEnd.utils import *
 
 
-exp = Experiment.objects.get(id=201)
+exp = Experiment.objects.get(id=3567)
 
-print(exp.data_pairs_raw)
+
+
+
+
+edo = exp.data_pairs_raw
+print(edo)
 
 dcs = exp.data_columns.all()[0]
 
-print(dcs.get_raw_dataColumn)
+# print(dcs.get_raw_dataColumn)
 
 # print(exp.da)
 

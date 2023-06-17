@@ -3,6 +3,7 @@ import sys
 import pathlib
 import os
 from statistics import mean
+import math
 
 # Third parties Packages
 from ctypes import c_int, c_double, c_int16, c_void_p, c_char_p, byref, cdll
@@ -288,7 +289,7 @@ class CurveMatching:
 
         indexes = \
             {'score': score,
-             'error': error,
+             'error': error if not math.isnan(error) else -1,
              'd0L2': mean(indexes[0: parameters.numberOfBootstrapVariations]),
              'd1L2': mean(indexes[
                           1 * parameters.numberOfBootstrapVariations: 2 * parameters.numberOfBootstrapVariations]),

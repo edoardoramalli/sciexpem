@@ -53,11 +53,11 @@ def startSimulation(request):
     if not ChemModel.objects.filter(id=model_id).exists():
         return Response(status=HTTP_400_BAD_REQUEST, data="startSimulation: ChemModel not exist.")
 
-    passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
-
-    if not passed:
-        return Response('startSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
-                        status=HTTP_400_BAD_REQUEST)
+    # passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
+    #
+    # if not passed:
+    #     return Response('startSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
+    #                     status=HTTP_400_BAD_REQUEST)
 
     try:
         with transaction.atomic():
@@ -136,11 +136,11 @@ def initializeSimulation(request):
     if backup_model_id and backup_model_id == model_id:
         return Response(status=HTTP_400_BAD_REQUEST, data="initializeSimulation: BackUp and ChemModel are the same.")
 
-    passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
-
-    if not passed:
-        return Response('initializeSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
-                        status=HTTP_400_BAD_REQUEST)
+    # passed, missing = check_Experiment_Model(experiment_id=experiment_id, chemModel_id=model_id)
+    #
+    # if not passed:
+    #     return Response('initializeSimulation. This ChemModel does not support this experiment! Missing: ' + missing,
+    #                     status=HTTP_400_BAD_REQUEST)
 
     try:
         with transaction.atomic():

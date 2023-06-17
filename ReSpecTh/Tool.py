@@ -281,8 +281,9 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
             y_execution_column = Models.ExecutionColumn.objects.filter(**execution_filter_y)
 
             if not y_execution_column.exists():
+                return [], None
                 # print(execution_filter_y)
-                raise ExecutionColumnError(str({'experiment': execution.experiment, **execution_filter_y}))
+                # raise ExecutionColumnError(str({'experiment': execution.experiment, **execution_filter_y}))
             else:
                 y_execution_column = y_execution_column[0]
 
@@ -341,6 +342,9 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
 def visualizeExecution(execution, consist=None, target=None) -> dict:
     #  experiment status is assumed to be managed
 
+
+    # print('edoooo', execution, consist)
+
     consistency = Consistency() if consist is None else consist
 
     mappings = execution.experiment.experiment_interpreter.mappings.all()
@@ -361,9 +365,17 @@ def visualizeExecution(execution, consist=None, target=None) -> dict:
             x_execution_column = result['x_execution_column']
             y_execution_column = result['y_execution_column']
 
+            if y_execution_column[0] is None:
+                continue
+
             if target:
-                if target != y_execution_column[0].label:
-                    continue
+                try:
+                    # oooo = [x.preferredKey for x in y_execution_column[0].species_object.all()]
+                    # print(execution.id, target, oooo)
+                    if target != y_execution_column[0].label:
+                        continue
+                except IndexError:
+                    print('ellleeeeee', execution, consist, target, result)
 
             x_unit_name = x_dataColumn.units if mapping.x_transformation != 'inv' else '1000/' + x_dataColumn.units
             x_name = ' [{}] ({})'.format(x_unit_name, mapping.x_transformation)

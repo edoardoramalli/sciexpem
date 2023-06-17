@@ -19,3 +19,4 @@ from .getTargetValidation import getTargetValidation
 from .getPlotsValidation import getPlotsValidation
 from .getParityPlot import getParityPlot
 from .getDataFrameExecution import getDataFrameExecution
+from .getPlotExperimentNew import getPlotExperimentNew

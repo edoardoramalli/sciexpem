@@ -48,13 +48,13 @@ class DataColumn(models.Model):
     units = models.CharField(max_length=50)
     data = ArrayField(models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES))
     dg_id = models.CharField(max_length=10, null=False)
-    dg_label = models.CharField(max_length=20, default='experimental_data')
+    dg_label = models.CharField(max_length=40, default='experimental_data')
     source_type = models.CharField(max_length=15)
 
     # Optional - Checked
     # TODO aggiungere controllo che label e species siano uguali
     label = models.CharField(max_length=100, null=True, blank=True)
-    species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
+    species = ArrayField(models.CharField(max_length=40), null=True, blank=True)
     species_object = models.ManyToManyField(Model.Specie, related_name="species_list", blank=True)
 
     # Mandatory
@@ -114,6 +114,7 @@ class DataColumn(models.Model):
             new_is_x, new_mapping = self.what_am_i()
 
             self._is_x_data = new_is_x
+            print(new_is_x)
             self._mapping = new_mapping
             if self._is_x_data is not None:
                 self._is_y_data = not new_is_x
@@ -368,7 +369,7 @@ class DataColumn(models.Model):
         # if species and not validatorSpecie.isValid(species):
         #     raise ConstraintFieldExperimentError("Name species '%s' is not valid in data column!" % str(species))
         # Without next if data could be negative
-        if not all(float(x) >= 0 for x in data):
+        if not all(float(e) >= 0 for e in data):
             raise ConstraintFieldExperimentError("Amount data column '%s' must be positive!" % str(data))
 
         if self._is_x_data and self._is_y_data:
@@ -377,8 +378,8 @@ class DataColumn(models.Model):
         if self._is_x_data and (self._x_dataColumn is not None):
             raise ConstraintFieldExperimentError("A x-data column could not have an x data column!")
 
-        if self._is_y_data and (self._x_dataColumn is None):
-            raise ConstraintFieldExperimentError("A y-data column need to have an x data column!")
+        # if self._is_y_data and (self._x_dataColumn is None):
+        #     raise ConstraintFieldExperimentError("A y-data column needs to have an x data column!")
 
         if (self._is_x_data or self._is_y_data) and (self._mapping is None):
             raise ConstraintFieldExperimentError("A x or y data column could not have a None mapping!")
@@ -386,7 +387,7 @@ class DataColumn(models.Model):
         # TODO consistency check, per ogni data group c'è solo una x!
 
     def save(self, *args, **kwargs):
-        # self.check_fields()
+        self.check_fields()
         super().save(*args, **kwargs)
 
         # TODO Override DELETE and UPDATE

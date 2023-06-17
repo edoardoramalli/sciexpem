@@ -25,10 +25,10 @@ class addExecution(View.FrontEndBaseView):
         if Models.Execution.objects.filter(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id).exists():
             return Response('addExecution. Execution already exists!', status=HTTP_400_BAD_REQUEST)
 
-        passed, missing = check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id)
-
-        if not passed:
-            return Response('addExecution. This ChemModel does not support this experiment! Missing: ' + missing, status=HTTP_400_BAD_REQUEST)
+        # passed, missing = check_Experiment_Model(experiment_id=self.experiment_id, chemModel_id=self.chemModel_id)
+        #
+        # if not passed:
+        #     return Response('addExecution. This ChemModel does not support this experiment! Missing: ' + missing, status=HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
 

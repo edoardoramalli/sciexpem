@@ -43,4 +43,6 @@ urlpatterns = [
 
     path('API/prova', views.prova.as_view(), name="prova"),
 
+    path('API/getPlotExperimentNew', Views.getPlotExperimentNew.as_view(), name="getPlotExperimentNew"),
+
 ]

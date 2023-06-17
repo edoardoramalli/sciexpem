@@ -16,6 +16,7 @@ import functools
 import operator
 import ast
 from itertools import chain
+from django.db.models import Q
 
 validatorProperty = ReSpecThValidProperty()
 validatorSpecie = ReSpecThValidSpecie()
@@ -294,7 +295,9 @@ class Experiment(models.Model):
     def data_pairs_objects(self):
         # TODO da fixare: ho paura che se c'è un profilo lo restituisca
         # TODO anche da ottimizzare
-        query = self.data_columns.filter(dg_label='experimental_data')
+        query = self.data_columns.filter(Q(dg_label='experimental_data') & ~Q(name='uncertainty'))
+
+
 
         dg = {}
 

@@ -95,13 +95,16 @@ def curveMatchingExecution(current_execution):
             else:
                 uncertainty_data = []
 
+            if y_execution_column[0] is None:
+                continue
+
 
             try:
 
                 indexes = blocking_execute_cm(x_exp=x_exp, y_exp=y_exp,
                                               x_sim=x_sim, y_sim=y_sim,
                                               uncertainty=uncertainty_data,
-                                              numberOfBootstrapVariations=80,
+                                              numberOfBootstrapVariations=1,
                                               possibleNegativeOrdinates=True)
 
                 values = {'score': indexes['score'],

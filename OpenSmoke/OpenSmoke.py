@@ -325,8 +325,8 @@ class OpenSmokeExecutor:
                                 units[new_name] = units[current_name]
                                 list_needed.add(new_name)
                                 break
-                        if not match:
-                            raise MissingColumnExecution(specie.preferredKey + str('in {}'.format(file_name)))
+                        # if not match:
+                        #     raise MissingColumnExecution(specie.preferredKey + str('in {}'.format(file_name))) # todo questo deve diventare flag --> missing id .....
             else:
                 list_needed.add(mapping.y_sim_name.strip())
 
@@ -337,18 +337,21 @@ class OpenSmokeExecutor:
         a = set(list_needed)
         b = set(list(dataframe))
 
-        if not set(list_needed) <= set(list(dataframe)):
-            raise MissingColumnExecution(', '.join(list(a - b)))
+        # if not set(list_needed) <= set(list(dataframe)):
+        #     raise MissingColumnExecution(', '.join(list(a - b)))
+
+
 
         dataframe = dataframe[list_needed]
 
         for header in list_needed:
-            data = Model.ExecutionColumn(label=header,
-                                         units=units[header],
-                                         data=list(dataframe[header]),
-                                         execution=execution,
-                                         file_type=file_name)
-            data.save()
+            if header in b:
+                data = Model.ExecutionColumn(label=header,
+                                             units=units[header],
+                                             data=list(dataframe[header]),
+                                             execution=execution,
+                                             file_type=file_name)
+                data.save()
 
     @staticmethod
     def read_output_OS_string(text, file_name, execution):
