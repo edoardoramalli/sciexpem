@@ -24,10 +24,41 @@ from OpenSmoke.SimulationSummary.createSummary import create_summary
 from OpenSmoke.SimulationSummary.processSummary import process_summary
 
 from FrontEnd.utils import *
+from django.db.models.fields.related import ManyToManyField
+
+a = Experiment._meta.get_field('fuels_object')
+
+model = eval('Experiment')
+
+print()
+
+if type(getattr(getattr(model, '_meta'), 'get_field')('fuels_object')) == ManyToManyField:
+    print('caiooo')
+else:
+    print('nooo')
+
+print(type(a))
 
 
-exp = Experiment.objects.get(id=3567)
+exp = Experiment.objects.filter(id=201)[0]
 
+print(exp.fuels_object.all())
+
+exp.fuels_object.clear()
+
+ee = [1]
+
+exp.fuels_object.add(*ee)
+
+
+# exp.fuels_object.set(1, clear=True)
+
+exp.save()
+
+
+
+
+exit()
 
 
 

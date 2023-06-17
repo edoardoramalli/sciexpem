@@ -10,10 +10,10 @@ validatorSpecie = ReSpecThValidSpecie()
 
 
 # Initial species of the fuel
-class InitialSpecie(models.Model):
+class InitialSpecie(models.Model): # TODO da chiamare species not specie
     # Mandatory - Checked Field
     name = models.CharField(max_length=20) # DA NON USARE !
-    specie = models.ForeignKey(Model.Specie, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
+    species = models.ForeignKey(Model.Species, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
     units = models.CharField(max_length=50)
     value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
 

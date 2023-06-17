@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from ExperimentManager.Models import DataColumn
 import ExperimentManager.Serializers.Tool as Tool
-from ExperimentManager.Serializers import SpecieSerializer
+from ExperimentManager.Serializers import SpeciesSerializer
 
 
 class DataColumnSerializer(serializers.ModelSerializer):
     uncertainty_reference = serializers.SerializerMethodField()
-    species_object = SpecieSerializer(read_only=True, many=True)
+    species_object = SpeciesSerializer(read_only=True, many=True)
 
     class Meta:
         model = DataColumn

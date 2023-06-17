@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models.fields.related import ManyToManyField
 
 import json
 
@@ -17,7 +18,7 @@ import json
 class updateElement(View.ExperimentManagerBaseView):
     viewName = 'updateElement'
     paramsType = {'model_name': str, 'element_id': int, 'property_dict': str}
-    required_groups = {'POST': ['READ']}
+    required_groups = {'POST': ['WRITE']}
 
     def view_post(self, request):
         self.property_dict = json.loads(self.property_dict)
@@ -42,7 +43,11 @@ class updateElement(View.ExperimentManagerBaseView):
                     # print(element.__class__.__dict__)
                     # print(element.__dict__)
                     if prop in element.__class__.__dict__:
-                        setattr(element, prop, self.property_dict[prop])
+                        if type(getattr(getattr(model, '_meta'), 'get_field')(prop)) != ManyToManyField:
+                            setattr(element, prop, self.property_dict[prop])
+                        else:
+                            getattr(element, prop).clear()
+                            getattr(element, prop).add(*self.property_dict[prop])
                     else:
                         return Response(status=HTTP_400_BAD_REQUEST,
                                         data="updateElement: Attribute '{}' not exist in model '{}'".format(prop,

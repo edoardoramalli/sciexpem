@@ -10,7 +10,7 @@ class ExecutionColumn(models.Model):  # TODO nessun campo viene controllato
     label = models.CharField(max_length=100)
     units = models.CharField(max_length=50)
     species = ArrayField(models.CharField(max_length=20), null=True, blank=True)
-    species_object = models.ManyToManyField(Model.Specie, related_name="species_list_ec", blank=True)
+    species_object = models.ManyToManyField(Model.Species, related_name="species_list_ec", blank=True)
     data = ArrayField(models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES))
     execution = models.ForeignKey(Model.Execution, on_delete=models.CASCADE, related_name="execution_columns")
     file_type = models.CharField(max_length=100)

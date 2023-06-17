@@ -33,7 +33,7 @@ class getHeatMapExecution(View.FrontEndBaseView):
             query['execution_column__execution__chemModel__id__in'] = self.chemModel_list
 
         if self.specieName:
-            s = Models.Specie.objects.get(id=self.specieName)
+            s = Models.Species.objects.get(id=self.specieName)
 
             names = [x + '_x' for x in set([s.preferredKey] + s.names)]
 

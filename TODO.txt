@@ -22,7 +22,7 @@
     - Plot reaction rate
 - PyPostProcessor:
     - Fare con tito gestioni codici di ritorno di errore....
-- Specie:
+- Species:
     - ATTENZIONE negli alternative names nelle ultime specie inserite da tito non c'è il preferred name, ho messo un wrapper in check_Experiment_Model dove faccio add ma non va bene di default ci deve essere in alternative names la
 - OptimaPP
     - Es exp id == 2324, probabilmente nel nostro DB non c'è il cas e optima lo ha e quindi fallisce nel generre il respecth

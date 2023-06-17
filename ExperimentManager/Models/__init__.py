@@ -1,5 +1,5 @@
 from .FilePaper import FilePaper
-from .Specie import Specie
+from .Species import Species
 from .ExperimentInterpreter import ExperimentInterpreter
 from .RuleInterpreter import RuleInterpreter
 from .MappingInterpreter import MappingInterpreter

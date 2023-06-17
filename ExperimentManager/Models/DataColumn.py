@@ -55,7 +55,7 @@ class DataColumn(models.Model):
     # TODO aggiungere controllo che label e species siano uguali
     label = models.CharField(max_length=100, null=True, blank=True)
     species = ArrayField(models.CharField(max_length=40), null=True, blank=True)
-    species_object = models.ManyToManyField(Model.Specie, related_name="species_list", blank=True)
+    species_object = models.ManyToManyField(Model.Species, related_name="species_list", blank=True)
 
     # Mandatory
 
@@ -202,7 +202,7 @@ class DataColumn(models.Model):
         if species_object:
             list_species = []
             for specie in species_object:
-                list_species.append(Model.Specie.objects.get(id=int(specie)))
+                list_species.append(Model.Species.objects.get(id=int(specie)))
 
         fuel_oxidizer = text_dict.get('fuel_oxidizer')
 
@@ -230,13 +230,13 @@ class DataColumn(models.Model):
             # oxis_dict = {atoms.to_atoms[oxi['specie'].upper()]: oxi['value'] for oxi in oxidizers}
             # fuels_dict = {atoms.to_atoms[f['specie'].upper()]: f['value'] for f in fuels}
 
-            oxis_dict = {Model.Specie.objects.get(id=oxi['specie']).formula: oxi['value'] for oxi in oxidizers}
-            fuels_dict = {Model.Specie.objects.get(id=f['specie']).formula: f['value'] for f in fuels}
+            oxis_dict = {Model.Species.objects.get(id=oxi['specie']).formula: oxi['value'] for oxi in oxidizers}
+            fuels_dict = {Model.Species.objects.get(id=f['specie']).formula: f['value'] for f in fuels}
 
             back_dict = {}
 
             for x in fuels + oxidizers:
-                species_object = Model.Specie.objects.get(id=x['specie'])
+                species_object = Model.Species.objects.get(id=x['specie'])
                 formula = species_object.formula
                 if formula not in back_dict:
                     back_dict[formula] = species_object

@@ -1,6 +1,5 @@
 from django.db import models
 from ExperimentManager.exceptions import *
-from ExperimentManager.Models.Specie import Specie
 from django.contrib.postgres.fields import ArrayField
 from django.conf import settings
 from SciExpeM.settings import BASE_DIR

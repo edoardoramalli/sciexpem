@@ -55,7 +55,7 @@ class getROPA(View.ExperimentManagerBaseView):
         if len(execution_files) == 0:
             return Response({'ROPA': {}, 'reactions_map': {}}, status=HTTP_200_OK)
 
-        specie = Specie.objects.get(id=self.specie_id)
+        specie = Species.objects.get(id=self.specie_id)
 
         ropa = {}
 

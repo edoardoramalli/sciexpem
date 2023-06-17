@@ -8,7 +8,7 @@ class ExecutionFile(models.Model):
     case = models.IntegerField(null=True, blank=True)
     path = models.TextField()
     type = models.CharField(max_length=50)
-    specie = models.ForeignKey(Model.Specie, on_delete=models.SET_NULL, default=None, null=True)
+    specie = models.ForeignKey(Model.Species, on_delete=models.SET_NULL, default=None, null=True)
     execution = models.ForeignKey(Model.Execution, on_delete=models.CASCADE, related_name="execution_files")
 
     # CHECK on_delete policy !!!

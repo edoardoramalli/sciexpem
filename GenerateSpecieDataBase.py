@@ -12,7 +12,7 @@ django.setup()
 
 from ExperimentManager.Models import *
 
-species = Specie.objects.all()
+species = Species.objects.all()
 
 import xml.etree.cElementTree as ET
 

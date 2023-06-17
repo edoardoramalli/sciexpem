@@ -7,8 +7,8 @@ urlpatterns = [
     # path('input/input_file', views.InputUploadView.as_view(), name="input-dic-upload"),
     # path('input/os_input_file', views.OSInputUploadView.as_view(), name="os-input-dic-upload"),
 
-    path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"),
-    path('api/opensmoke/fuels_names', views.fuels_names, name="fuels-names"),
+    path('api/opensmoke/species_names', views.opensmoke_names, name="opensmoke-names"), # TODO da deprecare ormai si passa tutti da filterdatabase
+    path('api/opensmoke/fuels_names', views.fuels_names, name="fuels-names"),# TODO da deprecare ormai si passa tutti da filterdatabase
     path('api/get_experiment_type_list', views.get_experiment_type_list, name="get_experiment_type_list"),
     path('api/get_chemModel_version_list', views.get_chemModel_version_list, name='get_chemModel_version_list'),
     path('api/get_username', views.get_username, name="get_username"),

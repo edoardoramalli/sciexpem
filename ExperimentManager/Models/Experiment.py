@@ -60,7 +60,8 @@ class Experiment(models.Model):
 
     # Meta Data
     # fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
-    fuels = SetField(models.CharField(max_length=40), null=True, blank=True)
+    fuels = SetField(models.CharField(max_length=40), null=True, blank=True)  # TODO to BE deprecated
+    fuels_object = models.ManyToManyField(Model.Species, related_name="fuels_list", blank=True)
 
     status = models.CharField(max_length=50)
 
@@ -81,7 +82,7 @@ class Experiment(models.Model):
     def check_fields(self):
         # TODO add check on reactor_modes
         experiment_type = self.experiment_type
-        fuels = list(self.fuels) if self.fuels is not None else []
+        # fuels = list(self.fuels) if self.fuels is not None else []
         phi_inf = self.phi_inf if self.phi_inf is not None else 0
         phi_sup = self.phi_sup if self.phi_sup is not None else 0
         t_inf = self.t_inf if self.t_inf is not None else 0
@@ -106,9 +107,9 @@ class Experiment(models.Model):
         if not validatorExperiment.isValid(experiment_type):
             raise ConstraintFieldExperimentError("Experiment type '%s' is not valid!" % str(experiment_type))
 
-        for fuel in fuels:
-            if not validatorFuel.isValid(fuel):
-                raise ConstraintFieldExperimentError("Fuel type '%s' is not valid!" % str(fuel))
+        # for fuel in fuels:
+        #     if not validatorFuel.isValid(fuel):
+        #         raise ConstraintFieldExperimentError("Fuel type '%s' is not valid!" % str(fuel))
 
         if not 0 <= phi_inf <= phi_sup <= 100:
             raise ConstraintFieldExperimentError("Invalid phi: 0 <= phi_inf <= phi_sup <= 100 (+inf)")
@@ -296,8 +297,6 @@ class Experiment(models.Model):
         # TODO da fixare: ho paura che se c'è un profilo lo restituisca
         # TODO anche da ottimizzare
         query = self.data_columns.filter(Q(dg_label='experimental_data') & ~Q(name='uncertainty'))
-
-
 
         dg = {}
 

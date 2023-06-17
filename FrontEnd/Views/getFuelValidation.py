@@ -20,17 +20,36 @@ class getFuelValidation(View.FrontEndBaseView):
 
     def view_post(self, request):
 
-        flat_set = set([])
+        species_id = Models.CurveMatchingResult.objects.filter(
+            execution_column__execution__chemModel__id__in=self.chemModel_list)\
+            .values_list('execution_column__execution__experiment__fuels_object__id', flat=True).distinct()
 
-        for chemModel_id in self.chemModel_list:
-            fuels = Models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__id=chemModel_id).values_list('execution_column__execution__experiment__fuels', flat=True).distinct()
-            for f in fuels:
-                flat_set.add(tuple(f))
+        query_set = Models.Species.objects.filter(id__in=species_id)
 
-        flat_list = set([frozenset(x) for x in flat_set])
-        flat_list = [list(i) for i in flat_list]
+        # flat_set = set([])
+        #
+        # for chemModel_id in self.chemModel_list:
+        #     fuels = Models.CurveMatchingResult.objects.filter(execution_column__execution__chemModel__id=chemModel_id).values_list('execution_column__execution__experiment__fuels_object__preferredKey', flat=True).distinct()
+        #     for f in fuels:
+        #         flat_set.add(tuple(f))
+        #
+        # flat_list = set([frozenset(x) for x in flat_set])
+        # flat_list = [list(i) for i in flat_list]
 
-        return Response(json.dumps(flat_list), status=HTTP_200_OK)
+        # return Response(json.dumps(flat_list), status=HTTP_200_OK)
+
+        # print(species[0].preferredKey)
+
+        result = []
+
+        for query_result in query_set:
+            result.append(Serializers.SpeciesSerializer(query_result).data)
+
+        # ser = Serializers.SpeciesSerializer()
+        #
+        # result = ser(species).data
+
+        return Response(result, status=HTTP_200_OK)
 
         # print(df)
 

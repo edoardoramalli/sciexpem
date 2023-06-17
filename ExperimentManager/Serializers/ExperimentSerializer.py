@@ -9,13 +9,14 @@ class ExperimentSerializer(serializers.ModelSerializer):
     initial_species = Serializers.InitialSpecieSerializer(many=True, read_only=True)
     file_paper = Serializers.FilePaperSerializer(read_only=True)
     data_columns = Serializers.DataColumnSerializer(many=True)
+    fuels_object = Serializers.SpeciesSerializer(read_only=True, many=True)
 
     class Meta:
         model = Experiment
         fields = ['id', 'reactor', 'experiment_type', 'fileDOI', 'file_paper', 'ignition_type', 'xml_file',
                   'os_input_file', 'comment', 'fuels', 'status', 'common_properties', 'initial_species', 'data_columns',
                   'phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'username', 'interpreter_name', 'notes',
-                  'reactor_modes']
+                  'reactor_modes', 'fuels_object'] # TODO deprecare fuels
         read_only = ['id']
 
     def __init__(self, *args, **kwargs):

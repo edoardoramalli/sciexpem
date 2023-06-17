@@ -42,7 +42,7 @@ def checkInChI(test_str):
     #             raise SpecieConsistencyError("InChI not valid. In the 5° to 8° layer only 0-9 a-z + -")
 
 
-class Specie(models.Model):
+class Species(models.Model):
     InChI = models.CharField(max_length=150, unique=True)
     preferredKey = models.CharField(max_length=150)
     formula = models.CharField(max_length=150)

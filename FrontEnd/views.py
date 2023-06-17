@@ -103,7 +103,7 @@ def opensmoke_names(request):
     # names = list(
     #     pd.read_csv(os.path.join(data_folder, "Nomenclatura_originale_POLIMI.txt"), delim_whitespace=True)['NAME'])
 
-    species = Model.Specie.objects.all()
+    species = Model.Species.objects.all()
 
     result = {specie.id: specie.preferredKey for specie in species}
 

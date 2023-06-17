@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from ExperimentManager.Models import Specie
+from ExperimentManager.Models import Species
 import ExperimentManager.Serializers.Tool as Tool
 
 
-class SpecieSerializer(serializers.ModelSerializer):
+class SpeciesSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Specie
+        model = Species
         fields = ['id', 'InChI', 'preferredKey', 'names', 'CAS', 'SMILES', 'chemName', 'formula']
         read_only_fields = ['id']
 
@@ -17,6 +17,6 @@ class SpecieSerializer(serializers.ModelSerializer):
         if fields is None:
             fields = tuple(req)
 
-        super(SpecieSerializer, self).__init__(*args, **kwargs)
+        super(SpeciesSerializer, self).__init__(*args, **kwargs)
 
         Tool.drop_fields(self, fields)

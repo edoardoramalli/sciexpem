@@ -1,4 +1,4 @@
-from .SpecieSerializer import SpecieSerializer
+from .SpeciesSerializer import SpeciesSerializer
 from .CommonPropertySerializer import CommonPropertySerializer
 from .InitialSpecieSerializer import InitialSpecieSerializer
 from .FilePaperSerializer import FilePaperSerializer
