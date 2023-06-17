@@ -37,7 +37,7 @@ SECRET_KEY = SettingsReader.settings['SECRET_KEY']
 SCIEXPEM_FILESYSTEM_FOLDER = SettingsReader.settings['SCIEXPEM_FILESYSTEM_FOLDER']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 COMPRESS_ENABLED = True
 

@@ -361,10 +361,10 @@ class Experiment(models.Model):
         if prop == 'InitialSpecie':
             list_element_other = other.initial_species.all()
             list_element = self.initial_species.all()
-            dict_element_other = [{'specie': element.specie.InChI, 'units': element.units, 'value': element.value} for
+            dict_element_other = [{'species': element.species.InChI, 'units': element.units, 'value': element.value} for
                                   element in
                                   list_element_other]
-            dict_element = [{'name': element.specie.InChI, 'units': element.units, 'value': element.value} for element
+            dict_element = [{'name': element.species.InChI, 'units': element.units, 'value': element.value} for element
                             in
                             list_element]
         elif prop == 'CommonProperty':

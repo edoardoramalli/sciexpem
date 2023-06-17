@@ -250,11 +250,11 @@ class ReSpecThParser:
                 if name != 'uncertainty':
                     species = []
                     xml_species = prop.findall('speciesLink')
-                    for specie in xml_species:
-                        CAS = specie.attrib.get("CAS")
-                        InChI = specie.attrib.get("InChI")
-                        SMILES = specie.attrib.get("SMILES")
-                        chemName = specie.attrib.get("chemName")
+                    for species in xml_species:
+                        CAS = species.attrib.get("CAS")
+                        InChI = species.attrib.get("InChI")
+                        SMILES = species.attrib.get("SMILES")
+                        chemName = species.attrib.get("chemName")
                         species.append({'InChI':InChI, 'CAS':CAS, 'SMILES':SMILES, 'chemName': chemName})
 
 

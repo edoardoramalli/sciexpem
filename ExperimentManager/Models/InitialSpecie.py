@@ -10,7 +10,7 @@ validatorSpecie = ReSpecThValidSpecie()
 
 
 # Initial species of the fuel
-class InitialSpecie(models.Model): # TODO da chiamare species not specie
+class InitialSpecie(models.Model): # TODO da chiamare species not species
     # Mandatory - Checked Field
     name = models.CharField(max_length=20) # DA NON USARE !
     species = models.ForeignKey(Model.Species, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
@@ -44,23 +44,23 @@ class InitialSpecie(models.Model): # TODO da chiamare species not specie
                 "Name '%s' is not configuration for Initial Specie!" % configuration)
 
         if float(value) < 0:
-            raise ConstraintFieldExperimentError("Value initial specie '%s' must be positive!" % value)
+            raise ConstraintFieldExperimentError("Value initial species '%s' must be positive!" % value)
         # if not validatorSpecie.isValid(name):
-        #     raise ConstraintFieldExperimentError("Name initial specie '%s' is not valid!" % name)
+        #     raise ConstraintFieldExperimentError("Name initial species '%s' is not valid!" % name)
         if not validatorProperty.isValid(unit=unit, name="composition"):
             raise ConstraintFieldExperimentError(
-                "Unit initial specie '%s' is not valid for 'composition' element!" % unit)
+                "Unit initial species '%s' is not valid for 'composition' element!" % unit)
 
     @staticmethod
     def createInitialSpecie(text_dict, experiment):
-        specie_id = int(text_dict['specie'])
-        specie = Model.Specie.objects.get(id=specie_id)
+        specie_id = int(text_dict['species'])
+        species = Model.Species.objects.get(id=specie_id)
         units = text_dict['units']
         value = text_dict['value']
         source_type = text_dict['source_type']
         configuration = text_dict['configuration']
 
-        return InitialSpecie(specie=specie, units=units, value=value, experiment=experiment, source_type=source_type, configuration=configuration)
+        return InitialSpecie(species=species, units=units, value=value, experiment=experiment, source_type=source_type, configuration=configuration)
 
     def save(self, *args, **kwargs):
         self.check_fields()

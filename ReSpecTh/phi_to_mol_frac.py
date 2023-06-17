@@ -12,7 +12,7 @@ def getSpeciesOfInterest(fuel_string: str) -> dict:
     if '' in fuel_split:
         fuel_split.remove('')
     if len(fuel_split) % 2:
-        raise ValueError('Missing number of atoms for one specie')
+        raise ValueError('Missing number of atoms for one species')
 
     result = {}
     for index in range(0, len(fuel_split), 2):

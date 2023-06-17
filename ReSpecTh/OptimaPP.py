@@ -79,24 +79,24 @@ class TranslatorOptimaPP:
             if kwargs[key] is None:
                 continue
             if key == 'Species_LIST':
-                for index, specie in enumerate(kwargs[key]):
-                    if specie.preferredKey in species_used:
-                        preferredKey = specie.preferredKey + '_' + str(species_used[specie.preferredKey])
-                        species_used[specie.preferredKey] += 1
+                for index, species in enumerate(kwargs[key]):
+                    if species.preferredKey in species_used:
+                        preferredKey = species.preferredKey + '_' + str(species_used[specie.preferredKey])
+                        species_used[species.preferredKey] += 1
                     else:
-                        preferredKey = specie.preferredKey
-                        species_used[specie.preferredKey] = 1
+                        preferredKey = species.preferredKey
+                        species_used[species.preferredKey] = 1
 
-                    if specie.preferredKey:
+                    if species.preferredKey:
                         txt += "Species:" + delimiter + preferredKey + delimiter
-                    if specie.chemName:
-                        txt += "Chemical_name:" + delimiter + specie.chemName + delimiter
-                    if specie.CAS:
-                        txt += "CAS:" + delimiter + specie.CAS + delimiter
-                    if specie.InChI:
-                        txt += "InChI:" + delimiter + specie.InChI + delimiter
-                    if specie.SMILES:
-                        txt += "SMILES:" + delimiter + specie.SMILES + delimiter
+                    if species.chemName:
+                        txt += "Chemical_name:" + delimiter + species.chemName + delimiter
+                    if species.CAS:
+                        txt += "CAS:" + delimiter + species.CAS + delimiter
+                    if species.InChI:
+                        txt += "InChI:" + delimiter + species.InChI + delimiter
+                    if species.SMILES:
+                        txt += "SMILES:" + delimiter + species.SMILES + delimiter
 
             else:
                 txt += c_key + ":" + delimiter + str(kwargs[key]) + delimiter
@@ -142,23 +142,23 @@ class TranslatorOptimaPP:
                                                     Source_type=prop.source_type,
                                                     Unit=prop.units,
                                                     Value=prop.value) + "\n"
-        for i_specie in initial_species:
-            if i_specie.specie.preferredKey in species_used:
-                preferredKey = i_specie.specie.preferredKey + '_' + str(species_used[i_specie.specie.preferredKey])
-                species_used[i_specie.specie.preferredKey] += 1
+        for i_species in initial_species:
+            if i_species.species.preferredKey in species_used:
+                preferredKey = i_species.species.preferredKey + '_' + str(species_used[i_specie.specie.preferredKey])
+                species_used[i_species.species.preferredKey] += 1
             else:
-                preferredKey = i_specie.specie.preferredKey
-                species_used[i_specie.specie.preferredKey] = 1
+                preferredKey = i_species.species.preferredKey
+                species_used[i_species.species.preferredKey] = 1
 
             txt += TranslatorOptimaPP.create_inline(Name="composition",
                                                     Species=preferredKey,
-                                                    Chemical_name=i_specie.specie.chemName,
-                                                    CAS=i_specie.specie.CAS,
-                                                    InChI=i_specie.specie.InChI,
-                                                    SMILES=i_specie.specie.SMILES,
-                                                    Source_type=i_specie.source_type,
-                                                    Unit=i_specie.units,
-                                                    Value=i_specie.value) + "\n"
+                                                    Chemical_name=i_species.species.chemName,
+                                                    CAS=i_species.species.CAS,
+                                                    InChI=i_species.species.InChI,
+                                                    SMILES=i_species.species.SMILES,
+                                                    Source_type=i_species.source_type,
+                                                    Unit=i_species.units,
+                                                    Value=i_species.value) + "\n"
         return txt
 
     @staticmethod

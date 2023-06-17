@@ -23,6 +23,11 @@ def checkInChI(test_str):
     if not check(test_str, pattern=r'[^a-zA-Z0-9\-\(\)\,\+]\/'):
         raise SpecieConsistencyError("InChI not valid. In the third layer only a-z A-z 0-9 + - , ( ) /")
 
+    inchies = [x.upper() for x in Species.objects.all().values_list('InChI', flat=True)]
+
+    if test_str.upper() in inchies:
+        raise SpecieConsistencyError("InChI already present.")
+
     # split_test_str = test_str.split('/')
     #
     # if len(split_test_str) >= 3:
@@ -42,9 +47,18 @@ def checkInChI(test_str):
     #             raise SpecieConsistencyError("InChI not valid. In the 5° to 8° layer only 0-9 a-z + -")
 
 
+def checkFormula(formula):
+    elements = ['C', 'H', 'O', 'HE', 'AR', 'N', 'S']
+    # Si controlla che dopo l'elemento ci sia un numero tra 1-99, non viene garantito l'ordine
+    pattern = r'((' + '|'.join(elements) + ')([1-9]\d?))+$'
+    match = re.fullmatch(pattern, formula, re.IGNORECASE)
+    if not bool(match):
+        raise SpecieConsistencyError("Formula does not fulfill regex {}.".format(pattern))
+
+
 class Species(models.Model):
     InChI = models.CharField(max_length=150, unique=True)
-    preferredKey = models.CharField(max_length=150)
+    preferredKey = models.CharField(max_length=150, unique=True)
     formula = models.CharField(max_length=150)
 
     names = ArrayField(models.CharField(max_length=150), blank=True, null=True)
@@ -57,7 +71,7 @@ class Species(models.Model):
     # TODO caratteri consentiti, tutto in uppercase? cosa deve essere unique?
 
     @staticmethod
-    def createSpecie(text_dict):
+    def createSpecies(text_dict):
         # Mandatory
         try:
             InChI = text_dict['InChI']
@@ -75,9 +89,9 @@ class Species(models.Model):
         else:
             names = None
 
-        specie = Specie(InChI=InChI, preferredKey=preferredKey, names=names,
+        species = Species(InChI=InChI, preferredKey=preferredKey, names=names,
                         CAS=CAS, SMILES=SMILES, chemName=chemName, formula=formula)
-        return [specie]
+        return [species]
 
     def check_fields(self):
         preferredKey = self.preferredKey
@@ -95,6 +109,7 @@ class Species(models.Model):
 
         if formula:
             self.formula = formula.strip().upper()
+            checkFormula(self.formula)
 
         if CAS:
             self.CAS = CAS.strip()

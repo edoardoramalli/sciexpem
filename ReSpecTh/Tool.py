@@ -92,7 +92,7 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
                 info['yaxis']['type'] = 'log'
 
             if y_element.name == 'composition':
-                name = '+'.join([specie.preferredKey for specie in y_element.species_object.all()])
+                name = '+'.join([species.preferredKey for species in y_element.species_object.all()])
             elif y_element.name:
                 name = y_element.name
             elif not y_element.name and y_element.label:
@@ -311,10 +311,10 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
             y_execution_column_tot = []
 
             for specie_object in dataColumnSpecies:
-                specie = [name + '_x' for name in specie_object.names]
+                species = [name + '_x' for name in specie_object.names]
                 execution_filter_y = {'execution': execution,
                                       'file_type': file,
-                                      y_sim_location + '__in': specie}
+                                      y_sim_location + '__in': species}
 
                 y_sim_partial, y_execution_column_partial = get_Y_ExecutionColumn(execution_filter_y=execution_filter_y)
 

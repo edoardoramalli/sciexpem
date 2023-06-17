@@ -201,8 +201,8 @@ class DataColumn(models.Model):
         list_species = None
         if species_object:
             list_species = []
-            for specie in species_object:
-                list_species.append(Model.Species.objects.get(id=int(specie)))
+            for species in species_object:
+                list_species.append(Model.Species.objects.get(id=int(species)))
 
         fuel_oxidizer = text_dict.get('fuel_oxidizer')
 
@@ -257,9 +257,9 @@ class DataColumn(models.Model):
             # print(results)
 
             for r in results:
-                for specie in r:
-                    species_division[back_dict[specie.upper()]] = species_division.get(
-                        back_dict[specie.upper()], []) + [r[specie]]
+                for species in r:
+                    species_division[back_dict[species.upper()]] = species_division.get(
+                        back_dict[species.upper()], []) + [r[species]]
 
             # print(species_division)
 
@@ -273,8 +273,8 @@ class DataColumn(models.Model):
                                                     dg_label=dg_label,
                                                     experiment=experiment)
                 if [division]:
-                    for specie in [division]:
-                        current.species_object.add(specie)
+                    for species in [division]:
+                        current.species_object.add(species)
 
                 others.append(current)
 
@@ -303,16 +303,16 @@ class DataColumn(models.Model):
                                             experiment=experiment)
 
         if list_species:
-            for specie in list_species:
-                current.species_object.add(specie)  # Non importa fare save dopo many to many add
+            for species in list_species:
+                current.species_object.add(species)  # Non importa fare save dopo many to many add
         # self.save()
 
         # TODO Accordance between species array and label
         if current.name == 'composition' or current.name == 'concentration':
-            list_species = [specie.preferredKey for specie in current.species_object.all()]
+            list_species = [species.preferredKey for species in current.species_object.all()]
             current.label = '[' + ','.join(list_species) + ']'.replace(',', '+')
             current.save()
-        # TODO fix specie in fule oxi + salva incertezza
+        # TODO fix species in fule oxi + salva incertezza
         return [uncertainty, current] + others if uncertainty else [current] + others
 
     def __str__(self):
@@ -358,7 +358,7 @@ class DataColumn(models.Model):
                 "Unit '%s' is not valid for property '%s' in data column!" % (unit, name))
         if (label == 'composition' or label == 'concentration') and species is None:
             raise ConstraintFieldExperimentError(
-                "The label is composition or concentration but no specie is specified!")
+                "The label is composition or concentration but no species is specified!")
 
         if label \
                 and name != 'composition' \

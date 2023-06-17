@@ -26,37 +26,30 @@ from OpenSmoke.SimulationSummary.processSummary import process_summary
 from FrontEnd.utils import *
 from django.db.models.fields.related import ManyToManyField
 
-a = Experiment._meta.get_field('fuels_object')
 
-model = eval('Experiment')
+import re
 
-print()
+def check(formula):
+    elements = ['C', 'H', 'O', 'HE', 'AR', 'N', 'S']
+    # Si controlla che dopo l'elemento ci sia un numero tra 1-99, non viene garantito l'ordine
+    pattern = r'((' + '|'.join(elements) + ')([1-9]\d?))+$'
+    match = re.fullmatch(pattern, formula, re.IGNORECASE)
+    return bool(match)
 
-if type(getattr(getattr(model, '_meta'), 'get_field')('fuels_object')) == ManyToManyField:
-    print('caiooo')
-else:
-    print('nooo')
-
-print(type(a))
-
-
-exp = Experiment.objects.filter(id=201)[0]
-
-print(exp.fuels_object.all())
-
-exp.fuels_object.clear()
-
-ee = [1]
-
-exp.fuels_object.add(*ee)
+species = Species.objects.all()
 
 
-# exp.fuels_object.set(1, clear=True)
+eee = []
 
-exp.save()
+for inc in species:
+    if not check(inc.formula):
+        eee.append(inc.id)
+    # print(check(inc), inc)
+    # print(inc)
 
+# print(check('H12C2'))
 
-
+print(eee)
 
 exit()
 

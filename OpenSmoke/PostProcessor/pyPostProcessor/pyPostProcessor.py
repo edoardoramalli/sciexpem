@@ -36,13 +36,13 @@ def load_library(library_path=os.path.join(pathlib.Path(__file__).parent.absolut
     return c_library
 
 
-def compute_ropa(kineticFolder, outputFolder, specie, ROPA_type, local_value=0.0, lower_bound=0.0, upper_bound=0.0, n_reaction=10):
+def compute_ropa(kineticFolder, outputFolder, species, ROPA_type, local_value=0.0, lower_bound=0.0, upper_bound=0.0, n_reaction=10):
     if type(kineticFolder) != bytes:
         kineticFolder = bytes(kineticFolder, 'utf-8')
     if type(outputFolder) != bytes:
         outputFolder = bytes(outputFolder, 'utf-8')
-    if type(specie) != bytes:
-        specie = bytes(specie, 'utf-8')
+    if type(species) != bytes:
+        species = bytes(species, 'utf-8')
 
     c_library = load_library()
 
@@ -51,7 +51,7 @@ def compute_ropa(kineticFolder, outputFolder, specie, ROPA_type, local_value=0.0
 
     code = c_library.pyPostProcessor(c_char_p(kineticFolder),
                                      c_char_p(outputFolder),
-                                     c_char_p(specie),
+                                     c_char_p(species),
                                      c_int(Setting.ROPA),
                                      c_int(ROPA_type),
                                      c_double(local_value),

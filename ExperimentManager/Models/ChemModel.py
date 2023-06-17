@@ -2,6 +2,7 @@ from django.db import models
 from ExperimentManager.exceptions import *
 from django.contrib.postgres.fields import ArrayField
 from django.conf import settings
+from ExperimentManager.Models import Species
 from SciExpeM.settings import BASE_DIR
 import xml.etree.ElementTree as ET
 import os
@@ -62,7 +63,7 @@ class ChemModel(models.Model):  # TODO Fuel list
         r = {}
         for s in self.supported_species:
             try:
-                c_s = Specie.objects.get(preferredKey=s)
+                c_s = Species.objects.get(preferredKey=s)
                 r[c_s.id] = s
             except Exception:
                 # TODO CHE FARE SE NON LA TROVA?

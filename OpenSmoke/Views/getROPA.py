@@ -55,7 +55,7 @@ class getROPA(View.ExperimentManagerBaseView):
         if len(execution_files) == 0:
             return Response({'ROPA': {}, 'reactions_map': {}}, status=HTTP_200_OK)
 
-        specie = Species.objects.get(id=self.specie_id)
+        species = Species.objects.get(id=self.specie_id)
 
         ropa = {}
 
@@ -64,7 +64,7 @@ class getROPA(View.ExperimentManagerBaseView):
         for ef in execution_files:
             coeff, react_index = compute_ropa(kineticFolder=execution.chemModel.absolute_folder_xml_file_kinetics_path,
                                               outputFolder=ef.absolute_folder_path,
-                                              specie=specie.preferredKey,
+                                              species=species.preferredKey,
                                               ROPA_type=self.ROPA_type,
                                               local_value=local_value,
                                               lower_bound=lower_bound,
