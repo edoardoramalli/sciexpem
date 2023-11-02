@@ -11,7 +11,7 @@ def check(test_str, pattern):
         return True
 
 
-def checkInChI(test_str):
+def checkInChI(c_specie, test_str):
     if not test_str.startswith("1S"):
         raise SpecieConsistencyError("InChI not valid. InChI has to start with '1S'.")
 
@@ -23,10 +23,12 @@ def checkInChI(test_str):
     if not check(test_str, pattern=r'[^a-zA-Z0-9\-\(\)\,\+]\/'):
         raise SpecieConsistencyError("InChI not valid. In the third layer only a-z A-z 0-9 + - , ( ) /")
 
-    inchies = [x.upper() for x in Species.objects.all().values_list('InChI', flat=True)]
+    inchies = [(x.InChI.upper(), x) for x in Species.objects.all()]
 
-    if test_str.upper() in inchies:
-        raise SpecieConsistencyError("InChI already present.")
+    for inch in inchies:
+        if test_str.upper() == inch[0]:
+            if inch[1] != c_specie:
+                raise SpecieConsistencyError("InChI already present.")
 
     # split_test_str = test_str.split('/')
     #
@@ -105,7 +107,7 @@ class Species(models.Model):
 
         if InChI:
             self.InChI = InChI.strip()
-            checkInChI(self.InChI)
+            checkInChI(self, self.InChI)
 
         if formula:
             self.formula = formula.strip().upper()

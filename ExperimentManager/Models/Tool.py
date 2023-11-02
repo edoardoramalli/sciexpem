@@ -3,7 +3,7 @@ from django.utils import timezone
 import ExperimentManager.Models as Model
 
 MAX_DIGITS = 42
-DECIMAL_PLACES = 10
+DECIMAL_PLACES = 20
 
 
 # def generic_save(*args, **kwargs):

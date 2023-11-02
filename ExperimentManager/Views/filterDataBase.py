@@ -54,7 +54,6 @@ class filterDataBase(View.ExperimentManagerBaseView):
             if type(query_obj) == dict:
                 query_set = model.objects.filter(**query_obj).distinct()
             else:
-                print(query_obj)
                 query_set = model.objects.filter(query_obj).distinct()
 
             if self.order_by:

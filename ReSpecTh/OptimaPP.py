@@ -81,7 +81,7 @@ class TranslatorOptimaPP:
             if key == 'Species_LIST':
                 for index, species in enumerate(kwargs[key]):
                     if species.preferredKey in species_used:
-                        preferredKey = species.preferredKey + '_' + str(species_used[specie.preferredKey])
+                        preferredKey = species.preferredKey + '_' + str(species_used[species.preferredKey])
                         species_used[species.preferredKey] += 1
                     else:
                         preferredKey = species.preferredKey

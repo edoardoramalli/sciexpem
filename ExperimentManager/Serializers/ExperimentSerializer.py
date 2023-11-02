@@ -6,7 +6,7 @@ import ExperimentManager.Serializers as Serializers
 
 class ExperimentSerializer(serializers.ModelSerializer):
     common_properties = Serializers.CommonPropertySerializer(many=True, read_only=True)
-    initial_species = Serializers.InitialSpecieSerializer(many=True, read_only=True)
+    initial_species = Serializers.InitialSpeciesSerializer(many=True, read_only=True)
     file_paper = Serializers.FilePaperSerializer(read_only=True)
     data_columns = Serializers.DataColumnSerializer(many=True)
     fuels_object = Serializers.SpeciesSerializer(read_only=True, many=True)

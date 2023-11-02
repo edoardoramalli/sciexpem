@@ -1,6 +1,6 @@
 from .SpeciesSerializer import SpeciesSerializer
 from .CommonPropertySerializer import CommonPropertySerializer
-from .InitialSpecieSerializer import InitialSpecieSerializer
+from .InitialSpeciesSerializer import InitialSpeciesSerializer
 from .FilePaperSerializer import FilePaperSerializer
 from .DataColumnSerializer import DataColumnSerializer
 from .ExperimentSerializer import ExperimentSerializer

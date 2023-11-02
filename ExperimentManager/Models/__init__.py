@@ -6,7 +6,7 @@ from .MappingInterpreter import MappingInterpreter
 from .Experiment import Experiment
 from .DataColumn import DataColumn
 from .CommonProperty import CommonProperty
-from .InitialSpecie import InitialSpecie
+from .InitialSpecies import InitialSpecies
 from .ChemModel import ChemModel
 from .Execution import Execution
 from .ExecutionColumn import ExecutionColumn

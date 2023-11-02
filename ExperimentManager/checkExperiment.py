@@ -39,8 +39,11 @@ def checkInitialSpecies(experiment):
         raise ExperimentConsistencyError('Fuel and Oxidizer intial species are possible only for counterflow flames.')
 
     for config_type in value_initial_species:
-        if sum(value_initial_species[config_type]) != 1 and len(value_initial_species[config_type]) > 0:
-            raise ExperimentConsistencyError('The sum of mole fraction of the {} initial species is not 1.'.format(config_type))
+        sum_initial = sum(value_initial_species[config_type])
+        if sum_initial != 1 and len(value_initial_species[config_type]) > 0:
+            raise ExperimentConsistencyError(
+                'The sum of mole fraction of the {} initial species is not 1. It is {}. The initial species are {}'.format(config_type,
+                                                                                                sum_initial, value_initial_species[config_type]))
 
 
 def checkProfiles(experiment, profile_list, dg_dict):
@@ -170,7 +173,8 @@ def checkDistribution(experiment, distribution_position, dg_dict):
         number_of_distribution = len(distribution_position[0].data)
 
         if len(dg_dict) < number_of_distribution:
-            raise ExperimentConsistencyError('Inconsistency between number of distribution_position and number of distribution')
+            raise ExperimentConsistencyError(
+                'Inconsistency between number of distribution_position and number of distribution')
 
         taken = set([])
 
@@ -181,7 +185,8 @@ def checkDistribution(experiment, distribution_position, dg_dict):
             for column in dg_dict[dg_id]:
                 if column.data_group_profile:
                     if len(dg_dict[dg_id]) != 2:
-                        raise ExperimentConsistencyError('A distribution experiment needs two column for the distribution data')
+                        raise ExperimentConsistencyError(
+                            'A distribution experiment needs two column for the distribution data')
                     if len(column.data_group_profile) != 1:
                         raise ExperimentConsistencyError(
                             'A distribution can be associated only to one value')
@@ -231,7 +236,7 @@ def checkExperiment(experiment, opensmoke=True):
         if column.uncertainty_kind:
             uncertainty_list.append(column)
         elif column.data_group_profile and column.dg_label in ['V-t history', 'p-t history', 'T-t history',
-                                                              'T-l history']:
+                                                               'T-l history']:
             profile_list.append(column)
         elif column.dg_label in ['distribution_position']:
             distribution_position.append(column)

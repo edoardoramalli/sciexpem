@@ -14,11 +14,11 @@ from SciExpeM import settings
 
 # START LOGGER
 # Logging
-import logging
+#import logging
 
-logger = logging.getLogger("ExperimentManager")
-logger.addHandler(ExperimentManager.apps.logger_handler)
-logger.setLevel(logging.INFO)
+#logger = logging.getLogger("ExperimentManager")
+#logger.addHandler(ExperimentManager.apps.logger_handler)
+#logger.setLevel(logging.INFO)
 
 
 # END LOGGER
@@ -70,7 +70,7 @@ class ExperimentManagerBaseView(APIView):
 
         except Exception:
             err_type, value, traceback = sys.exc_info()
-            logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
+ #           logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
             return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                             data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
         finally:

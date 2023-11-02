@@ -58,7 +58,7 @@ class Experiment(models.Model):
 
     reactor_modes = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
 
-    # Meta Data
+    # MetaData
     # fuels = ArrayField(models.CharField(max_length=40), null=True, blank=True)  # is checked
     fuels = SetField(models.CharField(max_length=40), null=True, blank=True)  # TODO to BE deprecated
     fuels_object = models.ManyToManyField(Model.Species, related_name="fuels_list", blank=True)
@@ -155,7 +155,7 @@ class Experiment(models.Model):
         t_inf = text_dict.get('t_inf')
         phi_sup = text_dict.get('phi_sup')
         phi_inf = text_dict.get('phi_inf')
-        fuels = text_dict.get('fuels')
+        fuels_object = text_dict.get('fuels_object')
         comment = text_dict.get('comment')
         os_input_file = text_dict.get('os_input_file')
         ignition_type = text_dict.get('ignition_type')
@@ -172,11 +172,17 @@ class Experiment(models.Model):
 
         exp = Experiment(experiment_type=experiment_type, reactor=reactor, fileDOI=fileDOI, os_input_file=os_input_file,
                          ignition_type=ignition_type, p_sup=p_sup, p_inf=p_inf, t_sup=t_sup, t_inf=t_inf,
-                         phi_sup=phi_sup, phi_inf=phi_inf, fuels=fuels, status='unverified', file_paper=paper,
+                         phi_sup=phi_sup, phi_inf=phi_inf, status='unverified', file_paper=paper,
                          comment=comment, username=username, reactor_modes=reactor_modes)
 
         paper.save()
         exp.save()
+
+
+        for fuel_id in fuels_object:
+            c_fuel = Model.Species.objects.get(id=fuel_id)
+            exp.fuels_object.add(c_fuel)
+
 
         data_columns = text_dict['data_columns']
         tmp1 = functools.reduce(operator.iconcat,
@@ -225,7 +231,7 @@ class Experiment(models.Model):
 
     def run_experiment_interpreter(self):
         # Rispettare le regole
-        types_list = Model.ExperimentInterpreter.objects.all()
+        types_list = Model.ExperimentInterpreter.objects.all() # TODO ottimizzare, in teoria basta fare una query un pò lasca e poi cercare su quelli. Ad esempio selezionando quelli che prevendono temperature o composition
         names_data_columns = set(
             [column.name for column in self.data_columns.all() if column.dg_label == 'experimental_data'])
         names_data_columns.discard('uncertainty')

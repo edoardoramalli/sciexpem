@@ -21,11 +21,15 @@ class getParityPlot(View.FrontEndBaseView):
 
     def view_post(self, request):
 
+
         new = {**self.query,
                'execution__experiment__status': 'verified',
                'label': self.target}
 
         models = check_models(self.models)
+
+        print(new)
+        print(models)
         if len(models) > 1:
             new = {**new,
                    'execution__experiment__id__in': common_execution_experiment_id(models[0],
@@ -41,9 +45,11 @@ class getParityPlot(View.FrontEndBaseView):
             for exec_id in exec_ids:
                 execution = Models.Execution.objects.get(id=exec_id)
                 consistency = Consistency()
+                # print('caiiiiiii')
 
                 for mapping in execution.experiment.experiment_interpreter.mappings.all():
                     results = pairExecutionExperiment(execution=execution, mapping=mapping, consistency=consistency)
+                    # print(results, exec_id)
                     for result in results:
                         if not result['valid']:
                             continue
@@ -79,7 +85,9 @@ class getParityPlot(View.FrontEndBaseView):
                             r[x_dataColumn.name] = {'data': [(max(y_exp), max(y_sim))],
                                                     'info': [execution.experiment.id]}
 
+            print('edoooooo')
             return Response(json.dumps(r), status=HTTP_200_OK)
+
 
         except Exception as e:
             return Response(str(e), status=HTTP_400_BAD_REQUEST)

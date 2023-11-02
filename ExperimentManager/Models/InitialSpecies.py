@@ -10,12 +10,12 @@ validatorSpecie = ReSpecThValidSpecie()
 
 
 # Initial species of the fuel
-class InitialSpecie(models.Model): # TODO da chiamare species not species
+class InitialSpecies(models.Model): # TODO da chiamare species not species
     # Mandatory - Checked Field
     name = models.CharField(max_length=20) # DA NON USARE !
     species = models.ForeignKey(Model.Species, on_delete=models.CASCADE, related_name="initial_species_object", blank=True, null=True)
     units = models.CharField(max_length=50)
-    value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=Tool.DECIMAL_PLACES)
+    value = models.DecimalField(max_digits=Tool.MAX_DIGITS, decimal_places=10)
 
     configuration = models.CharField(max_length=20, default='premixed', blank=False, null=False)
 
@@ -52,7 +52,7 @@ class InitialSpecie(models.Model): # TODO da chiamare species not species
                 "Unit initial species '%s' is not valid for 'composition' element!" % unit)
 
     @staticmethod
-    def createInitialSpecie(text_dict, experiment):
+    def createInitialSpecies(text_dict, experiment):
         specie_id = int(text_dict['species'])
         species = Model.Species.objects.get(id=specie_id)
         units = text_dict['units']
@@ -60,7 +60,7 @@ class InitialSpecie(models.Model): # TODO da chiamare species not species
         source_type = text_dict['source_type']
         configuration = text_dict['configuration']
 
-        return InitialSpecie(species=species, units=units, value=value, experiment=experiment, source_type=source_type, configuration=configuration)
+        return InitialSpecies(species=species, units=units, value=value, experiment=experiment, source_type=source_type, configuration=configuration)
 
     def save(self, *args, **kwargs):
         self.check_fields()

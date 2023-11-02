@@ -60,7 +60,8 @@ def visualizeSingleDataGroup(data_group, mapping_list, experiment):
 
             if uncertainty:
                 if uncertainty.uncertainty_kind == 'relative':
-                    uncertainty_dict['array'] = [float(x) * float(y_element.data[index]) for index, x in enumerate(uncertainty.data)]
+                    uncertainty_dict['array'] = [float(x) * float(y_element.data[index]) for index, x in
+                                                 enumerate(uncertainty.data)]
                 else:
                     uncertainty_dict['array'] = [float(x) for index, x in enumerate(uncertainty.data)]
                 uncertainty_dict['type'] = 'data'
@@ -164,7 +165,7 @@ class Consistency:
             if x_name not in self.unit[y_name]:
                 self.unit[y_name][x_name] = (x_unit, y_unit)
 
-    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict, title: str =None):
+    def add_info(self, x_name: str, y_name: str, x_axis: dict, y_axis: dict, title: str = None):
         if y_name not in self.info:
             self.info[y_name] = {x_name: {'xaxis': x_axis, 'yaxis': y_axis}}
         else:
@@ -225,8 +226,6 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
             # TODO
             # print(x_dataColumn)
             continue
-
-
 
         # For each experimental data in the same config add the units of the axis
         consistency.add_unit(x_name=x_dataColumn.name,
@@ -318,7 +317,12 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
 
                 y_sim_partial, y_execution_column_partial = get_Y_ExecutionColumn(execution_filter_y=execution_filter_y)
 
+                if len(y_sim_partial) == 0:
+                    y_sim_partial = [0] * len(y_sim_tot)
+
                 y_sim_tot = [x + y for x, y in zip(y_sim_partial, y_sim_tot)]
+
+
                 y_execution_column_tot.append(y_execution_column_partial)
 
             y_execution_column = y_execution_column_tot
@@ -341,7 +345,6 @@ def pairExecutionExperiment(execution, mapping, consistency, target=''):
 
 def visualizeExecution(execution, consist=None, target=None) -> dict:
     #  experiment status is assumed to be managed
-
 
     # print('edoooo', execution, consist)
 

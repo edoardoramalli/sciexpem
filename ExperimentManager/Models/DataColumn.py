@@ -194,7 +194,7 @@ class DataColumn(models.Model):
         # Optional
         label = text_dict.get('label')
         dg_label = text_dict.get('dg_label')
-        species = text_dict.get('species')
+        # species = text_dict.get('species')
         species_object = text_dict.get('species_object')
         data_group_profile = text_dict.get('data_group_profile')
 
