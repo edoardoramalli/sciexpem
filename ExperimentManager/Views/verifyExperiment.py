@@ -58,6 +58,7 @@ class verifyExperiment(View.ExperimentManagerBaseView):
                                     raise ReSpecThConvertError(error_convert)
                                 else:
                                     exp.os_input_file = input_os
+
                             upload_respecth(file_string=xml, doi=doi, bucket_url=bucket_url)
                             publish_doi(publish_url)
                     except FileNotFoundError:

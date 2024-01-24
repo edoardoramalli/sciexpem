@@ -144,7 +144,7 @@ class TranslatorOptimaPP:
                                                     Value=prop.value) + "\n"
         for i_species in initial_species:
             if i_species.species.preferredKey in species_used:
-                preferredKey = i_species.species.preferredKey + '_' + str(species_used[i_specie.specie.preferredKey])
+                preferredKey = i_species.species.preferredKey + '_' + str(species_used[i_species.species.preferredKey])
                 species_used[i_species.species.preferredKey] += 1
             else:
                 preferredKey = i_species.species.preferredKey

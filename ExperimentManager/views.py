@@ -12,13 +12,14 @@ from SciExpeM.checkPermissionGroup import HasGroupPermission
 import ExperimentManager
 from SciExpeM import settings
 
+
 # START LOGGER
 # Logging
-#import logging
+# import logging
 
-#logger = logging.getLogger("ExperimentManager")
-#logger.addHandler(ExperimentManager.apps.logger_handler)
-#logger.setLevel(logging.INFO)
+# logger = logging.getLogger("ExperimentManager")
+# logger.addHandler(ExperimentManager.apps.logger_handler)
+# logger.setLevel(logging.INFO)
 
 
 # END LOGGER
@@ -61,7 +62,8 @@ class ExperimentManagerBaseView(APIView):
             params = request.data
             try:
                 for par in self.paramsType:
-                    self.__setattr__(par, self.paramsType[par](params[par] if par in params else self.defaultParams[par]))
+                    self.__setattr__(par,
+                                     self.paramsType[par](params[par] if par in params else self.defaultParams[par]))
             except KeyError as e:
                 return Response(status=HTTP_400_BAD_REQUEST,
                                 data=self.viewName + ": KeyError in HTTP parameters. Missing parameter {}.".format(e))
@@ -70,7 +72,7 @@ class ExperimentManagerBaseView(APIView):
 
         except Exception:
             err_type, value, traceback = sys.exc_info()
- #           logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
+            #           logger.info('Error ' + self.viewName + ': ' + str(err_type.__name__) + " : " + str(value))
             return Response(status=HTTP_500_INTERNAL_SERVER_ERROR,
                             data=self.viewName + ": Generic error. " + str(err_type.__name__) + " : " + str(value))
         finally:

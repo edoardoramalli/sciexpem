@@ -125,7 +125,7 @@ class Experiment(models.Model):
         #     raise ConstraintFieldExperimentError("Too many reactor modes.")
 
     def check_verify(self):
-        list_property = ['phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'fuels', 'os_input_file']
+        list_property = ['phi_inf', 'phi_sup', 't_inf', 't_sup', 'p_inf', 'p_sup', 'fuels_object', 'os_input_file']
         for prop in list_property:
             if getattr(self, prop) is None or getattr(self, prop) == []:
                 raise ConstraintFieldExperimentError("'{}' field is not set.".format(prop))
@@ -195,7 +195,7 @@ class Experiment(models.Model):
             tmp2 = []
 
         initial_species = text_dict['initial_species']
-        tmp3 = [Model.InitialSpecie.createInitialSpecie(init, exp) for init in initial_species]
+        tmp3 = [Model.InitialSpecies.createInitialSpecies(init, exp) for init in initial_species]
 
         for item in tmp1 + tmp2 + tmp3:
             item.save()
